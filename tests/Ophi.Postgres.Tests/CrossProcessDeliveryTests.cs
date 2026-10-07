@@ -77,7 +77,7 @@ public class CrossProcessDeliveryTests(PostgresFixture fixture)
     [Fact]
     public async Task ScrapeProductUrlCommand_InEmbeddedMode_IsHandledInProcess()
     {
-        // Embedded mode (ENABLE_WORKER=true) is the Pi's exact deploy config: API + worker in one
+        // Embedded mode (ENABLE_WORKER=true) is the single-container deploy config: API + worker in one
         // process, no Postgres listener. The published command must be handled in-process via the local
         // [LocalQueue("scraping")] handler — NOT routed out to the Postgres queue (only SplitApi adds
         // that routing). If it were routed out, nothing would consume it and the product would stay

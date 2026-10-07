@@ -48,7 +48,7 @@ export default [
 	...svelte.configs['flat/prettier'],
 	{
 		rules: {
-			// No `paths.base` is configured (nor added by Dockerfile.pi's adapter-static swap), so resolve() is a no-op
+			// No `paths.base` is configured, so resolve() is a no-op
 			'svelte/no-navigation-without-resolve': 'off'
 		}
 	},

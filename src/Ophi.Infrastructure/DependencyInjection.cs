@@ -16,7 +16,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // Database provider — DB_PROVIDER selects postgres (default) or sqlite.
-        // We standardized on Postgres for ALL real deployments (split server + Pi); migrations
+        // We standardized on Postgres for ALL real deployments; migrations
         // are Postgres-only. SQLite is now test-only: the unit/integration test harnesses build
         // their own SQLite DbContext (UseSqlite + EnsureCreated, never Migrate) and don't go
         // through this default. Selecting sqlite at runtime is therefore only for those harnesses.
@@ -77,7 +77,7 @@ public static class DependencyInjection
         services.AddKeyedScoped<IScrapingService, ScrapingService>("http",
             (sp, _) => sp.GetRequiredService<ScrapingService>());
 
-        // Playwright — disabled via DISABLE_PLAYWRIGHT for lightweight deployments (e.g., Raspberry Pi)
+        // Playwright — disabled via DISABLE_PLAYWRIGHT for lightweight deployments
         var disablePlaywright = configuration.GetValue<bool>("DISABLE_PLAYWRIGHT");
         if (disablePlaywright)
         {

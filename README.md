@@ -1,146 +1,96 @@
 # Ophi
 
-Self-hosted price tracking — add products by URL, watch price history, and get alerted when prices drop.
+Self-hosted price tracking: add products by URL, watch their price history, and get alerted when
+prices drop.
 
-## Highlights
+## Features
 
-- Add products via URL with automatic price/title/image extraction (Playwright fallback for JS sites)
-- Per-URL price tracking, history charts, and a best-price rollup across stores
-- Price-drop alerts (`below` / `above` / `percentDrop`) over email, in-app, Discord, and outbound webhooks
-- Comparison groups, tags, search/sort/filter, and a scrape-health dashboard
-- Scripting surface: bearer API keys, CSV import/export, Prometheus `/metrics`, live updates over SSE
+- Add a product by URL. Ophi extracts the price, title, and image, and falls back to a headless
+  browser (Playwright) for JavaScript-heavy sites. A product can have several store URLs, with a
+  best-price rollup.
+- Price history charts, comparison groups, tags, search/sort/filter, and a scrape-health page.
+- Alerts (`below` / `above` / `percentDrop`) delivered in-app and over email, Discord, Telegram,
+  Pushover, and outbound webhooks.
+- Optional display currency: prices are also shown converted at ECB reference rates (display only).
+- Account backup/restore as one JSON file; CSV product import/export.
+- Bearer API keys, Prometheus `/metrics`, and live UI updates over Server-Sent Events.
 
-For the full feature list and scope, see [docs/README.md](docs/README.md).
+## Stack
 
-## Tech Stack
+.NET 10 (ASP.NET Core, EF Core, Wolverine) · PostgreSQL · SvelteKit (Svelte 5, Tailwind CSS) ·
+AngleSharp and Playwright for scraping. Exact versions are in `Directory.Packages.props` and
+`src/Ophi.Web/package.json`; the design is in [docs/architecture.md](docs/architecture.md).
 
-- **Backend:** .NET 10, ASP.NET Core, EF Core, **PostgreSQL** (Npgsql), Wolverine (message bus + durable Postgres transport), FluentValidation
-- **Frontend:** Svelte 5, SvelteKit 2, Tailwind CSS, Chart.js, Lucide Svelte
-- **Scraping:** AngleSharp (HTTP), Playwright (JS sites)
-- **Background work:** in-process `BackgroundService` schedulers + Wolverine handlers (no Hangfire)
-- **Email:** MailKit · **Infra:** Docker, Docker Compose, Caddy · **Package manager:** Bun
+## Self-hosting with Docker
 
-> SQLite is **test-only** (fast in-memory unit/handler tier). All real deployments run PostgreSQL,
-> selected by `DB_PROVIDER` (default `postgres`). See [docs/architecture.md](docs/architecture.md).
+Requirements: Docker with Compose v2. The images are built from source; the first build takes
+several minutes because the worker image installs Chromium.
 
-## Architecture
+1. Create `docker/.env` with at least a metrics token:
 
-```
-SvelteKit (SPA/SSR) ──▶ .NET API ──▶ PostgreSQL
-                          │             ▲
-   ScrapeProductUrlCommand │             │ shared DB
-   (durable Wolverine       ▼             │
-    Postgres transport)   Worker ─────────┘
-                          (scraping / schedulers)
-```
+   ```bash
+   echo "MetricsToken=$(openssl rand -hex 32)" > docker/.env
+   ```
 
-Backend is Vertical Slice + Wolverine; the API and Worker talk over a durable Postgres-backed
-Wolverine transport (with a polling backstop). See [docs/architecture.md](docs/architecture.md).
+2. Start the stack:
 
-## Documentation
+   ```bash
+   docker compose -f docker/docker-compose.yml up -d --build
+   ```
 
-Project docs live under [`docs/`](docs/README.md):
+   This runs PostgreSQL, the API (published on `:5000` for API-key clients), the worker, and the
+   web app.
 
-- [Architecture](docs/architecture.md) — system design, vertical slices, entity graph
-- [Features](docs/features.md) · [API](docs/api.md) · [Security](docs/security.md) · [Testing](docs/testing.md) · [Tech stack](docs/tech-stack.md)
-- [Raspberry Pi deployment](docs/deployment/raspberry-pi.md)
-- [Future work](docs/future.md) · [Implementation history](docs/history/README.md)
+3. Open <http://localhost:3000>, register your account, then set `REGISTRATION_ENABLED=false` in
+   `docker/.env` and run the `up` command again.
 
-Agent-facing instructions are in [`CLAUDE.md`](CLAUDE.md).
+Compose reads these variables from the environment or from `docker/.env`:
 
-## Requirements
+| Variable | Required | Purpose |
+|---|---|---|
+| `MetricsToken` | **yes** | Bearer token for `/metrics`. The API refuses to start in Production without it. |
+| `POSTGRES_PASSWORD` | recommended | Database password (default `ophi`). |
+| `APP_URL`, `ORIGIN` | when not on `localhost:3000` | Public URL of the web app (CORS, links in emails, SvelteKit origin check). |
+| `REGISTRATION_ENABLED` | recommended | `false` closes sign-up ([docs/security.md](docs/security.md)). |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | no | Email alerts and password-reset mail. |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `PUSHOVER_APP_TOKEN` | no | One operator bot/app; each user saves only their own chat id / user key. |
+| `FORWARDED_HEADERS_KNOWN_NETWORKS` | behind your own reverse proxy | Which proxies to trust for client IPs (per-IP rate limits; [docs/security.md](docs/security.md)). |
 
-- .NET 10 SDK
-- Bun
-- Node.js (for Playwright)
-- A PostgreSQL instance (or use the Docker stack below, which brings its own)
+Discord alerts need no server setting: each user saves their own webhook URL.
 
-## Configuration
+## Development
 
-Backend config comes from environment variables (see [`src/Ophi.Api/.env.example`](src/Ophi.Api/.env.example)):
-
-```env
-# Database — PostgreSQL
-DB_PROVIDER=postgres
-ConnectionStrings__Postgres=Host=localhost;Port=5432;Database=ophi;Username=ophi;Password=ophi
-
-# Application URL (used for CORS + links in alert emails)
-APP_URL=http://localhost:3000
-
-# Metrics endpoint protection — REQUIRED in Production (the API refuses to start without it)
-MetricsToken=
-
-# Email (SMTP, optional)
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=notifications@ophi.app
-SMTP_PASS=secret
-SMTP_FROM=Ophi <notifications@ophi.app>
-
-# Discord price-alert webhook (optional)
-DISCORD_WEBHOOK_URL=
-
-# Telegram / Pushover (optional) — one operator bot / app; each user saves only their chat id / user key.
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_BOT_USERNAME=
-PUSHOVER_APP_TOKEN=
-```
-
-## Running Locally
-
-The backend needs a reachable PostgreSQL (set `ConnectionStrings__Postgres`). The quickest source is a
-throwaway container: `docker run -d -p 5432:5432 -e POSTGRES_USER=ophi -e POSTGRES_PASSWORD=ophi -e POSTGRES_DB=ophi postgres:16-alpine`.
-
-Backend + worker:
+Requirements: .NET 10 SDK, [Bun](https://bun.sh) (the version in `src/Ophi.Web/package.json`
+`packageManager`), and a PostgreSQL you can reach, for example:
 
 ```bash
-dotnet build
-dotnet run --project src/Ophi.Api
-dotnet run --project src/Ophi.Worker
+docker run -d --name ophi-pg -p 5432:5432 -e POSTGRES_USER=ophi -e POSTGRES_PASSWORD=ophi -e POSTGRES_DB=ophi postgres:16-alpine
 ```
 
-Frontend:
+Both .NET processes read the database from `ConnectionStrings__Postgres`; other settings are listed
+in [`src/Ophi.Api/.env.example`](src/Ophi.Api/.env.example). The API applies migrations on start.
 
 ```bash
+export ConnectionStrings__Postgres="Host=localhost;Port=5432;Database=ophi;Username=ophi;Password=ophi"
+
+dotnet run --project src/Ophi.Api      # http://localhost:5041
+dotnet run --project src/Ophi.Worker   # scraping and schedulers
+
 cd src/Ophi.Web
+cp .env.example .env                   # VITE_API_URL=/api/v1
 bun install
-bun run dev
+API_URL=http://localhost:5041 bun run dev   # http://localhost:3000
 ```
 
-## Running With Docker
+The browser reaches the API through the Vite proxy; `API_URL` points the SvelteKit server at the
+same API for server-side loads. To run without a separate worker, start the API with
+`ENABLE_WORKER=true`. Without an installed Playwright browser, set `DISABLE_PLAYWRIGHT=true`
+(HTTP-only scraping).
 
-The compose stack includes PostgreSQL, the API, the worker, and the SvelteKit web container:
-
-```bash
-docker compose -f docker/docker-compose.yml up --build
-```
-
-Development override (sets `ASPNETCORE_ENVIRONMENT=Development`):
-
-```bash
-docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up --build
-```
-
-Default ports — Web: `http://localhost:3000`, API: `http://localhost:5000`.
-
-## Testing
-
-```bash
-dotnet test                              # backend (xUnit; SQLite in-memory unit tier)
-cd src/Ophi.Web && bun run test:run      # frontend (Vitest)
-cd src/Ophi.Web && bun run test:e2e      # E2E (Playwright)
-```
-
-The provider-sensitive `Ophi.Postgres.Tests` tier needs a real Postgres (`POSTGRES_TEST_CONNECTION`
-or a reachable Docker daemon for Testcontainers). See [docs/testing.md](docs/testing.md).
-
-## Contributing
-
-- TDD is mandatory: write a failing test first.
-- Coverage targets: Backend 80%+, Frontend 70%+.
-- Use Conventional Commits: `<type>(<scope>): <description>`.
-- `bun run build` does **not** type-check — run `bun run check` before considering frontend work done.
+Test commands and contributor conventions (TDD, Conventional Commits, the green-before-commit
+gate) are in [CLAUDE.md](CLAUDE.md). Reference docs are indexed in [docs/README.md](docs/README.md).
 
 ## License
 
-[AGPL-3.0-only](LICENSE). If you run a modified Ophi as a network service, you must offer its source to the users of that service.
+[AGPL-3.0-only](LICENSE). If you run a modified Ophi as a network service, you must offer its
+source to the users of that service.
