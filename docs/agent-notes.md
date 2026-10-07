@@ -448,17 +448,20 @@ CLAUDE.md has the headline rule; these are the known concrete classes:
 ## CI gates and the bug classes behind them
 
 Each gate exists because its class actually merged green once. Removing one re-opens the class.
+Each job runs only when a PR touches paths it can catch (the `changes` job in `ci.yml`); a weekly
+scheduled run executes everything. Narrowing a job's paths has the same cost as removing its gate for
+those paths.
 
 | Gate (ci.yml) | Bug class it guards |
 |---|---|
 | Frontend `bun run check` | Valid-JS type errors: calling a non-existent API-client method compiles and 500s at runtime (`getApiKeys` vs `listApiKeys`). Also enforced locally by the svelte-check Stop hook. |
 | Frontend `bun run build` (with `VITE_API_URL=/api/v1`) | SvelteKit build-only failures: an illegal non-`_` named export from `+page.ts` passes svelte-check AND vitest but 500s the route and fails the adapter `analyse` step (PR #64 shipped this; #73 added the gate). `client.ts` throws at import time if `VITE_API_URL` is unset. |
 | Frontend `bun run lint --max-warnings 0` | ESLint regressions, warnings included. Blocking since #178 cleared the baseline to 0 errors / 0 warnings; before that it ran `continue-on-error`, and earlier still docs claimed lint was a gate when CI never ran it at all. Intentional exceptions take a targeted `eslint-disable` with a reason, not a relaxed gate. |
-| `docker` matrix job (build stages) | Container-only build breaks: new root build-config files (`Directory.*.props`, `.editorconfig`, `global.json`, `nuget.config`) must be `COPY`d before `dotnet restore` in `docker/Dockerfile.{api,worker,pi}`, and `.editorconfig` globs must be prefix-independent (`**/…`) because the container flattens `src/` (PRs #65/#74/#75). |
-| `docker` matrix arm64 entries (worker + Pi runtime, QEMU) | Arch-hardcoded paths in runtime stages: the worker hardcoded `.playwright/node/linux-x64/node`, but `publish -a arm64` only ships `linux-arm64`, so the Pi 5 / Oracle ARM worker image failed to build while amd64 CI stayed green. |
+| `docker` matrix job (build stages; runs only for Dockerfile, root build-config, or `.csproj` changes) | Container-only build breaks: new root build-config files (`Directory.*.props`, `.editorconfig`, `global.json`, `nuget.config`) must be `COPY`d before `dotnet restore` in `docker/Dockerfile.{api,worker,pi}`, and `.editorconfig` globs must be prefix-independent (`**/…`) because the container flattens `src/` (PRs #65/#74/#75). |
+| `docker` matrix arm64 entries (worker + Pi runtime, native arm64 runners) | Arch-hardcoded paths in runtime stages: the worker hardcoded `.playwright/node/linux-x64/node`, but `publish -a arm64` only ships `linux-arm64`, so the Pi 5 / Oracle ARM worker image failed to build while amd64 CI stayed green. |
 | Backend test job (`--filter-not-trait "Category=Integration"`, Postgres service) | Provider-sensitive behavior — see the Postgres-only classes above. Also **Windows-dev vs Linux-prod divergence**: CI is the only place the suite runs on Linux. `Uri.TryCreate("/blocked", UriKind.Absolute, …)` returns false on Windows but **true** on Linux (a bare POSIX path parses as `file:///blocked`), so a URL matcher without a scheme check goes green locally and wrong in production. A backend test that passes locally and fails only here is this class before it is a flake. |
 | Backend vulnerable-package scan (`dotnet list package --vulnerable --include-transitive`) | Known-CVE NuGet packages, transitive included. Fails on any hit. |
-| Nightly e2e workflow | Runtime-only route breakage the unit/build gates can't see (the #64 dashboard 500 was only caught by a human loading the page). |
+| Nightly e2e workflow (skips when `main` has no commits in 25 h) | Runtime-only route breakage the unit/build gates can't see (the #64 dashboard 500 was only caught by a human loading the page). |
 
 Coverage targets (80% backend / 70% frontend) are advisory, measured via `test:coverage` — they are
 NOT CI-enforced. Don't claim otherwise in docs.

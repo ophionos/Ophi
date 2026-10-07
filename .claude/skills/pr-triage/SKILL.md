@@ -16,14 +16,16 @@ gh pr list --state open --json number,title,author,headRefName,isDraft,mergeable
 gh run list --workflow e2e.yml --branch main --limit 5
 ```
 
-Nightly E2E runs on `main` only, never per-PR. A red streak there is a real break on `main` that a PR
-must not be blamed for — find the first red night and the PR merged just before it (`git log --since`).
+Nightly E2E runs on `main` only, never per-PR, and skips nights when `main` did not change. A red streak (consecutive red *runs*) is a real break on `main` that a PR
+must not be blamed for — find the first red run and the PR merged just before it (`git log --since`).
 
 ## 2. Classify CI per PR
 
 | Symptom | Meaning | Action |
 |---|---|---|
 | All checks green | Mergeable | Review (step 3) |
+| No checks at all | The PR touches only docs, `.claude/`, `.githooks/`, or `LICENSE` (`paths-ignore` in `ci.yml`) | Expected — review normally |
+| A job shows "skipped" | The `changes` job found no path that job can catch | Expected — check the `changes` output if it looks wrong |
 | Job failed with a log | **Real failure** — red CI is signal | Read the log; fix or report |
 | Every job failed in 2-4 s, no log | Usually an Actions **billing block** (rare now: the repo is public, so standard runners are free); the check annotation says "recent account payments have failed" | Confirm the annotation, tell the user; don't merge on it — verify locally per CLAUDE.md § Testing Conventions instead |
 | Run predates a fix on `main`, or ran during a block | Stale | `gh run rerun <run-id>` (30-day window), or comment `@dependabot rebase` |
