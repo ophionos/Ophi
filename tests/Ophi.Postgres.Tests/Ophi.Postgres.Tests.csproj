@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Postgres-backed integration tier (Phase 1). Covers provider-sensitive behaviour the SQLite
+    unit tier cannot: migration apply, jsonb round-trip, case-insensitive search, UTC round-trip.
+    The fast unit/handler tests stay on SQLite in-memory.
+
+    Connection source (PostgresFixture):
+      - POSTGRES_TEST_CONNECTION env set  -> use it (local dev points at the throwaway Postgres;
+        CI may use a `services: postgres`). No Docker-from-Windows needed.
+      - else                              -> Testcontainers spins up postgres:16 (CI Linux, or any
+        host with a reachable Docker daemon).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- xunit.v3 test projects self-host their runner, so they must be executables. Microsoft.NET.Test.Sdk
+         used to set this implicitly; it was dropped with the move to Microsoft.Testing.Platform. -->
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Ophi.Api\Ophi.Api.csproj" />
+    <ProjectReference Include="..\..\src\Ophi.Infrastructure\Ophi.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Ophi.Worker\Ophi.Worker.csproj" />
+    <ProjectReference Include="..\Ophi.TestHelpers\Ophi.TestHelpers.csproj" />
+  </ItemGroup>
+
+</Project>

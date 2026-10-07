@@ -1,0 +1,95 @@
+name: E2E (nightly)
+
+# Runtime-only route breakage is the one class the per-PR gates can't see: PR #64 shipped a
+# /dashboard 500 that svelte-check, vitest AND (at the time) the build all missed — a human loading
+# the page caught it. This workflow drives the real app with the Playwright suite. Nightly + manual
+# rather than per-PR: the suite takes minutes and is newer than the other gates; promote it into
+# ci.yml once it has a stable green streak.
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    # 155 tests on 1 worker (workers:1 in CI — shared TEST_USER state): a green run is ~7.5 min
+    # (~5.3 min of tests, 2026-09-23). Failure retries inflate that fast, so the cap leaves ~4x
+    # headroom for Playwright to finish and write its report.
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ophi
+          POSTGRES_PASSWORD: ophi
+          POSTGRES_DB: ophi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ophi"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # Same Bun as the Docker images: package.json `packageManager` mirrors the oven/bun tag.
+          bun-version-file: src/Ophi.Web/package.json
+
+      - name: Install frontend dependencies
+        working-directory: src/Ophi.Web
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        working-directory: src/Ophi.Web
+        run: bunx playwright install --with-deps chromium
+
+      - name: Build API
+        run: dotnet build src/Ophi.Api --configuration Release
+
+      - name: Start API
+        # Mirrors the /dev-stack native recipe: Development env (unlimited auth rate limit — the
+        # suite registers many users from one IP), Playwright disabled (no real scraping in e2e),
+        # migrations apply on startup.
+        env:
+          DB_PROVIDER: postgres
+          ConnectionStrings__Postgres: 'Host=localhost;Port=5432;Database=ophi;Username=ophi;Password=ophi'
+          ASPNETCORE_ENVIRONMENT: Development
+          DISABLE_PLAYWRIGHT: 'true'
+        run: |
+          dotnet run --project src/Ophi.Api --configuration Release --no-build --no-launch-profile --urls http://localhost:5041 &> api.log &
+          echo $! > api.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5041/health > /dev/null; then echo "API healthy"; exit 0; fi
+            sleep 2
+          done
+          echo "API failed to become healthy"; cat api.log; exit 1
+
+      - name: Run e2e suite
+        working-directory: src/Ophi.Web
+        # Playwright's webServer starts `bun run dev` on :3000 (vite proxies /api -> :5041).
+        # VITE_API_URL must be set: .env is gitignored and client.ts throws at import time without it.
+        env:
+          VITE_API_URL: /api/v1
+        run: bun run test:e2e
+
+      - name: API log on failure
+        if: failure()
+        run: cat api.log
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: src/Ophi.Web/playwright-report/
+          retention-days: 14

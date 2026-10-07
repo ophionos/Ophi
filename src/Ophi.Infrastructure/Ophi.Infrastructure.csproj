@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ophi.Domain\Ophi.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" />
+    <PackageReference Include="JsonPath.Net" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Polly" />
+    <PackageReference Include="prometheus-net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ophi.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Ophi.Api.Tests" />
+    <!-- ScrapeHealthAnalyzer needs ScrapeHelpers.NormalizeHost; duplicating it is what let the
+         regex match timeout drift between the two scraping services (see docs/agent-notes.md). -->
+    <InternalsVisibleTo Include="Ophi.Worker" />
+  </ItemGroup>
+
+</Project>

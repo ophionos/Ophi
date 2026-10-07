@@ -1,0 +1,101 @@
+services:
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - ophi-db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=ophi
+      - POSTGRES_USER=ophi
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ophi}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ophi -d ophi"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_PROVIDER=postgres
+      - ConnectionStrings__Postgres=Host=db;Port=5432;Database=ophi;Username=ophi;Password=${POSTGRES_PASSWORD:-ophi}
+      - APP_URL=${APP_URL:-http://localhost:3000}
+      # Opt-in: trusting the bridge (e.g. 172.16.0.0/12) lets per-IP rate limits see the clients the
+      # `web` proxy forwards, but callers of the published :5000 also arrive from the bridge gateway
+      # and could then pick their own X-Forwarded-For. Only set it when :5000 is not reachable by
+      # untrusted clients. See docs/security.md.
+      - ForwardedHeaders__KnownIPNetworks=${FORWARDED_HEADERS_KNOWN_NETWORKS:-}
+      - MetricsToken=${MetricsToken:-}
+      # Set false once your own account exists to stop anyone else signing up (docs/security.md).
+      - Registration__Enabled=${REGISTRATION_ENABLED:-true}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-}
+      - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN:-}
+    # Persist Data Protection keys (AuthSetup writes them to /app/data/dp-keys) so an
+    # `api` container recreate doesn't rotate the keys and log every user out.
+    volumes:
+      - ophi-data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    environment:
+      - DB_PROVIDER=postgres
+      - ConnectionStrings__Postgres=Host=db;Port=5432;Database=ophi;Username=ophi;Password=${POSTGRES_PASSWORD:-ophi}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-}
+      - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    ports:
+      - "3000:3000"
+    environment:
+      - API_URL=http://api:5000
+      - ORIGIN=${ORIGIN:-http://localhost:3000}
+      # adapter-node reads proxied request bodies with a 512K default; account backups (up to the
+      # API's 25 MB limit) and CSV imports go through it on the way to /api.
+      - BODY_SIZE_LIMIT=${BODY_SIZE_LIMIT:-26M}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ophi-db:
+  ophi-data:

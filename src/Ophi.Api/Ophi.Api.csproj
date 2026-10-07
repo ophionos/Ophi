@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ophi.Domain\Ophi.Domain.csproj" />
+    <ProjectReference Include="..\Ophi.Infrastructure\Ophi.Infrastructure.csproj" />
+    <ProjectReference Include="..\Ophi.Worker\Ophi.Worker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CsvHelper" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="prometheus-net.AspNetCore" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="WolverineFx.FluentValidation" />
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Ophi.Api references Ophi.Worker (embedded-worker mode). Both projects ship
+         appsettings.json; on publish they collide (NETSDK1152). The API's own
+         appsettings wins (it is added before transitively-referenced content). -->
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ophi.Api.Tests" />
+  </ItemGroup>
+
+</Project>

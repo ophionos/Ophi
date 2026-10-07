@@ -1,0 +1,53 @@
+{
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(dotnet *)",
+      "Bash(bun *)",
+      "Bash(bunx *)",
+      "Bash(npx vitest run)",
+      "Bash(npx vitest run *)",
+      "Bash(npx playwright test *)",
+      "Bash(npx svelte-check *)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git show *)",
+      "Bash(git branch)",
+      "Bash(wsl -d archlinux -- sleep *)",
+      "Bash(wsl -d archlinux -- docker ps)",
+      "Bash(wsl -d archlinux -- docker logs *)",
+      "Bash(wsl -d archlinux -- docker inspect *)",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_wait_for",
+      "mcp__svelte__list-sections",
+      "mcp__svelte__get-documentation",
+      "mcp__svelte__svelte-autofixer"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR\\.claude\\hooks\\svelte-check.ps1\""
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR\\.claude\\hooks\\dotnet-build.ps1\""
+          }
+        ]
+      }
+    ]
+  }
+}

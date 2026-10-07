@@ -1,0 +1,49 @@
+# .NET
+bin/
+obj/
+# Microsoft.Testing.Platform writes TRX reports here, at the repo root. VSTest kept them under
+# each project's bin/, so this was covered by the rule above until the MTP migration.
+TestResults/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+.vs/
+*.db
+*.db-journal
+
+# Node/Bun
+node_modules/
+.svelte-kit/
+build/
+dist/
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+*.stackdump
+
+# Test coverage
+coverage/
+
+# Project specific (runtime data dirs — NOT SvelteKit routes named "data")
+data/
+!src/Ophi.Web/src/routes/**/data/
+*.log
+tmpclaude-*
+
+# Playwright MCP session artifacts (snapshots/console logs)
+.playwright-mcp/
+
+# Local UI-verification screenshots (see .claude/skills/dev-stack)
+shots/

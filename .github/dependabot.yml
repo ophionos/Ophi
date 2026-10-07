@@ -1,0 +1,67 @@
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      microsoft-extensions:
+        patterns:
+          - "Microsoft.Extensions.*"
+      microsoft-aspnetcore:
+        patterns:
+          - "Microsoft.AspNetCore.*"
+      microsoft-entityframeworkcore:
+        patterns:
+          - "Microsoft.EntityFrameworkCore.*"
+      wolverine:
+        patterns:
+          - "WolverineFx*"
+      xunit:
+        patterns:
+          - "xunit*"
+
+  - package-ecosystem: "npm"
+    directory: "/src/Ophi.Web"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      sveltekit:
+        patterns:
+          - "@sveltejs/*"
+          - "svelte"
+          - "svelte-*"
+      eslint:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@eslint/*"
+          - "@typescript-eslint/*"
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      types:
+        patterns:
+          - "@types/*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
+  - package-ecosystem: "docker"
+    directories:
+      - "/docker"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      dotnet:
+        patterns:
+          - "mcr.microsoft.com/dotnet/*"
+      bun:
+        patterns:
+          - "oven/bun"

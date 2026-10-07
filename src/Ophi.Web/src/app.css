@@ -1,0 +1,212 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/signika-negative';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+	--color-surface-0: var(--surface-0);
+	--color-surface-1: var(--surface-1);
+	--color-surface-2: var(--surface-2);
+	--color-surface-3: var(--surface-3);
+
+	/* Brand Colors */
+	--color-brand: #0d9488;
+	--color-brand-hover: #0f766e;
+	--color-brand-light: #f0fdfa;
+	--color-brand-subtle: #ccfbf1;
+	--color-brand-dark: #134e4a;
+	--color-brand-muted: #2dd4bf;
+	--color-brand-secondary: #6366f1;
+	--color-brand-secondary-dark: #818cf8;
+
+	--color-price-drop: #16a34a;
+	--color-price-drop-light: #dcfce7;
+	--color-price-drop-dark: #166534;
+	--color-price-increase: #dc2626;
+	--color-price-increase-light: #fee2e2;
+	--color-price-increase-dark: #991b1b;
+	--color-price-unchanged: #6b7280;
+	--color-price-unchanged-light: #f3f4f6;
+	--color-price-unchanged-dark: #374151;
+
+	/* Price Change Colors */
+	--color-price-up: rgba(239, 68, 68, 1);
+	/* red-500 */
+	--color-price-down: rgba(34, 197, 94, 1);
+	/* green-500 */
+	--color-price-neutral: rgba(107, 114, 128, 1);
+	/* gray-500 */
+}
+
+@keyframes shimmer {
+	100% {
+		transform: translateX(100%);
+	}
+}
+
+@utility animate-shimmer {
+	position: relative;
+	overflow: hidden;
+	background-color: var(--surface-2);
+
+	&::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		transform: translateX(-100%);
+		background-image: linear-gradient(90deg,
+				rgba(255, 255, 255, 0) 0,
+				rgba(255, 255, 255, 0.05) 20%,
+				rgba(255, 255, 255, 0.1) 60%,
+				rgba(255, 255, 255, 0));
+		animation: shimmer 2s infinite;
+	}
+}
+
+:root.dark [class*='animate-shimmer'] {
+	background-color: var(--surface-1);
+}
+
+:root {
+	--surface-0: #f9fafb;
+	--surface-1: #ffffff;
+	--surface-2: #f3f4f6;
+	--surface-3: #e5e7eb;
+}
+
+.dark {
+	--surface-0: #111827;
+	--surface-1: #1f2937;
+	--surface-2: #283141;
+	--surface-3: #374151;
+}
+
+body {
+	background-color: var(--surface-0);
+	background-image: radial-gradient(circle at 50% 0%, var(--surface-2) 0%, transparent 60%);
+	background-attachment: fixed;
+	font-family: 'Signika Negative Variable', sans-serif;
+	font-weight: 450;
+	@apply text-gray-900 dark:text-gray-100;
+}
+
+button:not(:disabled),
+[role='button']:not(:disabled),
+a[href] {
+	cursor: pointer;
+}
+
+@utility bg-brand-gradient {
+	background-image: linear-gradient(135deg, #0d9488, #6366f1);
+}
+
+@keyframes ticker {
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(-50%);
+	}
+}
+
+@utility animate-ticker {
+	animation: ticker 25s linear infinite;
+}
+
+@keyframes fade-in-up {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@utility animate-fade-in-up {
+	animation: fade-in-up 0.6s ease-out both;
+}
+
+@keyframes scan-sweep {
+	0% {
+		top: 0%;
+	}
+	100% {
+		top: 100%;
+	}
+}
+
+@utility animate-scan-sweep {
+	animation: scan-sweep 2s ease-in-out infinite;
+}
+
+@keyframes nav-progress {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(300%);
+	}
+}
+
+@utility animate-nav-progress {
+	animation: nav-progress 1.2s ease-in-out infinite;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 150ms;
+}
+
+/* Accessibility utilities */
+@utility sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
+}
+
+@utility not-sr-only {
+	position: static;
+	width: auto;
+	height: auto;
+	padding: 0;
+	margin: 0;
+	overflow: visible;
+	clip: auto;
+	white-space: normal;
+}
+
+@utility focus-visible-ring {
+	&:focus-visible {
+		outline: 2px solid var(--color-brand);
+		outline-offset: 2px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+
+	/* `*` does not match view-transition pseudo-elements, so page navigation needs its own opt-out. */
+	::view-transition-group(root),
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none !important;
+	}
+}

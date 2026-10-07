@@ -1,0 +1,69 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Lets a PackageVersion entry override a vulnerable TRANSITIVE dependency (NuGet audit runs
+         with TreatWarningsAsErrors, so an unpatched advisory fails restore repo-wide). -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Transitive-vulnerability overrides (see CentralPackageTransitivePinningEnabled above) -->
+    <!-- GHSA-v5pm-xwqc-g5wc: Microsoft.OpenApi <= 2.7.4 (pulled in at 2.0.0 by Microsoft.AspNetCore.OpenApi) -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.6" />
+    <!-- GHSA-2m69-gcr7-jv3q: SQLitePCLRaw.lib.e_sqlite3 <= 2.1.11 (pulled in by Microsoft.EntityFrameworkCore.Sqlite,
+         test-only). The bundle pin lifts core/provider/lib together to the patched 3.x line. -->
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+    <!-- Microsoft framework -->
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
+
+    <!-- Wolverine -->
+    <PackageVersion Include="WolverineFx" Version="6.45.0" />
+    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.45.0" />
+    <PackageVersion Include="WolverineFx.FluentValidation" Version="6.45.0" />
+    <PackageVersion Include="WolverineFx.Postgresql" Version="6.45.0" />
+    <!-- Wolverine 6 moved the Roslyn runtime compiler into this package. We keep
+         dynamic codegen (rather than static TypeLoadMode) because the API registers
+         handlers conditionally on enableWorker, which static codegen can't capture. -->
+    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.45.0" />
+
+    <!-- Scraping & infrastructure -->
+    <PackageVersion Include="AngleSharp" Version="1.8.3" />
+    <PackageVersion Include="CsvHelper" Version="33.1.0" />
+    <PackageVersion Include="JsonPath.Net" Version="3.0.2" />
+    <PackageVersion Include="MailKit" Version="4.18.1" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
+    <PackageVersion Include="Polly" Version="8.8.0" />
+
+    <!-- API & observability -->
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageVersion Include="prometheus-net" Version="8.2.1" />
+    <PackageVersion Include="prometheus-net.AspNetCore" Version="8.2.1" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.13" />
+
+    <!-- Test frameworks.
+         The suite runs on Microsoft.Testing.Platform (see UseMicrosoftTestingPlatformRunner in
+         Directory.Build.props). xunit.v3 4.0.0 dropped the VSTest bridge, so the VSTest-only
+         packages are gone rather than bumped:
+           - Microsoft.NET.Test.Sdk / xunit.runner.visualstudio — the VSTest host and adapter.
+             xunit.v3 carries its own MTP runner; these only re-add the unsupported VSTest path.
+           - coverlet.collector — a VSTest *data collector*, unreachable under MTP. Nothing in CI
+             or scripts collected backend coverage (the 80% target is advisory, see CLAUDE.md).
+             To bring it back, add Microsoft.Testing.Extensions.CodeCoverage and pass its
+             `coverage` option to the test run. -->
+    <PackageVersion Include="FluentAssertions" Version="8.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+    <PackageVersion Include="Moq" Version="4.21.0" />
+    <PackageVersion Include="RichardSzalay.MockHttp" Version="7.1.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+  </ItemGroup>
+</Project>

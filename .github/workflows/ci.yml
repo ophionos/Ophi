@@ -1,0 +1,184 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      # Postgres tier (Ophi.Postgres.Tests) reads POSTGRES_TEST_CONNECTION and creates an isolated
+      # database per run. Provided here so the tier doesn't fall back to Testcontainers (avoids an
+      # extra image pull at test time).
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        # Runs on Microsoft.Testing.Platform, not VSTest (global.json `test.runner`), so the flags
+        # are MTP/xunit.v3 spellings:
+        #   --filter-not-trait  replaces --filter "Category!=Integration", excluding
+        #     PlaywrightBrowserManagerTests, which launch a real Chromium and need `playwright
+        #     install` that CI does not provide. xunit.v3 4.0.0 does still accept the VSTest
+        #     --filter grammar, but it can't be combined with the --filter-* family, so the native
+        #     spelling is the one to build on. Verified as a real exclusion, not a no-op:
+        #     Ophi.Infrastructure.Tests discovers 667 unfiltered, 660 with this flag, and 7 with
+        #     --filter-trait "Category=Integration".
+        #   --report-xunit-trx  replaces --logger "trx;..." (--logger is gone). This is xunit.v3's
+        #     own TRX reporter, so it is version-locked to xunit.v3 and needs no
+        #     Microsoft.Testing.Extensions.TrxReport. The filename is left at its default
+        #     (user_machine_timestamp) — a fixed LogFileName would make all three projects overwrite
+        #     one file. Each TRX records its assembly in codeBase, so attribution survives.
+        #   --results-directory pins where those reports land. MTP's default is per-test-app, and
+        #     `dotnet test` overrides it to the working directory; pinning keeps it in step with the
+        #     upload path below rather than depending on that default.
+        #   --logger "console;verbosity=normal" maps to nothing: MTP's --output already defaults to
+        #     Normal, which is that logger's behaviour.
+        env:
+          POSTGRES_TEST_CONNECTION: "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=postgres"
+        run: dotnet test --no-build --configuration Release --filter-not-trait "Category=Integration" --report-xunit-trx --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        # MTP writes every project's report into the one --results-directory above, rather than
+        # VSTest's per-project <project>/TestResults/ — hence a flat path, not a '**/' glob.
+        with:
+          name: backend-test-results
+          path: 'TestResults/*.trx'
+
+      - name: Vulnerable package scan
+        run: |
+          set -o pipefail
+          output=$(dotnet list package --vulnerable --include-transitive 2>&1 | tee /dev/stderr)
+          if echo "$output" | grep -q "has the following vulnerable packages"; then
+            echo "::error::Vulnerable NuGet packages detected"
+            exit 1
+          fi
+
+  frontend:
+    name: Frontend (SvelteKit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: src/Ophi.Web
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # Same Bun as the Docker images: package.json `packageManager` mirrors the oven/bun tag.
+          bun-version-file: src/Ophi.Web/package.json
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        # `bun run build` does not type-check, so type errors (e.g. calling a
+        # non-existent API-client method) can ship and only 500 at runtime.
+        run: bun run check
+
+      - name: Unit tests
+        run: bun run test:run
+
+      - name: Lint
+        # Blocking, warnings included (--max-warnings 0): the baseline is 0 errors / 0 warnings.
+        run: bun run lint --max-warnings 0
+
+      - name: Build
+        # svelte-check + vitest both pass SvelteKit build-time errors (e.g. an
+        # illegal non-`_` export from a +page.ts, which 500s the route AND fails
+        # the adapter `analyse` step). Only `bun run build` catches that class, so
+        # it gates here — otherwise an un-deployable tree merges green.
+        # client.ts reads VITE_API_URL at import time and throws if unset, and the
+        # postbuild analyse step imports it — mirror the production web image value.
+        env:
+          VITE_API_URL: /api/v1
+        run: bun run build
+
+  docker:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The source builds above (dotnet build / bun run build at the repo root) do NOT
+    # exercise the Dockerfiles. Two recent merges left main un-deployable and merged
+    # green because nothing built the images: #65 moved the shared TargetFramework into
+    # Directory.Build.props (not copied before `dotnet restore`) and relied on a
+    # `src/`-anchored .editorconfig glob that misses the container's flattened layout
+    # (`src/Ophi.Infrastructure/` -> `/src/Ophi.Infrastructure/`). Only a build through
+    # the actual Dockerfile catches that class.
+    #
+    # We build through each image's *build* stage (publish / vite build) — that is where
+    # every failure we've hit lived. The heavy runtime layers (the worker's ~113 MB
+    # Playwright Chromium install, final image assembly) are intentionally skipped here to
+    # keep PR latency low; if those need coverage, add a nightly full `docker compose build`.
+    #
+    # Exception: arm64 (Pi 5 / Oracle ARM) runtime stages. The worker's runtime stage once
+    # hardcoded the linux-x64 Playwright node path, which `-a arm64` publish never ships —
+    # amd64 build-stage builds can't see that. The arm64 entries run under QEMU (repo is
+    # private, so no free native arm runners); the .NET/bun stages use
+    # `--platform=$BUILDPLATFORM`, so only runtime-stage RUN steps are emulated.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: api, file: docker/Dockerfile.api, target: build, platform: linux/amd64 }
+          - { name: worker, file: docker/Dockerfile.worker, target: build, platform: linux/amd64 }
+          - { name: web, file: docker/Dockerfile.web, target: build, platform: linux/amd64 }
+          # Full runtime stage on arm64, Chromium install included (see comment above).
+          - { name: worker-arm64, file: docker/Dockerfile.worker, target: runtime, platform: linux/arm64 }
+          # Pi is single-container with no Chromium; target its runtime stage so the build
+          # exercises both the .NET publish and the SvelteKit adapter-static swap it does,
+          # on arm64 because that is the only arch it ships for.
+          - { name: pi, file: docker/Dockerfile.pi, target: runtime, platform: linux/arm64 }
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v4
+        if: matrix.platform != 'linux/amd64'
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build ${{ matrix.name }} image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          platforms: ${{ matrix.platform }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

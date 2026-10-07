@@ -1,0 +1,37 @@
+<!--
+  Representative eBay listing, hand-built rather than captured — see the note in
+  amazon-product.html and the class comment on StoreConfigFixtureTests.
+
+  Exercises EbayConfig's structured-data-first ordering: "[itemprop='price']|content" is the first
+  price selector, so the machine-readable value wins over the displayed ".x-price-primary" text.
+  Both are present here and agree, which is what a real listing looks like.
+-->
+<html lang="en">
+<head>
+    <title>Sennheiser HD 600 Headphones - Refurbished | eBay</title>
+    <meta property="og:title" content="Sennheiser HD 600 Headphones - Refurbished" />
+</head>
+<body>
+    <div class="vim x-item-title">
+        <h1 class="x-item-title__mainTitle">
+            <span class="ux-textspans ux-textspans--BOLD">Sennheiser HD 600 Headphones - Refurbished</span>
+        </h1>
+    </div>
+
+    <div class="x-price-section" itemscope itemtype="https://schema.org/Offer">
+        <meta itemprop="price" content="189.50" />
+        <meta itemprop="priceCurrency" content="USD" />
+        <div class="x-price-primary">
+            <span class="ux-textspans">US $189.50</span>
+        </div>
+    </div>
+
+    <div class="ux-image-carousel-item">
+        <img class="ux-image-magnify__image--original" src="https://i.ebayimg.com/images/g/hd600/s-l1600.jpg" alt="Sennheiser HD 600" />
+    </div>
+
+    <div class="d-quantity__availability">
+        <span class="ux-textspans">More than 10 available</span>
+    </div>
+</body>
+</html>

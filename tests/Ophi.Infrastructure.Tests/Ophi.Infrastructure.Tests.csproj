@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- xunit.v3 test projects self-host their runner, so they must be executables. Microsoft.NET.Test.Sdk
+         used to set this implicitly; it was dropped with the move to Microsoft.Testing.Platform. -->
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="RichardSzalay.MockHttp" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Saved pages for StoreConfigFixtureTests. Globbed rather than listed so adding a store's
+         fixture needs no csproj edit — the point is that contributing an adapter is cheap. -->
+    <None Include="Scraping\Fixtures\*.html" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Ophi.Infrastructure\Ophi.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Ophi.Worker\Ophi.Worker.csproj" />
+    <ProjectReference Include="..\Ophi.TestHelpers\Ophi.TestHelpers.csproj" />
+  </ItemGroup>
+
+</Project>

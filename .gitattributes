@@ -1,0 +1,25 @@
+# Normalize line endings to LF on commit, checkout as native
+* text=auto eol=lf
+
+# Force LF for web/script files
+*.ts text eol=lf
+*.js text eol=lf
+*.svelte text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Force LF for .NET files
+*.cs text eol=lf
+*.csproj text eol=lf
+*.sln text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

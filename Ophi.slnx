@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ophi.Api/Ophi.Api.csproj" />
+    <Project Path="src/Ophi.Domain/Ophi.Domain.csproj" />
+    <Project Path="src/Ophi.Infrastructure/Ophi.Infrastructure.csproj" />
+    <Project Path="src/Ophi.Worker/Ophi.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ophi.Api.Tests/Ophi.Api.Tests.csproj" />
+    <Project Path="tests/Ophi.Infrastructure.Tests/Ophi.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Ophi.Postgres.Tests/Ophi.Postgres.Tests.csproj" />
+    <Project Path="tests/Ophi.TestHelpers/Ophi.TestHelpers.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,57 @@
+root = true
+
+[*.cs]
+charset = utf-8
+
+# ---------------------------------------------------------------------------
+# Analyzer tuning. The build runs AnalysisLevel=latest-recommended with
+# TreatWarningsAsErrors (see Directory.Build.props); rules below are the
+# deliberate exceptions. "suggestion" keeps a rule visible in the IDE without
+# failing the build.
+# ---------------------------------------------------------------------------
+
+# Logging performance (LoggerMessage delegates / eager argument evaluation).
+# ~300 call sites; only the worker/scraping hot path would measurably benefit.
+# Kept as IDE suggestions rather than churning every handler.
+dotnet_diagnostic.CA1848.severity = suggestion
+dotnet_diagnostic.CA1873.severity = suggestion
+
+# Culture/perf rules that misfire inside EF Core expression trees:
+# p.Name.ToLower() must stay ToLower() to translate to SQL lower() and match
+# the pg_trgm index, and .Any() translates to EXISTS (better than Count).
+# The invariant-culture variants do not translate at all.
+dotnet_diagnostic.CA1304.severity = suggestion
+dotnet_diagnostic.CA1311.severity = suggestion
+dotnet_diagnostic.CA1860.severity = suggestion
+dotnet_diagnostic.CA1862.severity = suggestion
+
+# Identifier-naming interop rules irrelevant to an application codebase
+# (CA1716 flags the Features/Auth/Me endpoint slice for colliding with a VB keyword).
+dotnet_diagnostic.CA1716.severity = none
+
+# EF Core migrations are scaffolded code. Path-prefix-independent glob so it also
+# applies in the Docker build context, which copies src/Ophi.Infrastructure/ to
+# /src/Ophi.Infrastructure/ (no src/ prefix) — a src/-anchored glob would miss it.
+[**/Migrations/*.cs]
+generated_code = true
+
+# ---------------------------------------------------------------------------
+# Test projects: the [Method]_[Scenario]_[ExpectedResult] naming convention
+# uses underscores by design, and test fixtures/data favour readability over
+# library-grade API hygiene.
+# ---------------------------------------------------------------------------
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none        # underscores in test names (convention)
+dotnet_diagnostic.CA1051.severity = none        # visible fields in fixtures
+dotnet_diagnostic.CA1816.severity = none        # GC.SuppressFinalize in Dispose-only fixtures
+dotnet_diagnostic.CA1861.severity = none        # inline arrays as test data
+dotnet_diagnostic.CA2201.severity = none        # tests throw bare Exception deliberately
+dotnet_diagnostic.CA1852.severity = suggestion  # seal internal types
+dotnet_diagnostic.CA1859.severity = suggestion  # concrete return types
+dotnet_diagnostic.CA1001.severity = none        # fixtures own disposables; xUnit lifetime handles them
+dotnet_diagnostic.CA1711.severity = none        # e.g. PostgresCollection (xUnit collection naming)
+dotnet_diagnostic.CA1305.severity = suggestion
+dotnet_diagnostic.CA1310.severity = suggestion
+dotnet_diagnostic.CA1725.severity = none        # parameter renames in test doubles
+dotnet_diagnostic.CA1829.severity = suggestion
+dotnet_diagnostic.CA1835.severity = suggestion

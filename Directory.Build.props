@@ -1,0 +1,24 @@
+<Project>
+
+  <!-- Shared build settings for every C# project in the repo.
+       Project-specific settings (UserSecretsId, publish workarounds) stay in the csproj. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Code-quality analyzers at the latest recommended level; warnings fail the build.
+         Rule-by-rule tuning (EF expression-tree false positives, test-project conventions)
+         lives in the root .editorconfig. -->
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Test projects run on Microsoft.Testing.Platform, not VSTest: xunit.v3 4.0.0 dropped the
+         VSTest bridge, and the .NET 10 SDK refuses it outright ("Testing with VSTest target is no
+         longer supported"). This property swaps xunit's own console runner for the MTP command
+         line; `global.json` ("test": {"runner": ...}) is what makes `dotnet test` drive it.
+         Harmless on non-test projects — it only binds where xunit.v3 is referenced. -->
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
+
+</Project>

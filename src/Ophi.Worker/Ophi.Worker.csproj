@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <UserSecretsId>dotnet-Ophi.Worker-8955bec7-2034-43a5-bad8-4c293dca2f6f</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ophi.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Ophi.Postgres.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" VersionOverride="10.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="WolverineFx.Postgresql" />
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ophi.Domain\Ophi.Domain.csproj" />
+    <ProjectReference Include="..\Ophi.Infrastructure\Ophi.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

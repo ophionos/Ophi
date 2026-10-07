@@ -1,0 +1,69 @@
+# Build stage
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG TARGETARCH
+WORKDIR /src
+
+# Copy build-config files. Directory.Packages.props (Central Package Management) and
+# Directory.Build.props (shared TargetFramework et al.) are needed at restore; .editorconfig
+# tunes the analyzers and must be present at build time under TreatWarningsAsErrors. global.json
+# only selects the test runner today, but it is the file an SDK pin would live in — copying it
+# keeps the container on the same SDK the repo builds with.
+COPY Directory.Packages.props Directory.Build.props global.json .editorconfig ./
+COPY src/Ophi.Domain/*.csproj Ophi.Domain/
+COPY src/Ophi.Infrastructure/*.csproj Ophi.Infrastructure/
+COPY src/Ophi.Worker/*.csproj Ophi.Worker/
+
+# Restore dependencies
+RUN dotnet restore Ophi.Worker/Ophi.Worker.csproj -a $TARGETARCH
+
+# Copy source code
+COPY src/Ophi.Domain/ Ophi.Domain/
+COPY src/Ophi.Infrastructure/ Ophi.Infrastructure/
+COPY src/Ophi.Worker/ Ophi.Worker/
+
+# Build and publish
+RUN dotnet publish Ophi.Worker/Ophi.Worker.csproj -c Release -o /app/publish -a $TARGETARCH --no-restore
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+ARG TARGETARCH
+WORKDIR /app
+
+# Copy published files (as root, before switching user)
+COPY --from=build /app/publish .
+
+# Install Playwright Chromium and its system dependencies using the bundled driver.
+# Force IPv4-first DNS for the download: the Playwright CDN (msedge) advertises AAAA
+# records, and on IPv6-broken hosts the bundled node downloader hangs indefinitely on
+# the IPv6 connect. Scoped to this RUN so it doesn't leak into the runtime image.
+# The publish (`-a $TARGETARCH`) only ships the driver's node for the target RID, so the
+# node dir must follow TARGETARCH — a hardcoded linux-x64 path doesn't exist on arm64.
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright-browsers
+RUN case "$TARGETARCH" in \
+      amd64) PW_NODE_DIR=linux-x64 ;; \
+      arm64) PW_NODE_DIR=linux-arm64 ;; \
+      *) echo "Unsupported TARGETARCH '$TARGETARCH' for the Playwright driver" >&2; exit 1 ;; \
+    esac && \
+    PW_NODE="/app/.playwright/node/$PW_NODE_DIR/node" && \
+    chmod +x "$PW_NODE" && \
+    NODE_OPTIONS=--dns-result-order=ipv4first \
+    "$PW_NODE" /app/.playwright/package/cli.js install --with-deps chromium
+
+# Create data directory and fix permissions for non-root user
+RUN mkdir -p /app/data && \
+    chown -R app:app /app/data && \
+    chown -R app:app /app/.playwright && \
+    chown -R app:app /app/.playwright-browsers
+
+USER app
+
+ENV DATABASE_PATH=/app/data/ophi.db
+ENV WORKER_HEARTBEAT_PATH=/tmp/ophi-worker.heartbeat
+
+# Liveness: PriceCheckDispatcher writes the heartbeat file each loop (~60s).
+# Mark unhealthy if it hasn't been touched in the last 3 minutes (1 cycle of slack
+# for long DataRetentionService cleanups).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD test -n "$(find "$WORKER_HEARTBEAT_PATH" -mmin -3 2>/dev/null)" || exit 1
+
+ENTRYPOINT ["dotnet", "Ophi.Worker.dll"]

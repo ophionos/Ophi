@@ -1,0 +1,14 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"types": ["node"],
+		"moduleResolution": "bundler"
+	},
+	"include": [
+		"vite.config.ts",
+		"vitest.config.ts",
+		"svelte.config.ts",
+		"svelte.config.js",
+		"playwright.config.ts"
+	]
+}

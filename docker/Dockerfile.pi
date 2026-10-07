@@ -1,0 +1,85 @@
+# Single-container build for Raspberry Pi deployments.
+# Combines API + Worker into one .NET process and builds the frontend as static files.
+# Caddy (running separately on the host) serves the static files and proxies /api/* requests.
+#
+# Build:  docker build -f docker/Dockerfile.pi -t ophi:pi .
+# Run:    docker compose -f docker/docker-compose.pi.yml up -d
+
+# --------------------------------------------------
+# Stage 1: Build the .NET API (with embedded Worker)
+# --------------------------------------------------
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet-build
+ARG TARGETARCH
+WORKDIR /src
+
+# Copy build-config files. Directory.Packages.props (Central Package Management) and
+# Directory.Build.props (shared TargetFramework et al.) are needed at restore; .editorconfig
+# tunes the analyzers and must be present at build time under TreatWarningsAsErrors. global.json
+# only selects the test runner today, but it is the file an SDK pin would live in — copying it
+# keeps the container on the same SDK the repo builds with.
+COPY Directory.Packages.props Directory.Build.props global.json .editorconfig ./
+COPY src/Ophi.Domain/*.csproj Ophi.Domain/
+COPY src/Ophi.Infrastructure/*.csproj Ophi.Infrastructure/
+COPY src/Ophi.Worker/*.csproj Ophi.Worker/
+COPY src/Ophi.Api/*.csproj Ophi.Api/
+
+# Restore dependencies
+RUN dotnet restore Ophi.Api/Ophi.Api.csproj -a $TARGETARCH
+
+# Copy source code
+COPY src/Ophi.Domain/ Ophi.Domain/
+COPY src/Ophi.Infrastructure/ Ophi.Infrastructure/
+COPY src/Ophi.Worker/ Ophi.Worker/
+COPY src/Ophi.Api/ Ophi.Api/
+
+# Publish
+RUN dotnet publish Ophi.Api/Ophi.Api.csproj -c Release -o /app/publish -a $TARGETARCH --no-restore
+
+# --------------------------------------------------
+# Stage 2: Build the SvelteKit frontend as static files
+# --------------------------------------------------
+# Keep this tag in step with `packageManager` in src/Ophi.Web/package.json (CI reads that).
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.2 AS web-build
+WORKDIR /app
+
+COPY src/Ophi.Web/package.json src/Ophi.Web/bun.lock* ./
+RUN bun install --frozen-lockfile
+
+COPY src/Ophi.Web/ .
+
+# Swap to adapter-static for SPA mode
+RUN bun add -d @sveltejs/adapter-static && \
+    sed -i "s|from '@sveltejs/adapter-node'|from '@sveltejs/adapter-static'|" svelte.config.js && \
+    sed -i "s|adapter: adapter()|adapter: adapter({ fallback: 'index.html' })|" svelte.config.js
+
+# Disable SSR for static build — prepend to existing +layout.ts
+RUN sed -i '1s|^|export const ssr = false;\n|' src/routes/+layout.ts
+
+ENV VITE_API_URL=/api/v1
+RUN bun run build
+
+# --------------------------------------------------
+# Stage 3: Runtime — .NET API with embedded Worker
+# --------------------------------------------------
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
+# Create data directory and set permissions for non-root user
+RUN mkdir -p /app/data && chown -R app:app /app/data
+
+COPY --from=dotnet-build /app/publish .
+COPY --from=web-build /app/build /app/static
+
+USER app
+
+ENV ASPNETCORE_URLS=http://+:5000
+ENV DATABASE_PATH=/app/data/ophi.db
+ENV ENABLE_WORKER=true
+ENV DISABLE_PLAYWRIGHT=true
+
+EXPOSE 5000
+
+ENTRYPOINT ["dotnet", "Ophi.Api.dll"]

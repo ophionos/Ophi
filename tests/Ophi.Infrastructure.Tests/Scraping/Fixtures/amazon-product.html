@@ -1,0 +1,42 @@
+<!--
+  Representative Amazon product page, hand-built rather than captured: it exercises the selectors
+  AmazonConfig actually lists, in their real priority order, without redistributing a copy of
+  someone's page. A contributor verifying a new store should save the real page instead — see the
+  class comment on StoreConfigFixtureTests.
+
+  Exercises: ".a-price .a-offscreen" (first price selector), "#productTitle" (first name selector),
+  "#landingImage|src" (first image selector), and the og:price:currency currency meta.
+-->
+<html lang="en">
+<head>
+    <title>Amazon.com: Sennheiser HD 600 Open Back Headphone</title>
+    <meta property="og:title" content="Sennheiser HD 600 Open Back Headphone" />
+    <meta property="og:price:currency" content="USD" />
+</head>
+<body>
+    <div id="dp-container">
+        <span id="productTitle">  Sennheiser HD 600 Open Back Headphone  </span>
+
+        <div id="corePriceDisplay_desktop_feature_div">
+            <div class="a-section a-spacing-none aok-align-center">
+                <span class="a-price aok-align-center" data-a-color="base">
+                    <span class="a-offscreen">$249.99</span>
+                    <span aria-hidden="true">
+                        <span class="a-price-symbol">$</span>
+                        <span class="a-price-whole">249<span class="a-price-decimal">.</span></span>
+                        <span class="a-price-fraction">99</span>
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        <div id="imgTagWrapperId">
+            <img id="landingImage" src="https://m.media-amazon.com/images/I/hd600._AC_SL1500_.jpg" alt="Sennheiser HD 600" />
+        </div>
+
+        <div id="availability">
+            <span class="a-color-success">In Stock</span>
+        </div>
+    </div>
+</body>
+</html>

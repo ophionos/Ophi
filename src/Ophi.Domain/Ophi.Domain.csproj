@@ -1,0 +1,5 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Shared properties (TFM, Nullable, analyzers) come from Directory.Build.props -->
+
+</Project>

@@ -1,0 +1,41 @@
+# Build stage
+# Keep this tag in step with `packageManager` in src/Ophi.Web/package.json (CI reads that).
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.2 AS build
+WORKDIR /app
+
+# Copy package files
+COPY src/Ophi.Web/package.json src/Ophi.Web/bun.lock* ./
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source code
+COPY src/Ophi.Web/ .
+
+# Build the application
+ENV VITE_API_URL=/api/v1
+RUN bun run build
+
+# Production stage. adapter-node targets Node; bun's node:http emulation resets
+# the connection on proxied POST request bodies (see hooks.server.ts), so the
+# runtime stage runs on Node even though the build stage uses bun.
+FROM node:26-slim AS runtime
+WORKDIR /app
+
+# Create non-root user
+RUN useradd --no-create-home --shell /bin/false appuser
+USER appuser
+
+COPY --from=build /app/build ./build
+COPY --from=build /app/package.json .
+
+ENV HOST=0.0.0.0
+ENV PORT=3000
+ENV NODE_ENV=production
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD node -e "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" || exit 1
+
+CMD ["node", "build"]
