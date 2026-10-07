@@ -5,7 +5,7 @@ description: Run Ophi locally on Windows for UI / Playwright / manual-verificati
 
 # Run the App Locally (Windows)
 
-`<distro>`, `<repo-wsl>`, and `<stack-dir>` are machine-local values from the untracked `CLAUDE.local.md`; substitute them before running.
+`<distro>`, `<repo-wsl>`, and `<stack-dir>` are machine-local values from the untracked `CLAUDE.local.md`; substitute them before running. Docker runs inside WSL only — there is no Windows-side `docker` CLI, so every `docker` command below goes through `wsl -d <distro> --`.
 
 Two verified modes. Use **native** for fast iteration on uncommitted code; use the **compose stack** to verify the real containerized deployment (it works end-to-end — see `/redeploy`).
 
@@ -33,18 +33,19 @@ Topology: dockerized Postgres in WSL (host-published) + native API on :5041 + vi
    dotnet run --project src/Ophi.Api --no-launch-profile --urls http://localhost:5041
    ```
    The API always runs `Migrate()` outside the Testing env and migrations are Postgres-only — running natively against SQLite is NOT viable.
-4. **Web** (from `src/Ophi.Web`): `bun run dev -- --port 5173 --strictPort`. Must be **5173** — `appsettings.Development.json` allows 5173 + 3000 for CORS/CSRF, and 3000 belongs to the compose stack's web container.
+4. **Web** (from `src/Ophi.Web`, env `API_URL=http://localhost:5041`): `bun run dev -- --port 5173 --strictPort`. Without `API_URL`, server-side loads go to `:5000` (the compose stack's API, or nothing). Must be **5173** — `appsettings.Development.json` allows 5173 + 3000 for CORS/CSRF, and 3000 belongs to the compose stack's web container.
 5. **Demo data:** don't rely on the scraper (no worker, Playwright disabled). Register an account through the real UI, take its `Users.Id`, then seed via `scripts/seed-demo.sql` (edit the `uid`):
    ```
    wsl -d <distro> -- bash -lc 'cat <repo-wsl>/scripts/seed-demo.sql | docker exec -i ophi-pg-demo psql -U ophi -d ophi'
    ```
-   Pipe SQL files instead of `psql -c` (nested PowerShell→bash→docker quoting mangles).
+   Pipe SQL files instead of `psql -c` (nested PowerShell→bash→docker quoting mangles). PowerShell also expands `$var` inside `bash -lc '...'` to empty, so loop variables vanish — use literal commands (`$(...)` and `$?` survive).
+6. **Postgres test tier:** `POSTGRES_TEST_CONNECTION` must point at this container (`Host=localhost;Port=5432;Database=ophi;Username=ophi;Password=ophi`; the local value is set as described in `CLAUDE.local.md`). Without it the fixture falls back to Testcontainers, which cannot start when Docker exists only inside WSL.
 
 **Teardown:** stop the keepalive + dotnet/bun background tasks; `docker rm -f ophi-pg-demo`. The compose stack stays untouched.
 
 ## Mode B — full compose stack (verifies the real deployment, runs committed code)
 
-The WSL2 stack at `<stack-dir>` (root-owned; all docker/compose commands need `sudo` — see `/redeploy` for path + privilege details) serves http://localhost:3000 end-to-end (web proxies `/api/*` → `http://api:5000` via `hooks.server.ts`). It runs a `git archive HEAD` export, **not** the working tree — use `/redeploy` to sync and rebuild. Browser-test directly against :3000.
+The WSL2 stack at `<stack-dir>` (root-owned; all docker/compose commands need `sudo` — see `/redeploy` for path + privilege details) serves http://localhost:3000 end-to-end (web proxies `/api/*` → `http://api:5000` via `src/lib/server/handle.ts`). It runs a `git archive HEAD` export, **not** the working tree — use `/redeploy` to sync and rebuild. Browser-test directly against :3000.
 
 ## Verifying UI work
 

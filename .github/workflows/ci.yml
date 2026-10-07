@@ -186,19 +186,15 @@ jobs:
     # Dockerfile catches that class, which is why `changes` runs this job only for Dockerfile,
     # root build-config, and project-file changes.
     #
-    # Coverage per entry: arm64 builds the full runtime stage of the worker (Chromium install, and the
-    # arch-specific Playwright node path that once broke only on arm64) and of the Pi image (.NET
-    # publish + the SvelteKit adapter-static swap); their build stages cover the worker's and the
-    # API's publish. `api` and `web` stay because their Dockerfiles are distinct. arm64 runs on
-    # native public-repo runners, not QEMU.
+    # Coverage per entry: `worker` builds its full runtime stage (Chromium install, the Playwright node
+    # path); `api` and `web` build their `build` stage, which runs the publish.
     strategy:
       fail-fast: false
       matrix:
         include:
           - { name: api, file: docker/Dockerfile.api, target: build, platform: linux/amd64, runner: ubuntu-latest }
           - { name: web, file: docker/Dockerfile.web, target: build, platform: linux/amd64, runner: ubuntu-latest }
-          - { name: worker-arm64, file: docker/Dockerfile.worker, target: runtime, platform: linux/arm64, runner: ubuntu-24.04-arm }
-          - { name: pi, file: docker/Dockerfile.pi, target: runtime, platform: linux/arm64, runner: ubuntu-24.04-arm }
+          - { name: worker, file: docker/Dockerfile.worker, target: runtime, platform: linux/amd64, runner: ubuntu-latest }
     steps:
       - uses: actions/checkout@v7
 

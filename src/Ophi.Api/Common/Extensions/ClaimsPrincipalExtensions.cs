@@ -10,7 +10,5 @@ public static class ClaimsPrincipalExtensions
         public Guid GetUserId() => !Guid.TryParse(principal.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId)
             ? throw new UnauthorizedException("User ID claim is missing or invalid")
             : userId;
-
-        public string GetEmail() => principal.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty;
     }
 }

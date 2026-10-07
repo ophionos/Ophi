@@ -13,7 +13,7 @@ using Ophi.Api.Common.Startup;
 namespace Ophi.Api.Tests.Unit.Middleware;
 
 /// <summary>
-/// The API sits behind a proxy in every deployment (SvelteKit hook on compose, Caddy on the Pi),
+/// The API sits behind a proxy in every deployment (the SvelteKit hook on compose, or any reverse proxy),
 /// so RemoteIpAddress is the proxy unless X-Forwarded-For is honoured. These tests run the same
 /// forwarded-headers + rate-limit registration Program.cs uses, in the Testing environment (real
 /// caps — Development is effectively unlimited), because Program.cs skips UseRateLimiter under

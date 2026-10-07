@@ -234,7 +234,7 @@
 					</div>
 					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Self-Hosted</h3>
 					<p class="text-sm text-gray-500 dark:text-gray-400">
-						Your data stays on your hardware. Runs on a Raspberry Pi, VPS, or any Docker host.
+						Your data stays on your hardware. Runs on any Docker host.
 					</p>
 				</div>
 			</div>

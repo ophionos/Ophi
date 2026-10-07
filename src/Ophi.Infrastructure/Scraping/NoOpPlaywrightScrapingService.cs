@@ -3,7 +3,7 @@ using Ophi.Infrastructure.Scraping.Adapters;
 namespace Ophi.Infrastructure.Scraping;
 
 /// <summary>
-/// A no-op scraping service used when Playwright is disabled (e.g., Raspberry Pi deployments).
+/// A no-op scraping service used when Playwright is disabled (DISABLE_PLAYWRIGHT).
 /// Always returns a failure result indicating Playwright is unavailable.
 /// </summary>
 public class NoOpPlaywrightScrapingService : IScrapingService

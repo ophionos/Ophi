@@ -614,7 +614,6 @@ export interface BackupImportResult {
 //   WebhookEvent   → src/Ophi.Infrastructure/Webhooks/IWebhookDispatchService.cs (WebhookEvents constants)
 //   ApiKeyScope    → src/Ophi.Api/Features/ApiKeys (read/write literals)
 //
-// schema.generated.ts is produced by `bun run gen:types` against a running API on :5041.
 // The .NET OpenAPI generator emits these fields as plain `string` (no enum constraint),
 // so we hand-mirror the unions here. Keep these in sync with the backend source files above.
 export type ProductStatus = 'active' | 'paused' | 'error' | 'pending';

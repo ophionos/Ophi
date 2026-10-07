@@ -29,7 +29,7 @@ namespace Ophi.Postgres.Tests;
 /// the API's <c>ListenToPostgresqlQueue(...)</c> ingress in <see cref="WolverineConfig"/>) was otherwise
 /// only exercised in production. A wrong queue name or a missing listener would silently kill realtime
 /// updates in the Docker split deployment exactly like the original double-prefix bug did — embedded mode
-/// (dev / Pi) handles <see cref="LiveUpdate"/> in-process and would never reveal it.
+/// (dev / single container) handles <see cref="LiveUpdate"/> in-process and would never reveal it.
 /// </para>
 /// </summary>
 [Collection("Postgres")]

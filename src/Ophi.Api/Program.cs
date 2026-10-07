@@ -27,7 +27,7 @@ var enableWorker = builder.Configuration.GetValue<bool>("ENABLE_WORKER");
 builder.Host.UseWolverine(opts =>
 {
     // Shared Wolverine config (queues, retries, Postgres persistence/transport, routing) lives in
-    // WolverineConfig so the API and Worker can't drift. Embedded = in-process worker (Pi); otherwise
+    // WolverineConfig so the API and Worker can't drift. Embedded = in-process worker (single container); otherwise
     // the API only routes ScrapeProductUrlCommand out to the worker over the Postgres transport.
     var postgresConnectionString = builder.Configuration.GetConnectionString("Postgres")
         ?? builder.Configuration["POSTGRES_CONNECTION"];
@@ -67,7 +67,7 @@ builder.Services.Configure<AlertSettings>(
 builder.Services.Configure<RegistrationSettings>(
     builder.Configuration.GetSection(RegistrationSettings.SectionName));
 
-// Conditionally enable embedded Worker (for Pi / single-container deployments)
+// Conditionally enable embedded Worker (single-container deployments)
 if (enableWorker)
 {
     builder.Services.Configure<WorkerSettings>(
@@ -126,7 +126,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // First, so everything downstream — rate-limit partitions, request logging — sees the real client
-// IP rather than the proxy (SvelteKit hook on compose, Caddy on the Pi). Trust model: ForwardedHeadersSetup.
+// IP rather than the proxy (the SvelteKit hook on compose, or any reverse proxy). Trust model: ForwardedHeadersSetup.
 app.UseForwardedHeaders();
 
 // Configure middleware (exception handling before compression so error responses are not partially compressed)

@@ -14,7 +14,7 @@ namespace Ophi.Worker.Configuration;
 /// Single source of truth for Wolverine messaging config across the three deployment shapes, so the
 /// API and Worker <c>Program.cs</c> files stop duplicating it (and diverging).
 ///
-/// - <see cref="WolverineMode.Embedded"/> — API runs the worker in-process (Pi / single container).
+/// - <see cref="WolverineMode.Embedded"/> — API runs the worker in-process (single container).
 ///   Handles <c>ScrapeProductUrlCommand</c> locally via <c>[LocalQueue("scraping")]</c>.
 /// - <see cref="WolverineMode.SplitApi"/> — API with no in-process worker. Routes
 ///   <c>ScrapeProductUrlCommand</c> out to the Postgres transport queue.

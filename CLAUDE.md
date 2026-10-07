@@ -6,7 +6,7 @@
 
 For architecture, entity relationships, and project layout, see [docs/architecture.md](docs/architecture.md). For the doc index, see [docs/README.md](docs/README.md). For durable implementation invariants, rejected alternatives, and the bug classes behind each CI gate, see [docs/agent-notes.md](docs/agent-notes.md).
 
-**One owner per fact:** deploy topology → `/redeploy` skill; local run topology → `/dev-stack` skill; endpoint shapes → live OpenAPI; implementation invariants → `docs/agent-notes.md`; machine-local values (WSL distro, paths, test DB connection) → the untracked `CLAUDE.local.md`. Link to the owner instead of restating — restated facts drift.
+**One owner per fact:** deploy topology → `/redeploy` skill; local run topology → `/dev-stack` skill; endpoint shapes → live OpenAPI; implementation invariants → `docs/agent-notes.md`; machine-local values (`<distro>`, `<repo-wsl>`, `<stack-dir>`) → the untracked `CLAUDE.local.md`; the test DB connection → `env` in the untracked `.claude/settings.local.json`. Link to the owner instead of restating — restated facts drift.
 
 **The repo is public.** Never commit the operator's location, ISP, IP addresses, machine paths, or personal identity — not in code, comments, test fixtures, docs, commit messages, or PR text. Those belong in `CLAUDE.local.md` or nowhere. Describe environment-dependent behavior generically ("a non-US egress"). `.githooks/pre-push` blocks a push that adds a line matching the untracked `.githooks/leak-patterns.local`; enable it per clone with `git config core.hooksPath .githooks`.
 
@@ -74,7 +74,7 @@ it('should display product name when loaded')
 ## Testing Conventions
 
 - This project uses **Moq** for mocking, NOT NSubstitute. Always check existing test files for mocking patterns before writing new tests.
-- **Green-before-commit — this bullet is the one owner of the rule.** After implementation work: `dotnet test`, plus from `src/Ophi.Web/` `bun run test:run` **and** `bun run check`. DB-behavior changes additionally need the real Postgres tier (see Known Gotchas); route/loader changes additionally need `bun run build` with `VITE_API_URL=/api/v1` (the illegal-export class — `docs/agent-notes.md` § CI gates). `/verify` and `/phase-complete` point here instead of restating it — don't add a fourth copy, and don't stack extra self-verification passes on top of it.
+- **Green-before-commit — this bullet is the one owner of the rule.** After implementation work: `dotnet test`, plus from `src/Ophi.Web/` `bun run test:run` **and** `bun run check`. DB-behavior changes additionally need the real Postgres tier (see Known Gotchas); route/loader changes additionally need `bun run build` with `VITE_API_URL=/api/v1` (the illegal-export class — `docs/agent-notes.md` § CI gates). `/verify` and the `gate-runner` agent point here instead of restating it — don't add another copy, and don't stack extra self-verification passes on top of it.
 - **`bun run build` does NOT type-check.** Run `bun run check` (svelte-check) before considering frontend work done — TypeScript errors such as calling a non-existent API-client method (e.g. `getApiKeys` instead of `listApiKeys`) compile fine and only surface as a runtime 500. Enforced in CI (frontend "Type check" step) and locally by a Stop hook (`.claude/hooks/svelte-check.ps1`) that runs while `src/Ophi.Web/` has uncommitted changes, skipping when those exact changes already passed this session. Its sibling `dotnet-build.ps1` does the same for backend code.
 
 ## Scraping
@@ -89,8 +89,8 @@ Conventional Commits: `<type>(<scope>): <description>`. Types: `feat`, `fix`, `d
 ## Workflow
 
 - Green before commit — see Testing Conventions for what "green" means here.
-- Use conventional commit messages; include phase/feature name when applicable.
-- Project skills (`.claude/skills/`): `/phase-complete` closes out a plan phase (tests → docs → commit); `/dev-stack` runs the app locally for UI/manual verification; `/redeploy` ships committed code to the WSL2 Docker stack; `/verify` proves a change works end-to-end (not just tests); `/pr-triage` works through open PRs (CI state, review, merge order, Dependabot, branch cleanup). Project commands (`.claude/commands/`): `/create-prd` generates a PRD with the phase Status table `/phase-complete` expects.
+- Use conventional commit messages.
+- Project skills (`.claude/skills/`): `/dev-stack` runs the app locally for UI/manual verification; `/redeploy` ships committed code to the WSL2 Docker stack; `/verify` proves a change works end-to-end (not just tests); `/pr-triage` works through open PRs (CI state, review, merge order, Dependabot, branch cleanup).
 
 ## Delegation (`.claude/agents/`)
 
@@ -104,13 +104,13 @@ The user wants this delegation used; treat this section as a standing request to
 | A deploy | `/redeploy` — forks itself to a background Sonnet agent |
 | A well-specified slice or component | `implementer` — Sonnet. You write the spec (files, tests first, cited `agent-notes` sections) and review the diff before any commit |
 
-Keep in the main session: plans and PRDs, the `docs/agent-notes.md` invariants, auth/security, alert/currency and aggregation logic, debugging a reported failure, code review, commits, merges, and user decisions. Subagents return facts; re-check any claim a decision rests on (re-run the one failing test, compare a reported test total against `--list-tests`).
+Keep in the main session: plans, the `docs/agent-notes.md` invariants, auth/security, alert/currency and aggregation logic, debugging a reported failure, code review, commits, merges, and user decisions. Subagents return facts; re-check any claim a decision rests on (re-run the one failing test, compare a reported test total against `--list-tests`).
 
 ## Implementation Approach
 
 - Follow TDD when implementing new features: write tests first, then implementation.
-- When working from a PRD or implementation plan document, read it fully before starting work.
-- Update documentation in `docs/` after completing each phase. Archive completed-phase narratives under `docs/history/`.
+- When working from an issue or a written plan, read it fully before starting work.
+- Update the affected docs in `docs/` in the same change. Do not keep plan or history files in the repo.
 - **Doc length matches the change.** Cover the substance and the non-derivable "why"; skip filler sections, restated summaries, and boilerplate. Edit the existing doc in place — a new narrative file per change is how the docs got stale contradictions. A three-line change gets three lines.
 
 ## Known Gotchas
