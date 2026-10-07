@@ -8,7 +8,7 @@ For architecture, entity relationships, and project layout, see [docs/architectu
 
 **One owner per fact:** deploy topology → `/redeploy` skill; local run topology → `/dev-stack` skill; endpoint shapes → live OpenAPI; implementation invariants → `docs/agent-notes.md`; machine-local values (WSL distro, paths, test DB connection) → the untracked `CLAUDE.local.md`. Link to the owner instead of restating — restated facts drift.
 
-**The repo is public.** Never commit the operator's location, ISP, IP addresses, machine paths, or personal identity — not in code, comments, test fixtures, docs, commit messages, or PR text. Those belong in `CLAUDE.local.md` or nowhere. Describe environment-dependent behavior generically ("a non-US egress").
+**The repo is public.** Never commit the operator's location, ISP, IP addresses, machine paths, or personal identity — not in code, comments, test fixtures, docs, commit messages, or PR text. Those belong in `CLAUDE.local.md` or nowhere. Describe environment-dependent behavior generically ("a non-US egress"). `.githooks/pre-push` blocks a push that adds a line matching the untracked `.githooks/leak-patterns.local`; enable it per clone with `git config core.hooksPath .githooks`.
 
 ## Code Style
 
@@ -91,6 +91,20 @@ Conventional Commits: `<type>(<scope>): <description>`. Types: `feat`, `fix`, `d
 - Green before commit — see Testing Conventions for what "green" means here.
 - Use conventional commit messages; include phase/feature name when applicable.
 - Project skills (`.claude/skills/`): `/phase-complete` closes out a plan phase (tests → docs → commit); `/dev-stack` runs the app locally for UI/manual verification; `/redeploy` ships committed code to the WSL2 Docker stack; `/verify` proves a change works end-to-end (not just tests); `/pr-triage` works through open PRs (CI state, review, merge order, Dependabot, branch cleanup). Project commands (`.claude/commands/`): `/create-prd` generates a PRD with the phase Status table `/phase-complete` expects.
+
+## Delegation (`.claude/agents/`)
+
+The user wants this delegation used; treat this section as a standing request to spawn these agents. Delegate work whose output is noisy or that is long and mechanical. Each spawn cold-loads `CLAUDE.md` + `CLAUDE.local.md` (not auto-memory), so a short task with little output is cheaper inline.
+
+| Need | Delegate to |
+|---|---|
+| The green-before-commit gate (Testing Conventions) | `gate-runner` — Haiku, read-only; run it in the background and keep working |
+| Release notes for Dependabot bumps (`/pr-triage` § 3) | `dep-reviewer` — Haiku, one per PR, in parallel |
+| UI behavior in a real browser (`/verify` § 2–3) | `ui-verifier` — Sonnet |
+| A deploy | `/redeploy` — forks itself to a background Sonnet agent |
+| A well-specified slice or component | `implementer` — Sonnet. You write the spec (files, tests first, cited `agent-notes` sections) and review the diff before any commit |
+
+Keep in the main session: plans and PRDs, the `docs/agent-notes.md` invariants, auth/security, alert/currency and aggregation logic, debugging a reported failure, code review, commits, merges, and user decisions. Subagents return facts; re-check any claim a decision rests on (re-run the one failing test, compare a reported test total against `--list-tests`).
 
 ## Implementation Approach
 

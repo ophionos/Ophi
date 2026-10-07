@@ -1,6 +1,10 @@
 ---
 name: redeploy
 description: Redeploy the latest committed build into the WSL2 Docker stack and verify endpoint health. Use when asked to deploy, redeploy, or update the running stack.
+# Runs as a background Sonnet subagent: the 10-45 min build log never enters the main context.
+# The fork does not see the conversation, so this file must stay self-contained.
+context: fork
+model: sonnet
 ---
 
 # Redeploy to the WSL2 Docker Stack
@@ -59,3 +63,7 @@ wsl -d <distro> -- sudo bash -c 'cd <stack-dir> && \
 - **Build-config files must be in the image context.** The Dockerfiles copy `Directory.Packages.props Directory.Build.props .editorconfig` before `dotnet restore`; any new root-level build-config file (`global.json`, `nuget.config`, another `Directory.*.props`) must be added there too, or restore/publish fails (NETSDK1013 / analyzer errors under TreatWarningsAsErrors). The container flattens `src/Ophi.X/` → `/src/Ophi.X/`, so keep `.editorconfig` path globs prefix-independent (`**/…`, never `src/…`). CI now builds the images (the `docker` job) so this class is caught pre-merge.
 - Worker image rebuilds re-download Playwright Chromium; broken IPv6 to the CDN can hang the build (Node `ipv4first` fix already applied — if it recurs, watch `/proc/<pid>/io` write_bytes inside the buildkit netns, not host eth0).
 - Verify inside ONE `wsl` session — separate `wsl` invocations can land on a freshly-restarted distro and report a half-up stack.
+
+## Report
+
+Return only: the commit deployed (`git rev-parse --short HEAD`), build duration, each check above with its observed value, and on failure the first error lines verbatim. Do not change code or config to make a check pass — a failed build leaves the old stack running; report and stop.
