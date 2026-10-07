@@ -87,8 +87,12 @@ same API for server-side loads. To run without a separate worker, start the API 
 `ENABLE_WORKER=true`. Without an installed Playwright browser, set `DISABLE_PLAYWRIGHT=true`
 (HTTP-only scraping).
 
-Test commands and contributor conventions (TDD, Conventional Commits, the green-before-commit
-gate) are in [CLAUDE.md](CLAUDE.md). Reference docs are indexed in [docs/README.md](docs/README.md).
+Test commands and contributor conventions are in [CONTRIBUTING.md](CONTRIBUTING.md): open an issue
+before a pull request. Reference docs are indexed in [docs/README.md](docs/README.md).
+
+## Security
+
+Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
 
 ## License
 
