@@ -3,6 +3,24 @@
 Self-hosted price tracking: add products by URL, watch their price history, and get alerted when
 prices drop.
 
+## Screenshots
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard-grid-dark.png">
+  <img alt="Dashboard in grid view with eight tracked products, price changes, and sparklines" src="docs/images/dashboard-grid-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/product-dark.png">
+  <img alt="Product detail with lowest, highest, average, and current price and a 90-day price-history chart" src="docs/images/product-light.png">
+</picture>
+
+| Dashboard list view | Alerts |
+|---|---|
+| ![Dashboard in list view](docs/images/dashboard-list-light.png) | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/alerts-dark.png"><img alt="Alerts page with two active below-price alerts" src="docs/images/alerts-light.png"></picture> |
+
+The screenshots show demo data. All except the list view follow your GitHub light or dark theme.
+
 ## Features
 
 - Add a product by URL. Ophi extracts the price, title, and image, and falls back to a headless
@@ -87,8 +105,12 @@ same API for server-side loads. To run without a separate worker, start the API 
 `ENABLE_WORKER=true`. Without an installed Playwright browser, set `DISABLE_PLAYWRIGHT=true`
 (HTTP-only scraping).
 
-Test commands and contributor conventions (TDD, Conventional Commits, the green-before-commit
-gate) are in [CLAUDE.md](CLAUDE.md). Reference docs are indexed in [docs/README.md](docs/README.md).
+Test commands and contributor conventions are in [CONTRIBUTING.md](CONTRIBUTING.md): open an issue
+before a pull request. Reference docs are indexed in [docs/README.md](docs/README.md).
+
+## Security
+
+Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
 
 ## License
 
