@@ -25,7 +25,7 @@ must not be blamed for — find the first red night and the PR merged just befor
 |---|---|---|
 | All checks green | Mergeable | Review (step 3) |
 | Job failed with a log | **Real failure** — red CI is signal | Read the log; fix or report |
-| Every job failed in 2-4 s, no log | Usually an Actions **billing block**; the check annotation says "recent account payments have failed" | Confirm the annotation, tell the user; don't merge on it |
+| Every job failed in 2-4 s, no log | Usually an Actions **billing block** (rare now: the repo is public, so standard runners are free); the check annotation says "recent account payments have failed" | Confirm the annotation, tell the user; don't merge on it — verify locally per CLAUDE.md § Testing Conventions instead |
 | Run predates a fix on `main`, or ran during a block | Stale | `gh run rerun <run-id>` (30-day window), or comment `@dependabot rebase` |
 | `mergeable: CONFLICTING` on a Dependabot PR | Another bump touched the same file | Comment `@dependabot rebase`; don't hand-resolve lockfiles |
 
@@ -35,8 +35,8 @@ A backend test failing only in CI (green locally on Windows) is the Linux-diverg
 ## 3. Review
 
 - **Own/agent PRs:** review the diff for correctness (`/code-review`), and check it followed
-  green-before-commit (CLAUDE.md § Testing Conventions). Auth/login/route changes need E2E — #152
-  merged without it and broke 10 auth specs.
+  green-before-commit (CLAUDE.md § Testing Conventions). Auth/login/route changes need E2E — one
+  merged without it once and broke 10 auth specs.
 - **Dependabot:** read release notes for majors and for runtime-critical groups (`wolverine`,
   `microsoft-entityframeworkcore`, `sveltekit`, `oven/bun`, `mcr.microsoft.com/dotnet/*`). An `oven/bun`
   image bump must also bump `packageManager` in `src/Ophi.Web/package.json` — CI reads its Bun version
@@ -50,6 +50,10 @@ approves. Ordering rules:
 - Fixes to `main`'s own breakage first (they turn other PRs' CI green).
 - PRs touching the same file (`Directory.Packages.props`, `src/Ophi.Web/bun.lock`) go one at a time:
   merge, then `@dependabot rebase` the next and wait for its CI.
+- **Many NuGet bumps at once:** squash merges of adjacent `Directory.Packages.props` lines conflict
+  with each other. Batch them instead: apply every bump on one branch, run the gate, open one PR
+  titled with the superseded numbers, merge it, then `gh pr close <N> --delete-branch --comment
+  "Superseded by #M"` for each. Don't batch a bump whose release notes need their own review.
 - Feature PRs after dependency bumps, so their CI runs on the final dependency set.
 
 ## 5. Merge and clean up

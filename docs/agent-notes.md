@@ -401,6 +401,12 @@ CLAUDE.md has the headline rule; these are the known concrete classes:
 - **Wolverine-handler smoke** (deploy verification, non-mutating): bad-credentials login → **401**
   proves codegen + scoped-DbContext service location work in-container; 500 = codegen problem; 403 =
   missing `X-Requested-With`.
+- **In-worker scrape probe** — the only trustworthy view of what the scraper sees, because it has
+  the deployment's real egress and environment (a desktop browser gets captchas the worker doesn't,
+  and vice versa). Pipe a script that requires `/app/.playwright/package` into the worker's bundled
+  node: `docker exec -i -e PLAYWRIGHT_BROWSERS_PATH=/app/.playwright-browsers docker-worker-1
+  /app/.playwright/node/linux-<x64|arm64>/node -`. A US product suddenly scraping a tiny price from a
+  non-US egress is usually a no-buybox page (only accessory/financing prices) until proven otherwise.
 - **Internal types in theories:** `TheoryData<T>` with an internal `T` trips CS0050/CS0051 — use
   `IEnumerable<object[]>` and cast inside the test body.
 - **FluentValidation:** use `TestValidate()` + `ShouldHaveValidationErrorFor(x => x.Property)`;

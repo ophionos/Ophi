@@ -27,6 +27,7 @@ dist/
 *.swp
 *.swo
 .claude/settings.local.json
+CLAUDE.local.md
 
 # OS
 .DS_Store
