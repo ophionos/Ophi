@@ -5,6 +5,8 @@ description: Run Ophi locally on Windows for UI / Playwright / manual-verificati
 
 # Run the App Locally (Windows)
 
+`<distro>`, `<repo-wsl>`, and `<stack-dir>` are machine-local values from the untracked `CLAUDE.local.md`; substitute them before running.
+
 Two verified modes. Use **native** for fast iteration on uncommitted code; use the **compose stack** to verify the real containerized deployment (it works end-to-end — see `/redeploy`).
 
 ## Step 0 — hold WSL warm (both modes, ALWAYS first)
@@ -12,7 +14,7 @@ Two verified modes. Use **native** for fast iteration on uncommitted code; use t
 WSL idle-shutdown cycles containers mid-session (ports flap, DB container IP shifts, API crash-loops). Before anything else, start a keepalive as a background task:
 
 ```
-wsl -d archlinux -- sleep 7200
+wsl -d <distro> -- sleep 7200
 ```
 
 Symptoms of forgetting this: intermittent `ERR_CONNECTION_REFUSED` / 500 / `fetch failed`, all containers showing `Up Xs` simultaneously.
@@ -34,15 +36,15 @@ Topology: dockerized Postgres in WSL (host-published) + native API on :5041 + vi
 4. **Web** (from `src/Ophi.Web`): `bun run dev -- --port 5173 --strictPort`. Must be **5173** — `appsettings.Development.json` allows 5173 + 3000 for CORS/CSRF, and 3000 belongs to the compose stack's web container.
 5. **Demo data:** don't rely on the scraper (no worker, Playwright disabled). Register an account through the real UI, take its `Users.Id`, then seed via `scripts/seed-demo.sql` (edit the `uid`):
    ```
-   wsl -d archlinux -- bash -lc 'cat /mnt/e/Projects/Ophi/scripts/seed-demo.sql | docker exec -i ophi-pg-demo psql -U ophi -d ophi'
+   wsl -d <distro> -- bash -lc 'cat <repo-wsl>/scripts/seed-demo.sql | docker exec -i ophi-pg-demo psql -U ophi -d ophi'
    ```
-   Use `/mnt/e/...` paths (wslpath on `E:` is flaky); pipe SQL files instead of `psql -c` (nested PowerShell→bash→docker quoting mangles).
+   Pipe SQL files instead of `psql -c` (nested PowerShell→bash→docker quoting mangles).
 
 **Teardown:** stop the keepalive + dotnet/bun background tasks; `docker rm -f ophi-pg-demo`. The compose stack stays untouched.
 
 ## Mode B — full compose stack (verifies the real deployment, runs committed code)
 
-The WSL2 stack at `/root/ophi` (root-owned; all docker/compose commands need `sudo` — see `/redeploy` for path + privilege details) serves http://localhost:3000 end-to-end (web proxies `/api/*` → `http://api:5000` via `hooks.server.ts`). It runs a `git archive HEAD` export, **not** the working tree — use `/redeploy` to sync and rebuild. Browser-test directly against :3000.
+The WSL2 stack at `<stack-dir>` (root-owned; all docker/compose commands need `sudo` — see `/redeploy` for path + privilege details) serves http://localhost:3000 end-to-end (web proxies `/api/*` → `http://api:5000` via `hooks.server.ts`). It runs a `git archive HEAD` export, **not** the working tree — use `/redeploy` to sync and rebuild. Browser-test directly against :3000.
 
 ## Verifying UI work
 

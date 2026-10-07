@@ -6,7 +6,9 @@
 
 For architecture, entity relationships, and project layout, see [docs/architecture.md](docs/architecture.md). For the doc index, see [docs/README.md](docs/README.md). For durable implementation invariants, rejected alternatives, and the bug classes behind each CI gate, see [docs/agent-notes.md](docs/agent-notes.md).
 
-**One owner per fact:** deploy topology → `/redeploy` skill; local run topology → `/dev-stack` skill; endpoint shapes → live OpenAPI; implementation invariants → `docs/agent-notes.md`. Link to the owner instead of restating — restated facts drift.
+**One owner per fact:** deploy topology → `/redeploy` skill; local run topology → `/dev-stack` skill; endpoint shapes → live OpenAPI; implementation invariants → `docs/agent-notes.md`; machine-local values (WSL distro, paths, test DB connection) → the untracked `CLAUDE.local.md`. Link to the owner instead of restating — restated facts drift.
+
+**The repo is public.** Never commit the operator's location, ISP, IP addresses, machine paths, or personal identity — not in code, comments, test fixtures, docs, commit messages, or PR text. Those belong in `CLAUDE.local.md` or nowhere. Describe environment-dependent behavior generically ("a non-US egress").
 
 ## Code Style
 

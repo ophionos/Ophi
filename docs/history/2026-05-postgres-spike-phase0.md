@@ -117,11 +117,11 @@ since config is being captured now; not a Phase 0/1 concern.
 
 ## Environment notes (WSL2)
 
-- Docker is **native inside the `archlinux` WSL2 distro** (v29.5.1), not Docker Desktop.
+- Docker is **native inside a WSL2 distro** (v29.5.1), not Docker Desktop.
 - WSL2 mirrored networking forwards the container's published port to Windows `localhost:5433`, so the
   **Windows-side `dotnet` (10.0.204) connects directly** — no need to run the spike inside WSL2.
 - **Gotcha:** WSL2 auto-shuts-down the distro when its last process exits, which kills the Postgres
-  container. Hold the VM alive (e.g. a background `wsl -d archlinux -- sleep N`) for the duration, and
+  container. Hold the VM alive (e.g. a background `wsl -d <distro> -- sleep N`) for the duration, and
   give the container `--restart unless-stopped`.
 
 Throwaway Postgres used for the spike:
