@@ -3,6 +3,24 @@
 Self-hosted price tracking: add products by URL, watch their price history, and get alerted when
 prices drop.
 
+## Screenshots
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard-grid-dark.png">
+  <img alt="Dashboard in grid view with eight tracked products, price changes, and sparklines" src="docs/images/dashboard-grid-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/product-dark.png">
+  <img alt="Product detail with lowest, highest, average, and current price and a 90-day price-history chart" src="docs/images/product-light.png">
+</picture>
+
+| Dashboard list view | Alerts |
+|---|---|
+| ![Dashboard in list view](docs/images/dashboard-list-light.png) | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/alerts-dark.png"><img alt="Alerts page with two active below-price alerts" src="docs/images/alerts-light.png"></picture> |
+
+The screenshots show demo data. They follow your GitHub light or dark theme.
+
 ## Features
 
 - Add a product by URL. Ophi extracts the price, title, and image, and falls back to a headless
