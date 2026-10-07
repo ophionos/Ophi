@@ -140,3 +140,7 @@ or a reachable Docker daemon for Testcontainers). See [docs/testing.md](docs/tes
 - Coverage targets: Backend 80%+, Frontend 70%+.
 - Use Conventional Commits: `<type>(<scope>): <description>`.
 - `bun run build` does **not** type-check — run `bun run check` before considering frontend work done.
+
+## License
+
+[AGPL-3.0-only](LICENSE). If you run a modified Ophi as a network service, you must offer its source to the users of that service.
