@@ -15,8 +15,10 @@ The gate is defined in `CLAUDE.md` § Testing Conventions, and the exact command
 
 | Scope | What it means |
 |---|---|
-| `backend` | the CI backend command (excludes `Category=Integration`) from the repo root |
-| `postgres` | the Postgres tier. Set `POSTGRES_TEST_CONNECTION` from `CLAUDE.local.md`, and hold WSL warm first as `CLAUDE.local.md` says |
+| `backend` | the CI backend command (excludes `Category=Integration`) from the repo root. It includes the Postgres project, so prepare as for `postgres` |
+| `postgres` | the Postgres tier only (`dotnet test tests/Ophi.Postgres.Tests`) |
+
+Before `backend` or `postgres`: if `CLAUDE.local.md` gives a `POSTGRES_TEST_CONNECTION` value, set it in the same shell command as the test run, and hold WSL warm as `CLAUDE.local.md` says (a background keepalive started before the run).
 | `frontend` | `bun run test:run` in `src/Ophi.Web/` — never `bun run test` (watch mode never exits) |
 | `check` | `bun run check` in `src/Ophi.Web/` |
 | `build` | `bun run build` in `src/Ophi.Web/` with `VITE_API_URL=/api/v1` |
