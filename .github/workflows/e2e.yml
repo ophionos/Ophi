@@ -1,10 +1,10 @@
 name: E2E (nightly)
 
-# Runtime-only route breakage is the one class the per-PR gates can't see: PR #64 shipped a
-# /dashboard 500 that svelte-check, vitest AND (at the time) the build all missed — a human loading
-# the page caught it. This workflow drives the real app with the Playwright suite. Nightly + manual
-# rather than per-PR: the suite takes minutes and is newer than the other gates; promote it into
-# ci.yml once it has a stable green streak.
+# Runtime-only route breakage is the one class the per-PR gates can't see: a /dashboard 500 once
+# shipped that svelte-check, vitest AND (at the time) the build all missed — a human loading the
+# page caught it. This workflow drives the real app with the Playwright suite. Nightly + manual
+# rather than per-PR, because the suite takes minutes; the nightly run skips itself when main has
+# no new commits, and /pr-triage dispatches it after a merge that touches the frontend or auth.
 
 on:
   schedule:
@@ -12,8 +12,25 @@ on:
   workflow_dispatch:
 
 jobs:
+  changed:
+    name: Main changed since the last night?
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      recent: ${{ steps.c.outputs.recent }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 50
+      - id: c
+        run: echo "recent=$([ -n "$(git log --since='25 hours ago' --format=%H -1)" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
   e2e:
     name: Playwright E2E
+    needs: changed
+    # always(): a manual dispatch skips `changed`, and a skipped need would otherwise skip this job.
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changed.outputs.recent == 'true')
     runs-on: ubuntu-latest
     # 155 tests on 1 worker (workers:1 in CI — shared TEST_USER state): a green run is ~7.5 min
     # (~5.3 min of tests, 2026-09-23). Failure retries inflate that fast, so the cap leaves ~4x
