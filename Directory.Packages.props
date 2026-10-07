@@ -26,14 +26,14 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
 
     <!-- Wolverine -->
-    <PackageVersion Include="WolverineFx" Version="6.45.0" />
-    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.45.0" />
-    <PackageVersion Include="WolverineFx.FluentValidation" Version="6.45.0" />
-    <PackageVersion Include="WolverineFx.Postgresql" Version="6.45.0" />
+    <PackageVersion Include="WolverineFx" Version="6.47.0" />
+    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.47.0" />
+    <PackageVersion Include="WolverineFx.FluentValidation" Version="6.47.0" />
+    <PackageVersion Include="WolverineFx.Postgresql" Version="6.47.0" />
     <!-- Wolverine 6 moved the Roslyn runtime compiler into this package. We keep
          dynamic codegen (rather than static TypeLoadMode) because the API registers
          handlers conditionally on enableWorker, which static codegen can't capture. -->
-    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.45.0" />
+    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.47.0" />
 
     <!-- Scraping & infrastructure -->
     <PackageVersion Include="AngleSharp" Version="1.8.3" />
