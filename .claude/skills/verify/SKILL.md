@@ -13,8 +13,9 @@ and **observe the behavior** (response codes, rendered UI, DB state), not proxie
 ## 0. Always first
 
 Green per CLAUDE.md § Testing Conventions (suites + type-check, plus the Postgres tier for DB behavior
-and `bun run build` for routes/loaders). That's the entry price, not the verification — pick a surface
-below and drive it.
+and `bun run build` for routes/loaders) — run it through the `gate-runner` agent. That's the entry
+price, not the verification — pick a surface below and drive it. For §2–3, give the `ui-verifier`
+agent the scenarios and expected results instead of driving the browser yourself.
 
 ## 1. Backend behavior → native API + curl
 
