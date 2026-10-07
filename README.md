@@ -19,7 +19,7 @@ prices drop.
 |---|---|
 | ![Dashboard in list view](docs/images/dashboard-list-light.png) | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/alerts-dark.png"><img alt="Alerts page with two active below-price alerts" src="docs/images/alerts-light.png"></picture> |
 
-The screenshots show demo data. They follow your GitHub light or dark theme.
+The screenshots show demo data. All except the list view follow your GitHub light or dark theme.
 
 ## Features
 

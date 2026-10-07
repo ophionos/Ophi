@@ -32,7 +32,8 @@ bun run check      # type-check; `bun run build` does not type-check
 
 The Postgres test tier (`tests/Ophi.Postgres.Tests`) needs `POSTGRES_TEST_CONNECTION` or Docker.
 Which of these a change must pass before commit (the green-before-commit gate) is defined in the
-Testing Conventions section of [CLAUDE.md](CLAUDE.md); CI runs the same checks on every pull request.
+Testing Conventions section of [CLAUDE.md](CLAUDE.md). CI on a pull request runs only the jobs that
+the changed paths can affect (backend tests include the Postgres tier), and skips docs-only changes.
 
 ## License
 
