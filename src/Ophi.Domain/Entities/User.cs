@@ -67,7 +67,65 @@ public class User : BaseEntity
     public void UpdateProfile(string name, string email)
     {
         Name = name;
-        Email = email.ToLowerInvariant();
+        var normalized = email.ToLowerInvariant();
+        if (normalized != Email)
+        {
+            ChangeEmail(normalized);
+        }
+    }
+
+    private string? _pendingEmail;
+    private string? _emailChangeTokenHash;
+    private DateTime? _emailChangeTokenExpiresAt;
+
+    /// <summary>
+    /// The address an email change waits on. <see cref="Email"/> stays the login until the link
+    /// mailed here is confirmed (<see cref="ConfirmEmailChange"/>).
+    /// </summary>
+    public string? PendingEmail { get => _pendingEmail; init => _pendingEmail = value; }
+    public string? EmailChangeTokenHash { get => _emailChangeTokenHash; init => _emailChangeTokenHash = value; }
+    public DateTime? EmailChangeTokenExpiresAt { get => _emailChangeTokenExpiresAt; init => _emailChangeTokenExpiresAt = value; }
+
+    /// <summary>
+    /// Starts a verified email change. Replaces any earlier pending change and drops its token, so
+    /// a link mailed for an earlier address can't confirm this one.
+    /// </summary>
+    public void RequestEmailChange(string newEmail)
+    {
+        _pendingEmail = newEmail.ToLowerInvariant();
+        _emailChangeTokenHash = null;
+        _emailChangeTokenExpiresAt = null;
+    }
+
+    public void IssueEmailChangeToken(string tokenHash, DateTime expiresAt)
+    {
+        _emailChangeTokenHash = tokenHash;
+        _emailChangeTokenExpiresAt = expiresAt;
+    }
+
+    /// <summary>
+    /// Makes the pending address the login. Does not rotate the security stamp, like any profile edit.
+    /// </summary>
+    public void ConfirmEmailChange()
+    {
+        if (_pendingEmail is null)
+        {
+            throw new InvalidOperationException("No email change is pending.");
+        }
+
+        ChangeEmail(_pendingEmail);
+    }
+
+    // Clears the pending change and any password-reset token: a reset link already mailed to the
+    // old address must not outlive the address change.
+    private void ChangeEmail(string normalizedEmail)
+    {
+        Email = normalizedEmail;
+        _pendingEmail = null;
+        _emailChangeTokenHash = null;
+        _emailChangeTokenExpiresAt = null;
+        PasswordResetTokenHash = null;
+        PasswordResetTokenExpiresAt = null;
     }
 
     private static string NewSecurityStamp() => Guid.NewGuid().ToString("N");

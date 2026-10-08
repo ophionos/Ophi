@@ -20,6 +20,10 @@
 - **Account changes** (`/account/*`): changing the email or deleting the account needs the current
   password, so a hijacked session cannot take over or destroy the account. Deletion is a hard delete
   over everything the user owns. These endpoints use the `auth` rate-limit policy.
+- **Email change verification:** with SMTP configured, a new email only becomes the login after the
+  link mailed to it (valid 24 h) is confirmed; the old address gets a notice. Confirming also voids
+  any password-reset link sent to the old address. Without SMTP no link can be sent, so the
+  password-gated change applies at once. The pending address is not shown again after a reload.
 - **CSRF:** `CsrfMiddleware` refuses any non-safe request without an `X-Requested-With` header.
 
 ## Closing sign-up

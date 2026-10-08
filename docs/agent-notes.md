@@ -224,6 +224,11 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
 - **`ForgotPassword` does no lookup on the request path.** It publishes `SendResetEmail`, handled in
   the API process, so known and unknown emails cost the same. Keep new account-existence-dependent
   work in that handler.
+- **Never put a raw token on a Wolverine message.** Durable envelopes live in Postgres (and in every
+  dump). `UpdateProfile.SendEmailChangeConfirmation` carries only the user id and the pending address;
+  its handler issues the token and sends nothing when the pending address has changed since.
+- **Token links confirm on a click, never on page load.** Mail link scanners open links and some run
+  scripts (`/auth/confirm-email`).
 - **CSRF:** a 403 "Missing required request header" from curl means no `X-Requested-With`.
 - **Rate limits** are effectively unlimited in Development (e2e registers many users from one IP).
   Testing skips the limiters, so `ForwardedHeadersTests` and `RateLimitPipelineTests` rebuild the

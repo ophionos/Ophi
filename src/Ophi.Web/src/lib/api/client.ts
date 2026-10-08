@@ -131,10 +131,21 @@ class ApiClient {
 		});
 	}
 
+	// `pendingEmail` is set when the server mailed a confirmation link instead of changing the email.
 	async updateProfile(data: { name: string; email: string; currentPassword?: string }) {
-		return this.request<{ id: string; email: string; name: string }>('/account/profile', {
-			method: 'PUT',
-			body: JSON.stringify(data)
+		return this.request<{ id: string; email: string; name: string; pendingEmail?: string | null }>(
+			'/account/profile',
+			{
+				method: 'PUT',
+				body: JSON.stringify(data)
+			}
+		);
+	}
+
+	async confirmEmailChange(token: string) {
+		return this.request<{ email: string }>('/account/email/confirm', {
+			method: 'POST',
+			body: JSON.stringify({ token })
 		});
 	}
 

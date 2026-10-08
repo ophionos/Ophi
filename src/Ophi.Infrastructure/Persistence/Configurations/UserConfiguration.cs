@@ -17,6 +17,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(u => u.Email)
             .IsUnique();
 
+        builder.Property(u => u.PendingEmail)
+            .HasMaxLength(256);
+
+        // SHA-256 hex, like PasswordResetTokenHash.
+        builder.Property(u => u.EmailChangeTokenHash)
+            .HasMaxLength(64);
+
         builder.Property(u => u.Name)
             .IsRequired()
             .HasMaxLength(100);

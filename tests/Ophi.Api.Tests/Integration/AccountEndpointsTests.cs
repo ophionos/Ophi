@@ -252,6 +252,55 @@ public class AccountEndpointsTests(OphiWebApplicationFactory factory) : Isolated
 
     #endregion
 
+    #region Confirm Email Change
+
+    [Fact]
+    public async Task ConfirmEmailChange_SignedInAsTheSameUser_Returns200AndMeShowsNewEmail()
+    {
+        var userId = await RegisterAsync(_client, "confirm-old@example.com");
+        await SeedPendingEmailChangeAsync(userId, "confirm-new@example.com", "the-token");
+
+        var response = await _client.PostAsJsonAsync("/api/v1/account/email/confirm", new { Token = "the-token" },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        // The cookie carries the email claim; the endpoint re-issues it for the same user.
+        var me = await _client.GetFromJsonAsync<MeResponse>("/api/v1/auth/me", cancellationToken: TestContext.Current.CancellationToken);
+        me!.Email.Should().Be("confirm-new@example.com");
+    }
+
+    [Fact]
+    public async Task ConfirmEmailChange_Anonymous_Returns200AndNewEmailSignsIn()
+    {
+        // The link is often opened in another browser: the token alone is the proof.
+        var userId = await RegisterAsync(_client, "anon-old@example.com");
+        await SeedPendingEmailChangeAsync(userId, "anon-new@example.com", "anon-token");
+        using var anonymous = _factory.CreateClient();
+
+        var response = await anonymous.PostAsJsonAsync("/api/v1/account/email/confirm", new { Token = "anon-token" },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var me = await anonymous.GetAsync("/api/v1/auth/me", TestContext.Current.CancellationToken);
+        me.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var login = await anonymous.PostAsJsonAsync("/api/v1/auth/login", new { Email = "anon-new@example.com", Password },
+            cancellationToken: TestContext.Current.CancellationToken);
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task ConfirmEmailChange_WithInvalidToken_ReturnsBadRequest()
+    {
+        using var anonymous = _factory.CreateClient();
+
+        var response = await anonymous.PostAsJsonAsync("/api/v1/account/email/confirm", new { Token = "nope" },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    #endregion
+
     #region Delete Account
 
     [Fact]
@@ -329,6 +378,18 @@ public class AccountEndpointsTests(OphiWebApplicationFactory factory) : Isolated
             .Where(u => u.Email == email)
             .Select(u => u.Id)
             .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task SeedPendingEmailChangeAsync(Guid userId, string pendingEmail, string token)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OphiDbContext>();
+        var user = await db.Users.SingleAsync(u => u.Id == userId, TestContext.Current.CancellationToken);
+        user.RequestEmailChange(pendingEmail);
+        user.IssueEmailChangeToken(
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token))),
+            DateTime.UtcNow.AddHours(24));
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     private static Task<HttpResponseMessage> DeleteAccountAsync(HttpClient client, string password)
