@@ -155,6 +155,14 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(10);
         });
 
+        // ntfy — the user's own topic URL, so the same rules as a webhook: no URI logging (a public
+        // topic is readable by anyone who knows it) and the webhook address policy, so a self-hosted
+        // ntfy on an operator-allowed LAN or tailnet is reachable.
+        services.AddHttpClient<INtfyService, NtfyService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        }).RemoveAllLoggers().UseWebhookAddressPolicy();
+
         // Display-currency rates (ECB). Only the worker's ExchangeRateRefresher calls this.
         services.AddHttpClient<Ophi.Infrastructure.Fx.EcbRatesClient>(client =>
         {

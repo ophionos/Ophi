@@ -120,6 +120,7 @@ public class DependencyInjectionTests
     [Theory]
     [InlineData("ScrapingService")]
     [InlineData("IWebhookDispatchService")]
+    [InlineData("INtfyService")]
     public void UserUrlClient_UsesThePublicAddressHandler(string clientName)
     {
         // Every client that fetches a user-chosen URL must connect through PublicAddressHandler.

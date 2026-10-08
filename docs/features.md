@@ -21,12 +21,16 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
 
 ## Alerts and notifications
 
-- Each channel (email, Discord, Telegram, Pushover) has its own per-account switch. Turning one off
+- Each channel (email, Discord, Telegram, Pushover, ntfy) has its own per-account switch. Turning one off
   silences only that channel; the in-app notification and webhooks still fire. Password-reset mail
   and the SMTP test send ignore the email switch.
 - Discord uses each user's own webhook URL. Telegram and Pushover use one operator bot/app; each user
   saves only a chat id or user key. Their settings cards are hidden when the server has no token.
   Both send plain text, so a product name cannot inject formatting.
+- ntfy needs no server setup: each user saves a full topic URL (`https://ntfy.sh/<topic>` or a
+  self-hosted server). The URL is never returned by the API or put in a backup, because anyone who
+  knows a public topic can read it. A self-hosted server on a private network is reachable only
+  inside the operator's `Webhooks:AllowedNetworks`.
 - `Alerts:MaxAlertsPerUser` (default 100) counts **active** alerts. Resuming a paused alert counts
   against it. Pausing keeps the trigger history. Both imports (CSV `target_price`, backup) create
   alerts beyond the cap as paused and say so.

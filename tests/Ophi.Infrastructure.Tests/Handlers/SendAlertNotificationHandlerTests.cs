@@ -252,6 +252,28 @@ public class SendAlertNotificationHandlerTests : HandlerTestBase
         if (expected) requests[0].UserKey.Should().Be(userKey);
     }
 
+    [Theory]
+    [InlineData(true, "https://ntfy.sh/ophi-alerts", true)]
+    [InlineData(false, "https://ntfy.sh/ophi-alerts", false)]
+    [InlineData(true, null, false)]
+    public async Task HandleAsync_NtfyCascade_FollowsEnabledFlagAndTopicUrl(bool enabled, string? topicUrl, bool expected)
+    {
+        var user = DbContext.Users.First(u => u.Id == TestUserId);
+        user.NtfyNotificationsEnabled = enabled;
+        user.NtfyTopicUrl = topicUrl;
+        await DbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var outgoing = await FireAsync();
+
+        var requests = outgoing.OfType<SendAlertNtfyRequested>().ToList();
+        requests.Should().HaveCount(expected ? 1 : 0);
+        if (expected)
+        {
+            requests[0].TopicUrl.Should().Be(topicUrl);
+            requests[0].Condition.Should().Be(AlertCondition.Below);
+        }
+    }
+
     private async Task<Wolverine.OutgoingMessages> FireAsync()
     {
         var (product, productUrl) = TestEntityFactory.CreateProduct("Widget", TestUserId);

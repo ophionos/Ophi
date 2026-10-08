@@ -14,7 +14,7 @@ namespace Ophi.Worker.Handlers;
 /// <summary>
 /// Orchestrates alert-fired delivery. Persists the in-app notification and updates the
 /// alert cooldown state synchronously, then cascades one event per outbound channel so
-/// each (email / Discord / Telegram / Pushover / outbound webhook) gets independent Wolverine retry
+/// each (email / Discord / Telegram / Pushover / ntfy / outbound webhook) gets independent Wolverine retry
 /// semantics.
 /// Email no longer carries critical-path "throw to propagate" semantics — its failure
 /// retries inside <see cref="SendAlertEmailHandler"/> rather than rolling back the
@@ -152,6 +152,19 @@ public static class SendAlertNotificationHandler
             outgoing.Add(new SendAlertPushoverRequested(
                 AlertId: alert.Id,
                 UserKey: alert.User.PushoverUserKey,
+                ProductName: alert.Product.Name,
+                ProductUrl: productUrl,
+                CurrentPrice: @event.CurrentPrice,
+                TargetPrice: @event.TargetPrice,
+                Currency: @event.Currency,
+                Condition: alert.Condition));
+        }
+
+        if (alert.User.NtfyNotificationsEnabled && !string.IsNullOrWhiteSpace(alert.User.NtfyTopicUrl))
+        {
+            outgoing.Add(new SendAlertNtfyRequested(
+                AlertId: alert.Id,
+                TopicUrl: alert.User.NtfyTopicUrl,
                 ProductName: alert.Product.Name,
                 ProductUrl: productUrl,
                 CurrentPrice: @event.CurrentPrice,

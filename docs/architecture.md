@@ -19,7 +19,7 @@ src/
 ├── Ophi.Worker/           # Handlers/, Services/ (dispatchers, retention, FX refresh), Configuration/WolverineConfig.cs
 ├── Ophi.Domain/           # Entities/, Services/ (cross-entity invariants), Messages/{Commands,Events}/, Enums/
 ├── Ophi.Infrastructure/   # Persistence/ (DbContext, Configurations/), Migrations/, Scraping/, Email/, Discord/,
-│                          # Push/ (Telegram, Pushover), Webhooks/, Fx/, Metrics/, Formatting/
+│                          # Push/ (Telegram, Pushover, ntfy), Webhooks/, Fx/, Metrics/, Formatting/
 └── Ophi.Web/              # SvelteKit app; e2e/ holds Playwright specs with page objects in e2e/pages/
 
 tests/

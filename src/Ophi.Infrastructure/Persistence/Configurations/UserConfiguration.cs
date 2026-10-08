@@ -40,6 +40,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         // Recipients only (chat id / user key) — validated shape, bounded here as a backstop.
         builder.Property(u => u.TelegramChatId).HasMaxLength(64);
         builder.Property(u => u.PushoverUserKey).HasMaxLength(64);
+        builder.Property(u => u.NtfyTopicUrl).HasMaxLength(2048);
         builder.Property(u => u.DisplayCurrency).HasMaxLength(3);
 
         builder.HasMany(u => u.Products)

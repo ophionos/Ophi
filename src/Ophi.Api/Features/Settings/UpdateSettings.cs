@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Api.Common.Validators;
+using Ophi.Infrastructure.Net;
 using Ophi.Infrastructure.Persistence;
+using Ophi.Infrastructure.Push;
 using Wolverine;
 
 namespace Ophi.Api.Features.Settings;
@@ -28,7 +30,9 @@ public static class UpdateSettings
                 request.TelegramNotificationsEnabled,
                 request.PushoverUserKey,
                 request.PushoverNotificationsEnabled,
-                request.DisplayCurrency
+                request.DisplayCurrency,
+                request.NtfyTopicUrl,
+                request.NtfyNotificationsEnabled
             )
             {
                 UserId = context.User.GetUserId()
@@ -58,7 +62,9 @@ public static class UpdateSettings
         bool? TelegramNotificationsEnabled = null,
         string? PushoverUserKey = null,
         bool? PushoverNotificationsEnabled = null,
-        string? DisplayCurrency = null
+        string? DisplayCurrency = null,
+        string? NtfyTopicUrl = null,
+        bool? NtfyNotificationsEnabled = null
     );
 
     public record Command(
@@ -75,7 +81,9 @@ public static class UpdateSettings
         bool? TelegramNotificationsEnabled = null,
         string? PushoverUserKey = null,
         bool? PushoverNotificationsEnabled = null,
-        string? DisplayCurrency = null
+        string? DisplayCurrency = null,
+        string? NtfyTopicUrl = null,
+        bool? NtfyNotificationsEnabled = null
     )
     {
         public Guid UserId { get; init; }
@@ -95,15 +103,23 @@ public static class UpdateSettings
         bool TelegramNotificationsEnabled,
         bool PushoverConfigured,
         bool PushoverNotificationsEnabled,
-        string? DisplayCurrency);
+        string? DisplayCurrency,
+        bool NtfyConfigured,
+        bool NtfyNotificationsEnabled);
 
     public class Validator : AbstractValidator<Command>
     {
         private const string DiscordWebhookPrefix = "https://discord.com/api/webhooks/";
         private const string DiscordAppWebhookPrefix = "https://discordapp.com/api/webhooks/";
 
-        public Validator()
+        /// <param name="addressPolicy">
+        /// The webhook address policy, which the ntfy client also uses. Optional so a test can build the
+        /// validator without DI; it then refuses every private address, as with no allowlist set.
+        /// </param>
+        public Validator(WebhookAddressPolicy? addressPolicy = null)
         {
+            addressPolicy ??= WebhookAddressPolicy.FromConfiguration(null);
+
             When(x => x.DefaultCheckIntervalMinutes.HasValue && x.DefaultCheckIntervalMinutes.Value != 0, () =>
             {
                 RuleFor(x => x.DefaultCheckIntervalMinutes)
@@ -147,6 +163,17 @@ public static class UpdateSettings
                 RuleFor(x => x.PushoverUserKey)
                     .Matches("^[A-Za-z0-9]{30}$")
                     .WithMessage("Pushover user key must be 30 letters and digits");
+            });
+
+            // A topic URL the ntfy client can reach: the same address rule as an outbound webhook.
+            When(x => !string.IsNullOrEmpty(x.NtfyTopicUrl), () =>
+            {
+                RuleFor(x => x.NtfyTopicUrl)
+                    .MaximumLength(2048)
+                    .Must(url => NtfyService.IsValidTopicUrl(url!.Trim()) &&
+                                 ProductValidationRules.IsValidHttpUrl(url.Trim(), addressPolicy.IsBlocked,
+                                     allowLocalNames: addressPolicy.AllowedNetworks.Count > 0))
+                    .WithMessage("ntfy topic URL must look like https://ntfy.sh/your-topic, on a public server or a network the operator allowed");
             });
 
             // Only currencies the ECB publishes a rate for — anything else could not be converted.
@@ -259,6 +286,16 @@ public static class UpdateSettings
                 user.PushoverNotificationsEnabled = command.PushoverNotificationsEnabled.Value;
             }
 
+            if (command.NtfyTopicUrl != null)
+            {
+                user.NtfyTopicUrl = string.IsNullOrWhiteSpace(command.NtfyTopicUrl) ? null : command.NtfyTopicUrl.Trim();
+            }
+
+            if (command.NtfyNotificationsEnabled.HasValue)
+            {
+                user.NtfyNotificationsEnabled = command.NtfyNotificationsEnabled.Value;
+            }
+
             if (command.DisplayCurrency != null)
             {
                 user.DisplayCurrency = string.IsNullOrWhiteSpace(command.DisplayCurrency)
@@ -284,7 +321,9 @@ public static class UpdateSettings
                 user.TelegramNotificationsEnabled,
                 !string.IsNullOrWhiteSpace(user.PushoverUserKey),
                 user.PushoverNotificationsEnabled,
-                user.DisplayCurrency);
+                user.DisplayCurrency,
+                !string.IsNullOrWhiteSpace(user.NtfyTopicUrl),
+                user.NtfyNotificationsEnabled);
         }
     }
 }

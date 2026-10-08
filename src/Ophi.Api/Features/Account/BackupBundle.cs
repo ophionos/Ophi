@@ -33,6 +33,7 @@ public record BackupBundle(
         "discord webhook url",
         "telegram chat id",
         "pushover user key",
+        "ntfy topic url",
         "outbound webhooks (their URL is often a credential)",
         "notifications",
         "scrape logs"

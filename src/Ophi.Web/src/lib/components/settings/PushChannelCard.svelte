@@ -7,7 +7,7 @@
 		channel: PushChannel;
 		title: string;
 		description: string;
-		/** Accessible label of the recipient input (chat id / user key). */
+		/** Accessible label of the recipient input (chat id / user key / topic URL). */
 		recipientLabel: string;
 		placeholder: string;
 		/** A recipient is saved. The value itself is never sent back by the API. */
@@ -34,17 +34,34 @@
 	let saving = $state(false);
 	let testing = $state(false);
 
-	const channelName = $derived(channel === 'telegram' ? 'Telegram' : 'Pushover');
+	const channelNames: Record<PushChannel, string> = {
+		telegram: 'Telegram',
+		pushover: 'Pushover',
+		ntfy: 'ntfy'
+	};
+	const channelName = $derived(channelNames[channel]);
 	const inputId = $derived(`${channel}-recipient`);
 
 	function recipientPatch(value: string): UpdateSettingsRequest {
-		return channel === 'telegram' ? { telegramChatId: value } : { pushoverUserKey: value };
+		switch (channel) {
+			case 'telegram':
+				return { telegramChatId: value };
+			case 'pushover':
+				return { pushoverUserKey: value };
+			case 'ntfy':
+				return { ntfyTopicUrl: value };
+		}
 	}
 
 	function enabledPatch(value: boolean): UpdateSettingsRequest {
-		return channel === 'telegram'
-			? { telegramNotificationsEnabled: value }
-			: { pushoverNotificationsEnabled: value };
+		switch (channel) {
+			case 'telegram':
+				return { telegramNotificationsEnabled: value };
+			case 'pushover':
+				return { pushoverNotificationsEnabled: value };
+			case 'ntfy':
+				return { ntfyNotificationsEnabled: value };
+		}
 	}
 
 	// A validation failure's useful text is the field message, not the generic summary.

@@ -11,19 +11,20 @@ namespace Ophi.Api.Features.Settings;
 public enum PushChannel
 {
     Telegram,
-    Pushover
+    Pushover,
+    Ntfy
 }
 
 /// <summary>
-/// Sends a sample alert through Telegram or Pushover to the recipient the user has saved — the push
-/// counterpart of <see cref="TestDiscordWebhook"/>. One slice for both channels: the flow is identical
-/// and only the service and the recipient field differ.
+/// Sends a sample alert through Telegram, Pushover or ntfy to the recipient the user has saved — the push
+/// counterpart of <see cref="TestDiscordWebhook"/>. One slice for all three: the flow is identical and
+/// only the service and the recipient field differ. ntfy needs no operator setup, so it is always available.
 /// </summary>
 public static class TestPushChannel
 {
     public static void MapTestPushChannelEndpoint(this IEndpointRouteBuilder routes)
     {
-        routes.MapPost("/api/v1/settings/{channel:regex(^(telegram|pushover)$)}/test",
+        routes.MapPost("/api/v1/settings/{channel:regex(^(telegram|pushover|ntfy)$)}/test",
             async (string channel, IMessageBus bus, HttpContext context) =>
         {
             var command = new Command(Enum.Parse<PushChannel>(channel, ignoreCase: true))
@@ -35,7 +36,7 @@ public static class TestPushChannel
         })
         .WithName("TestPushChannel")
         .WithTags("Settings")
-        .WithSummary("Send a test Telegram or Pushover message")
+        .WithSummary("Send a test Telegram, Pushover or ntfy message")
         .Produces<Response>()
         .RequireAuthorization()
         .RequireRateLimiting(Common.RateLimitPolicies.OutboundFetch);
@@ -52,6 +53,7 @@ public static class TestPushChannel
         OphiDbContext dbContext,
         ITelegramService telegram,
         IPushoverService pushover,
+        INtfyService ntfy,
         ILogger<Handler> logger)
     {
         private static readonly PushPriceAlert Sample =
@@ -65,9 +67,12 @@ public static class TestPushChannel
                 .FirstOrDefaultAsync(u => u.Id == command.UserId, cancellationToken)
                 ?? throw new NotFoundException("User not found");
 
-            var (available, recipient, missing) = command.Channel == PushChannel.Telegram
-                ? (telegram.IsConfigured, user.TelegramChatId, "No Telegram chat id saved. Save your chat id first.")
-                : (pushover.IsConfigured, user.PushoverUserKey, "No Pushover user key saved. Save your user key first.");
+            var (available, recipient, missing) = command.Channel switch
+            {
+                PushChannel.Telegram => (telegram.IsConfigured, user.TelegramChatId, "No Telegram chat id saved. Save your chat id first."),
+                PushChannel.Pushover => (pushover.IsConfigured, user.PushoverUserKey, "No Pushover user key saved. Save your user key first."),
+                _ => (true, user.NtfyTopicUrl, "No ntfy topic URL saved. Save your topic URL first.")
+            };
 
             if (!available)
             {
@@ -81,10 +86,13 @@ public static class TestPushChannel
 
             try
             {
-                if (command.Channel == PushChannel.Telegram)
-                    await telegram.SendPriceAlertAsync(Sample, recipient, cancellationToken);
-                else
-                    await pushover.SendPriceAlertAsync(Sample, recipient, cancellationToken);
+                var send = command.Channel switch
+                {
+                    PushChannel.Telegram => telegram.SendPriceAlertAsync(Sample, recipient, cancellationToken),
+                    PushChannel.Pushover => pushover.SendPriceAlertAsync(Sample, recipient, cancellationToken),
+                    _ => ntfy.SendPriceAlertAsync(Sample, recipient, cancellationToken)
+                };
+                await send;
 
                 return new Response(true);
             }

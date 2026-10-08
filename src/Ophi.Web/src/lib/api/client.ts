@@ -433,7 +433,7 @@ class ApiClient {
 		return this.request<FxRates>('/fx-rates');
 	}
 
-	/** Sends a sample alert to the saved Telegram chat / Pushover user key. */
+	/** Sends a sample alert to the saved Telegram chat / Pushover user key / ntfy topic. */
 	async testPushChannel(channel: PushChannel) {
 		return this.request<TestDiscordWebhookResponse>(`/settings/${channel}/test`, {
 			method: 'POST'
@@ -1001,6 +1001,9 @@ export interface Settings {
 	/** A user key is saved. The key itself is never returned. */
 	pushoverConfigured: boolean;
 	pushoverNotificationsEnabled: boolean;
+	/** A topic URL is saved. The URL itself is never returned. ntfy needs no server setup. */
+	ntfyConfigured: boolean;
+	ntfyNotificationsEnabled: boolean;
 	/** ISO code prices are also shown in (≈ …). Null = off. */
 	displayCurrency?: string | null;
 }
@@ -1015,7 +1018,7 @@ export interface FxRates {
 	supported: string[];
 }
 
-export type PushChannel = 'telegram' | 'pushover';
+export type PushChannel = 'telegram' | 'pushover' | 'ntfy';
 
 export interface SendTestEmailResponse {
 	success: boolean;
@@ -1040,6 +1043,9 @@ export interface UpdateSettingsRequest {
 	/** "" clears it. */
 	pushoverUserKey?: string;
 	pushoverNotificationsEnabled?: boolean;
+	/** "" clears it. */
+	ntfyTopicUrl?: string;
+	ntfyNotificationsEnabled?: boolean;
 	/** "" turns conversion off. */
 	displayCurrency?: string;
 }

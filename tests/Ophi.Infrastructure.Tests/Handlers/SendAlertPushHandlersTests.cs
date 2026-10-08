@@ -65,4 +65,32 @@ public class SendAlertPushHandlersTests
 
         await act.Should().ThrowAsync<HttpRequestException>();
     }
+
+    [Fact]
+    public async Task Ntfy_ForwardsTheAlertToTheTopicUrl()
+    {
+        var ntfy = new Mock<INtfyService>();
+
+        await SendAlertNtfyHandler.HandleAsync(
+            new SendAlertNtfyRequested(Guid.NewGuid(), "https://ntfy.sh/t", "Widget", "https://x", 45m, 20m, "USD", AlertCondition.PercentDrop),
+            ntfy.Object, NullLogger.Instance, TestContext.Current.CancellationToken);
+
+        ntfy.Verify(n => n.SendPriceAlertAsync(
+            It.Is<PushPriceAlert>(a => a.ProductName == "Widget" && a.Condition == AlertCondition.PercentDrop),
+            "https://ntfy.sh/t", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Ntfy_WhenSendFails_Propagates_ForWolverineRetry()
+    {
+        var ntfy = new Mock<INtfyService>();
+        ntfy.Setup(n => n.SendPriceAlertAsync(It.IsAny<PushPriceAlert>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("403"));
+
+        var act = () => SendAlertNtfyHandler.HandleAsync(
+            new SendAlertNtfyRequested(Guid.NewGuid(), "https://ntfy.sh/t", "Widget", "", 45m, 50m, "USD"),
+            ntfy.Object, NullLogger.Instance, TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
 }

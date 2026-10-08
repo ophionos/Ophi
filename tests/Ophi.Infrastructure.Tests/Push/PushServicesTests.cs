@@ -131,6 +131,59 @@ public class PushServicesTests
 
     #endregion
 
+    #region ntfy
+
+    private NtfyService Ntfy() => new(new HttpClient(_http.Object), NullLogger<NtfyService>.Instance);
+
+    [Theory]
+    [InlineData("https://ntfy.sh/ophi-alerts", "https://ntfy.sh/", "ophi-alerts")]
+    [InlineData("http://ntfy.lan:8080/ophi-alerts", "http://ntfy.lan:8080/", "ophi-alerts")]
+    [InlineData("https://example.com/ntfy/ophi-alerts", "https://example.com/ntfy/", "ophi-alerts")]
+    public async Task Ntfy_PublishesJsonToTheServerRootWithTheTopic(string topicUrl, string expectedPostUrl, string expectedTopic)
+    {
+        // JSON publishing, not headers: a product name can hold any character, and header values
+        // cannot carry most of them.
+        Respond(HttpStatusCode.OK);
+
+        await Ntfy().SendPriceAlertAsync(Alert, topicUrl, TestContext.Current.CancellationToken);
+
+        _sent!.Method.Should().Be(HttpMethod.Post);
+        _sent.RequestUri!.ToString().Should().Be(expectedPostUrl);
+        using var json = JsonDocument.Parse(_sentBody!);
+        json.RootElement.GetProperty("topic").GetString().Should().Be(expectedTopic);
+        json.RootElement.GetProperty("title").GetString().Should().Be(PushMessage.Title(Alert));
+        json.RootElement.GetProperty("message").GetString().Should().Be(PushMessage.Body(Alert));
+        json.RootElement.GetProperty("click").GetString().Should().Be("https://example.com/w");
+        json.RootElement.TryGetProperty("markdown", out _).Should().BeFalse("plain text keeps a product name from injecting markup");
+    }
+
+    [Fact]
+    public async Task Ntfy_OnErrorStatus_Throws_SoTheHandlerRetries()
+    {
+        Respond(HttpStatusCode.Forbidden);
+
+        var act = () => Ntfy().SendPriceAlertAsync(Alert, "https://ntfy.sh/ophi-alerts", TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Theory]
+    [InlineData("https://ntfy.sh/ophi-alerts", true)]
+    [InlineData("https://ntfy.sh/ophi_alerts-2", true)]
+    [InlineData("https://example.com/ntfy/ophi-alerts", true)]
+    [InlineData("https://ntfy.sh/", false)]
+    [InlineData("https://ntfy.sh", false)]
+    [InlineData("https://ntfy.sh/ophi-alerts?auth=x", false)]
+    [InlineData("https://ntfy.sh/ophi-alerts#x", false)]
+    [InlineData("https://ntfy.sh/bad topic", false)]
+    [InlineData("https://ntfy.sh/ophi-alerts/json", false)] // a subscribe endpoint, not a topic
+    [InlineData("ftp://ntfy.sh/ophi-alerts", false)]
+    [InlineData("not a url", false)]
+    public void Ntfy_IsValidTopicUrl(string url, bool expected) =>
+        NtfyService.IsValidTopicUrl(url).Should().Be(expected);
+
+    #endregion
+
     [Fact]
     public void Format_PercentDropTarget_RendersAsPercentage()
     {
