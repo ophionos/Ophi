@@ -139,6 +139,21 @@ public class CascadeDeleteTests : IDisposable
     }
 
     [Fact]
+    public async Task Delete_User_CascadesStoreClearances()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var user = TestEntityFactory.User().Build();
+        _dbContext.Users.Add(user);
+        _dbContext.StoreClearances.Add(StoreClearance.Create(user.Id, "shop.example", "{}", "UA", DateTime.UtcNow));
+        await _dbContext.SaveChangesAsync(ct);
+
+        _dbContext.Users.Remove(user);
+        await _dbContext.SaveChangesAsync(ct);
+
+        (await _dbContext.StoreClearances.CountAsync(ct)).Should().Be(0, "a deleted account keeps no store cookies");
+    }
+
+    [Fact]
     public async Task Delete_User_CascadesAllProductsAndChildren()
     {
         // Arrange — two products, one with a URL + alert, one with just a URL

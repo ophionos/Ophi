@@ -36,7 +36,8 @@ public record BackupBundle(
         "ntfy topic url",
         "outbound webhooks (their URL is often a credential)",
         "notifications",
-        "scrape logs"
+        "scrape logs",
+        "store clearances (browser cookies from solved anti-bot challenges)"
     ];
 
     public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)

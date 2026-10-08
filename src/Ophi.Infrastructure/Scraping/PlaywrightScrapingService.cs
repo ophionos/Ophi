@@ -15,7 +15,8 @@ public class PlaywrightScrapingService(
     ILogger<PlaywrightScrapingService> logger,
     IStoreConfigProvider configProvider,
     IPlaywrightBrowserManager browserManager,
-    Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null) : IScrapingService
+    Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null,
+    IStoreClearanceStore? clearances = null) : IScrapingService
 {
     private readonly Func<string, CancellationToken, Task<IPAddress[]>> _resolve = resolve ?? Dns.GetHostAddressesAsync;
 
@@ -77,8 +78,10 @@ public class PlaywrightScrapingService(
                     Timeout = 60000
                 });
 
-                // Check HTTP status from Playwright response
-                if (response != null && response.Status >= 400)
+                // Check HTTP status from Playwright response. A challenge page often arrives as a 403
+                // (Cloudflare); it is reported as AntiBot below, not as Forbidden, so the user is
+                // offered a challenge session and a rejected clearance is deleted.
+                if (response != null && response.Status >= 400 && !AntiBotSignals.IsChallengeTitle(await page.TitleAsync()))
                 {
                     return ScrapingService.ClassifyHttpError(response.Status);
                 }
@@ -187,7 +190,15 @@ public class PlaywrightScrapingService(
 
             logger.LogDebug("Using Playwright with {StoreId} adapter for {Url}", storeId, url);
 
-            var page = await browserManager.NewPageAsync(storeConfig?.CustomUserAgent);
+            // A clearance the user earned in a challenge session (ChallengeSessionManager) replaces the
+            // store's User-Agent: the clearance cookies are bound to the browser that earned them.
+            var clearance = userId.HasValue && clearances != null && Uri.TryCreate(url, UriKind.Absolute, out var target)
+                ? await clearances.FindAsync(userId.Value, target.Host, cancellationToken)
+                : null;
+
+            var page = clearance != null
+                ? await browserManager.NewPageAsync(clearance.UserAgent, clearance.StorageState)
+                : await browserManager.NewPageAsync(storeConfig?.CustomUserAgent);
             var context = page.Context;
             await using var cancelRegistration = cancellationToken.Register(AbortOnCancellation, context);
             try
@@ -200,8 +211,10 @@ public class PlaywrightScrapingService(
                     Timeout = 60000
                 });
 
-                // Check HTTP status from Playwright response
-                if (response != null && response.Status >= 400)
+                // Check HTTP status from Playwright response. A challenge page often arrives as a 403
+                // (Cloudflare); it is reported as AntiBot below, not as Forbidden, so the user is
+                // offered a challenge session and a rejected clearance is deleted.
+                if (response != null && response.Status >= 400 && !AntiBotSignals.IsChallengeTitle(await page.TitleAsync()))
                 {
                     return ScrapingService.ClassifyHttpError(response.Status);
                 }
@@ -221,6 +234,12 @@ public class PlaywrightScrapingService(
                 var antiBotResolved = await WaitForAntiBot(page);
                 if (!antiBotResolved)
                 {
+                    if (clearance != null)
+                    {
+                        // The store no longer accepts it; drop it so the user is offered a new challenge.
+                        logger.LogInformation("Saved clearance for {Host} no longer passes; deleting it", clearance.Host);
+                        await clearances!.DeleteAsync(clearance.UserId, clearance.Host, cancellationToken);
+                    }
                     return ScrapingResult.Failure("Blocked by anti-bot protection", ScrapeErrorCategory.AntiBot);
                 }
 

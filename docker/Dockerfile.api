@@ -28,10 +28,31 @@ RUN dotnet publish Ophi.Api/Ophi.Api.csproj -c Release -o /app/publish -a $TARGE
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+ARG TARGETARCH
+# Opt-in Chromium for interactive anti-bot challenge solving (compose sets it from CHALLENGE_SOLVING).
+# Off by default: it adds a few hundred MB, and the API needs no browser otherwise.
+ARG INSTALL_CHROMIUM=false
 WORKDIR /app
 
 # Install curl for healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
+# Same install as docker/Dockerfile.worker (see the notes there). Only the Playwright driver is copied
+# first, so a code change does not repeat the browser download.
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright-browsers
+COPY --from=build /app/publish/.playwright ./.playwright
+RUN if [ "$INSTALL_CHROMIUM" = "true" ]; then \
+      case "$TARGETARCH" in \
+        amd64) PW_NODE_DIR=linux-x64 ;; \
+        arm64) PW_NODE_DIR=linux-arm64 ;; \
+        *) echo "Unsupported TARGETARCH '$TARGETARCH' for the Playwright driver" >&2; exit 1 ;; \
+      esac && \
+      PW_NODE="/app/.playwright/node/$PW_NODE_DIR/node" && \
+      chmod +x "$PW_NODE" && \
+      NODE_OPTIONS=--dns-result-order=ipv4first \
+      "$PW_NODE" /app/.playwright/package/cli.js install --with-deps chromium && \
+      chown -R app:app /app/.playwright /app/.playwright-browsers; \
+    fi
 
 # Create data directory and set permissions for built-in non-root user
 RUN mkdir -p /app/data && \

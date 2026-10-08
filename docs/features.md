@@ -14,6 +14,13 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
   `SCRAPE_PROXY_URL` plus the store's domains in `SCRAPE_PROXY_DOMAINS` (operator setting; users
   cannot pick it). The browser path routes per connection host, so list a store's asset and API
   domains too if the store checks that they come from the same address.
+- **Solving a challenge by hand (opt-in).** With `CHALLENGE_SOLVING=true`, a blocked URL gets a
+  "Solve challenge" button. It opens the store page in a browser on the server and streams it to
+  the user, who clicks and types on it. When the page is past the challenge, Ophi saves its cookies
+  and User-Agent for that user and host (at most 7 days), and later browser scrapes start from them.
+  It then re-checks the user's blocked URLs on that host. A clearance the store stops accepting is
+  deleted, and the button comes back. This works for an interactive challenge, not for a store that
+  refuses the network itself.
 - **Adding an adapter without network access:** save the product page as
   `tests/Ophi.Infrastructure.Tests/Scraping/Fixtures/{store}-product.html` and add a case to
   `StoreConfigFixtureTests`. A fixture proves the config matches that snapshot, not that the store

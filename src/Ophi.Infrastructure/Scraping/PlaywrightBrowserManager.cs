@@ -27,7 +27,7 @@ public sealed class PlaywrightBrowserManager(
     /// Gets a new page from the browser with realistic context settings.
     /// Initializes the browser if needed. Resets and reinitializes if the browser has crashed.
     /// </summary>
-    public async Task<IPage> NewPageAsync(string? userAgent = null)
+    public async Task<IPage> NewPageAsync(string? userAgent = null, string? storageState = null)
     {
         await EnsureInitializedAsync();
 
@@ -42,7 +42,8 @@ public sealed class PlaywrightBrowserManager(
                 ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
                 Locale = "en-US",
                 TimezoneId = "America/New_York",
-                JavaScriptEnabled = true
+                JavaScriptEnabled = true,
+                StorageState = storageState
             });
 
             // Remove the webdriver flag that bot detectors check
@@ -89,7 +90,7 @@ public sealed class PlaywrightBrowserManager(
             });
             _initialized = true;
 
-            logger.LogInformation("Playwright browser initialized");
+            logger.LogInformation("Playwright browser initialized (Chromium {Version})", _browser.Version);
         }
         catch
         {

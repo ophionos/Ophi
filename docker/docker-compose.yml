@@ -19,6 +19,10 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
+      args:
+        # Chromium in the api image, for interactive challenge solving. A build arg: rebuild the
+        # image (`docker compose build api`) after changing CHALLENGE_SOLVING.
+        INSTALL_CHROMIUM: ${CHALLENGE_SOLVING:-false}
     ports:
       - "5000:5000"
     environment:
@@ -46,6 +50,8 @@ services:
       # Upstream proxy for scrapes of the listed store domains only; see docs/security.md.
       - Scraping__UpstreamProxy__Url=${SCRAPE_PROXY_URL:-}
       - Scraping__UpstreamProxy__Domains=${SCRAPE_PROXY_DOMAINS:-}
+      # Lets users solve a store's anti-bot challenge in a remote browser; see docs/security.md.
+      - Scraping__InteractiveChallenge__Enabled=${CHALLENGE_SOLVING:-false}
     # Persist Data Protection keys (AuthSetup writes them to /app/data/dp-keys) so an
     # `api` container recreate doesn't rotate the keys and log every user out.
     volumes:

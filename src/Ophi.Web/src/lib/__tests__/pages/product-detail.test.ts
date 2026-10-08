@@ -31,7 +31,11 @@ vi.mock('$lib/api/client', async () => {
 			addTagToProduct: vi.fn(),
 			removeTagFromProduct: vi.fn(),
 			getScrapeLog: vi.fn(),
-			getStores: vi.fn()
+			getStores: vi.fn(),
+			startChallenge: vi.fn(),
+			getChallenge: vi.fn(),
+			sendChallengeInput: vi.fn(),
+			closeChallenge: vi.fn()
 		}
 	};
 });
@@ -199,7 +203,7 @@ function setupPageParams(id: string) {
 	page.params = { id };
 }
 
-function renderPage(product: ProductDetail | null, stores: Store[] = []) {
+function renderPage(product: ProductDetail | null, stores: Store[] = [], challengeAvailable = false) {
 	// Action-handler mocks for code paths that hit the API directly
 	vi.mocked(api.getProduct).mockResolvedValue(product as ProductDetail);
 	vi.mocked(api.getPriceHistory).mockResolvedValue(mockPriceHistory);
@@ -217,7 +221,8 @@ function renderPage(product: ProductDetail | null, stores: Store[] = []) {
 				priceHistory: product ? mockPriceHistory : null,
 				comparisonGroups: [],
 				tags: [],
-				stores
+				stores,
+				challengeAvailable
 			} as unknown as PageData
 		}
 	});
@@ -428,6 +433,46 @@ describe('Product Detail Page', () => {
 			});
 
 			expect(screen.getByTitle('Store configuration')).toBeInTheDocument();
+		});
+	});
+
+	describe('challenge solving', () => {
+		const blockedProduct: ProductDetail = {
+			...mockProductWithCustomFields,
+			customFields: [],
+			urls: [
+				{
+					id: 'url-blocked',
+					url: 'https://shop.example/p/1',
+					currency: 'USD',
+					failureCount: 3,
+					status: 'paused',
+					isOutOfStock: false,
+					lastError: 'Blocked by anti-bot protection'
+				}
+			]
+		};
+
+		it('should open the challenge session when Solve challenge is clicked and the server offers it', async () => {
+			auth.login(mockUser);
+			vi.mocked(api.startChallenge).mockResolvedValue({ host: 'shop.example' });
+			vi.mocked(api.getChallenge).mockResolvedValue({ state: 'none' });
+			renderPage(blockedProduct, [], true);
+
+			await fireEvent.click(await screen.findByTestId('solve-challenge-button'));
+
+			await waitFor(() => expect(api.startChallenge).toHaveBeenCalledWith('p1', 'url-blocked'));
+			expect(screen.getByText("Solve the store's challenge")).toBeInTheDocument();
+		});
+
+		it('should not offer Solve challenge when the server does not support it', async () => {
+			auth.login(mockUser);
+			renderPage(blockedProduct, [], false);
+
+			await waitFor(() => {
+				expect(screen.getAllByText('MacBook Pro').length).toBeGreaterThanOrEqual(1);
+			});
+			expect(screen.queryByTestId('solve-challenge-button')).not.toBeInTheDocument();
 		});
 	});
 

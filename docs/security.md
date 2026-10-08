@@ -116,6 +116,24 @@ Consequences:
 - The URL and credentials are never logged or put in an error message. Webhooks and ntfy never use
   the proxy.
 
+**Challenge sessions (`CHALLENGE_SOLVING`, off by default).** The API runs a Chromium page for a
+user and forwards the user's mouse and keyboard input to it.
+
+- The browser is the same `PlaywrightBrowserManager` as scrapes, so every connection goes through
+  `PinnedSocksProxy` (and the upstream proxy for listed domains). The page has no address bar, but a
+  link click can still navigate anywhere a scrape can.
+- Input is limited to pointer presses inside the viewport, typed text (256 characters at most), and
+  a key allowlist without modifiers.
+- A session starts only for the user's own URL whose last check was blocked. There is one session
+  per user and three in total. A session closes after 2 minutes without a request, and after 10
+  minutes in any case. Starting a session uses the outbound-fetch rate limit. The frame poll and
+  the input endpoint skip the global per-user limit, because the poll alone (twice a second) reaches it.
+- The saved storage state can hold the user's login at the store, because the user can type into
+  the page. It is per user, never returned by the API, never in a backup, and deleted with the
+  account.
+- The flag also sets the `INSTALL_CHROMIUM` build arg, so a deployment without it has no browser in
+  the API image.
+
 ## Other measures
 
 - FluentValidation runs as Wolverine middleware for each command that has a `Validator`; EF Core

@@ -68,7 +68,7 @@ public class PlaywrightScrapingServiceTests
         result.Success.Should().BeFalse();
         result.ErrorCategory.Should().Be(ScrapeErrorCategory.BlockedDestination);
         result.Error.Should().NotContain("10.0.0.5");
-        _browserManagerMock.Verify(x => x.NewPageAsync(It.IsAny<string?>()), Times.Never);
+        _browserManagerMock.Verify(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class PlaywrightScrapingServiceTests
             "http://169.254.169.254/latest/meta-data", config, TestContext.Current.CancellationToken);
 
         result.ErrorCategory.Should().Be(ScrapeErrorCategory.BlockedDestination);
-        _browserManagerMock.Verify(x => x.NewPageAsync(It.IsAny<string?>()), Times.Never);
+        _browserManagerMock.Verify(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class PlaywrightScrapingServiceTests
     {
         const string url = "https://gone.example/product";
         _dns["gone.example"] = [];
-        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>())).ReturnsAsync(_pageMock.Object);
+        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(_pageMock.Object);
         _pageMock.Setup(x => x.GotoAsync(url, It.IsAny<PageGotoOptions>()))
             .ThrowsAsync(new PlaywrightException("net::ERR_SOCKS_CONNECTION_FAILED"));
         _configProviderMock.Setup(x => x.GetConfigForUrl(url)).Returns((StoreConfig?)null);
@@ -140,7 +140,7 @@ public class PlaywrightScrapingServiceTests
     {
         // Arrange
         const string url = "https://example.com/product";
-        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>()))
+        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync(_pageMock.Object);
 
         _pageMock.Setup(x => x.GotoAsync(url, It.IsAny<PageGotoOptions>()))
@@ -234,7 +234,7 @@ public class PlaywrightScrapingServiceTests
     {
         // Arrange
         const string url = "https://example.com/product";
-        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>()))
+        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync(_pageMock.Object);
 
         _pageMock.Setup(x => x.GotoAsync(url, It.IsAny<PageGotoOptions>()))
@@ -259,7 +259,7 @@ public class PlaywrightScrapingServiceTests
         const string customSelector = ".special-price";
         var priceElementMock = new Mock<IElementHandle>();
 
-        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>()))
+        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync(_pageMock.Object);
 
         _pageMock.Setup(x => x.GotoAsync(url, It.IsAny<PageGotoOptions>()))
@@ -348,7 +348,7 @@ public class PlaywrightScrapingServiceTests
         const string url = "https://www.amazon.es/-/en/dp/1646093240/";
         _configProviderMock.Setup(x => x.GetConfigForUrl(url)).Returns(AmazonConfig.Create());
 
-        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>()))
+        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync(_pageMock.Object);
         _pageMock.Setup(x => x.GotoAsync(url, It.IsAny<PageGotoOptions>()))
             .ReturnsAsync((IResponse?)null);
@@ -511,7 +511,7 @@ public class PlaywrightScrapingServiceTests
         const string url = "https://example.com/product";
         using var cts = new CancellationTokenSource();
 
-        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>()))
+        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync(_pageMock.Object);
         _contextMock.Setup(x => x.CloseAsync(It.IsAny<BrowserContextCloseOptions>()))
             .Returns(Task.CompletedTask);
@@ -538,7 +538,7 @@ public class PlaywrightScrapingServiceTests
         // Guard against over-correcting: a genuine page error must remain a scrape failure result.
         const string url = "https://example.com/product";
 
-        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>()))
+        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync(_pageMock.Object);
         _contextMock.Setup(x => x.CloseAsync(It.IsAny<BrowserContextCloseOptions>()))
             .Returns(Task.CompletedTask);
@@ -553,9 +553,115 @@ public class PlaywrightScrapingServiceTests
         result.Error.Should().Contain("ERR_NAME_NOT_RESOLVED");
     }
 
+    private PlaywrightScrapingService ServiceWithClearances(IStoreClearanceStore clearances) =>
+        new(new Mock<ILogger<PlaywrightScrapingService>>().Object,
+            _configProviderMock.Object,
+            _browserManagerMock.Object,
+            (_, _) => Task.FromResult<IPAddress[]>([IPAddress.Parse("93.184.215.14")]),
+            clearances);
+
+    [Fact]
+    public async Task ScrapeProductAsync_UserHasAClearanceForTheHost_StartsFromItsStateAndUserAgent()
+    {
+        const string url = "https://Shop.Example/product";
+        var userId = Guid.NewGuid();
+        SetupPage(url, "$5.00", "Product");
+        _configProviderMock.Setup(x => x.GetConfigForUrlAsync(url, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StoreConfig?)null);
+        var clearances = new Mock<IStoreClearanceStore>();
+        clearances.Setup(x => x.FindAsync(userId, "shop.example", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Ophi.Domain.Entities.StoreClearance.Create(userId, "shop.example", "{\"cookies\":[]}", "Solver UA", DateTime.UtcNow));
+
+        var result = await ServiceWithClearances(clearances.Object)
+            .ScrapeProductAsync(url, userId: userId, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Success.Should().BeTrue();
+        _browserManagerMock.Verify(x => x.NewPageAsync("Solver UA", "{\"cookies\":[]}"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_ClearanceStillHitsAChallenge_DeletesTheClearance()
+    {
+        const string url = "https://shop.example/product";
+        var userId = Guid.NewGuid();
+        SetupPage(url, "$5.00", "Product");
+        _pageMock.Setup(x => x.Url).Returns("https://shop.example/blocked");
+        _configProviderMock.Setup(x => x.GetConfigForUrlAsync(url, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StoreConfig?)null);
+        var clearances = new Mock<IStoreClearanceStore>();
+        clearances.Setup(x => x.FindAsync(userId, "shop.example", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Ophi.Domain.Entities.StoreClearance.Create(userId, "shop.example", "{}", "UA", DateTime.UtcNow));
+
+        var result = await ServiceWithClearances(clearances.Object)
+            .ScrapeProductAsync(url, userId: userId, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.ErrorCategory.Should().Be(ScrapeErrorCategory.AntiBot);
+        clearances.Verify(x => x.DeleteAsync(userId, "shop.example", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_ClearanceGets403ChallengePage_ReportsAntiBotAndDeletesTheClearance()
+    {
+        // Cloudflare serves its challenge with HTTP 403; the title, not the status, decides.
+        const string url = "https://shop.example/product";
+        var userId = Guid.NewGuid();
+        SetupPage(url, "$5.00", "Product");
+        var response = new Mock<IResponse>();
+        response.Setup(x => x.Status).Returns(403);
+        _pageMock.Setup(x => x.GotoAsync(url, It.IsAny<PageGotoOptions>())).ReturnsAsync(response.Object);
+        _pageMock.Setup(x => x.TitleAsync()).ReturnsAsync("Just a moment...");
+        _pageMock.Setup(x => x.Url).Returns(url);
+        _pageMock.Setup(x => x.WaitForFunctionAsync(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<PageWaitForFunctionOptions>()))
+            .ThrowsAsync(new TimeoutException());
+        _configProviderMock.Setup(x => x.GetConfigForUrlAsync(url, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StoreConfig?)null);
+        var clearances = new Mock<IStoreClearanceStore>();
+        clearances.Setup(x => x.FindAsync(userId, "shop.example", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Ophi.Domain.Entities.StoreClearance.Create(userId, "shop.example", "{}", "UA", DateTime.UtcNow));
+
+        var result = await ServiceWithClearances(clearances.Object)
+            .ScrapeProductAsync(url, userId: userId, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.ErrorCategory.Should().Be(ScrapeErrorCategory.AntiBot);
+        clearances.Verify(x => x.DeleteAsync(userId, "shop.example", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_403WithoutAChallengeTitle_IsForbidden()
+    {
+        const string url = "https://shop.example/product";
+        SetupPage(url, "$5.00", "Product");
+        var response = new Mock<IResponse>();
+        response.Setup(x => x.Status).Returns(403);
+        _pageMock.Setup(x => x.GotoAsync(url, It.IsAny<PageGotoOptions>())).ReturnsAsync(response.Object);
+        _pageMock.Setup(x => x.TitleAsync()).ReturnsAsync("Access Denied");
+        _configProviderMock.Setup(x => x.GetConfigForUrl(url)).Returns((StoreConfig?)null);
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.ErrorCategory.Should().Be(ScrapeErrorCategory.Forbidden);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_NoClearance_UsesTheStoreUserAgentAndNoState()
+    {
+        const string url = "https://shop.example/product";
+        var userId = Guid.NewGuid();
+        SetupPage(url, "$5.00", "Product");
+        _configProviderMock.Setup(x => x.GetConfigForUrlAsync(url, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StoreConfig?)null);
+        var clearances = new Mock<IStoreClearanceStore>();
+
+        await ServiceWithClearances(clearances.Object)
+            .ScrapeProductAsync(url, userId: userId, cancellationToken: TestContext.Current.CancellationToken);
+
+        _browserManagerMock.Verify(x => x.NewPageAsync(null, null), Times.Once);
+        clearances.Verify(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private void SetupPage(string url, string? priceText, string? name = null, string? imageUrl = null)
     {
-        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>()))
+        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync(_pageMock.Object);
 
         _pageMock.Setup(x => x.GotoAsync(url, It.IsAny<PageGotoOptions>()))
