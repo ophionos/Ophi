@@ -267,7 +267,11 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
 - **A client that fetches a user-chosen URL uses `.UsePublicAddressesOnly()`** (`PublicAddressHandler`):
   today the scraper, the webhook dispatcher, and ntfy. Fixed-host clients (Telegram, Pushover, ECB, Discord's
   prefix-validated URL) do not need it. `DependencyInjectionTests.UserUrlClient_UsesThePublicAddressHandler`
-  lists the guarded clients — add a new one there. Do not put back a proxy or a dual-mode socket.
+  lists the guarded clients — add a new one there. Do not put back a system proxy (`UseProxy`) or a
+  dual-mode socket: the callback would check the proxy, not the target. The scraper's `UpstreamProxy`
+  is safe because `PinnedConnector` checks the target first and tunnels to that IP — never pass the
+  proxy a hostname (no absolute-form forwarding, no SOCKS ATYP 3). Its route depends only on the
+  target host, so pooled connections and per-connection browser routing stay consistent.
   The webhook and ntfy clients use `.UseWebhookAddressPolicy()` instead: the same handler with
   `WebhookAddressPolicy.IsBlocked`, which re-opens only the operator's `Webhooks:AllowedNetworks`
   (limited to `AddressPolicy.ReopenableNetworks`). Never pass that policy to the scraper.

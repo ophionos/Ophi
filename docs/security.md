@@ -103,6 +103,19 @@ as `ERR_SOCKS_CONNECTION_FAILED`, the same code as a down host. A pre-check on t
 returns `BlockedDestination` before a page opens; a blocked redirect hop is still refused, but shows
 as a generic failure. A blocked HTTP scrape never falls back to Playwright.
 
+**Upstream proxy (`SCRAPE_PROXY_URL`, `SCRAPE_PROXY_DOMAINS`).** Scrapes of the listed domains, on
+both paths, leave through the operator's proxy. The check above still runs first: Ophi resolves the
+host, drops blocked addresses, and asks the proxy to tunnel (HTTP `CONNECT` or SOCKS5) to the checked
+IP address. The proxy never receives the hostname, so it cannot resolve it to an internal address.
+Consequences:
+
+- DNS is resolved by Ophi, not at the proxy. CDNs usually choose by the connecting address (the
+  proxy), so this rarely matters.
+- `http://` targets also use `CONNECT`. A proxy that allows `CONNECT` only to port 443 fails them.
+- The proxy itself is trusted: its own address is not checked, so it may run on the host or a LAN.
+- The URL and credentials are never logged or put in an error message. Webhooks and ntfy never use
+  the proxy.
+
 ## Other measures
 
 - FluentValidation runs as Wolverine middleware for each command that has a `Validator`; EF Core

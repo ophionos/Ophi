@@ -18,19 +18,22 @@ public static class PublicAddressHandler
 
     public static HttpMessageHandler Create(
         Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null,
-        Func<IPAddress, bool>? isBlocked = null)
+        Func<IPAddress, bool>? isBlocked = null,
+        UpstreamProxy? upstream = null)
     {
         resolve ??= Dns.GetHostAddressesAsync;
         isBlocked ??= AddressPolicy.IsBlocked;
 
         return new SocketsHttpHandler
         {
-            // With a proxy the callback would connect to (and check) the proxy, not the target.
+            // With a system proxy the callback would connect to (and check) the proxy, not the target.
+            // An UpstreamProxy is different: the callback checks the target, then tunnels to that address.
             UseProxy = false,
             ConnectCallback = async (context, cancellationToken) =>
                 new NetworkStream(
                     await PinnedConnector.ConnectAsync(
-                        context.DnsEndPoint.Host, context.DnsEndPoint.Port, resolve, isBlocked, cancellationToken),
+                        context.DnsEndPoint.Host, context.DnsEndPoint.Port, resolve, isBlocked, cancellationToken,
+                        upstream),
                     ownsSocket: true)
         };
     }
@@ -53,6 +56,14 @@ public static class PublicAddressHandler
     /// </summary>
     public static IHttpClientBuilder UsePublicAddressesOnly(this IHttpClientBuilder builder) =>
         builder.ConfigurePrimaryHttpMessageHandler(() => Create());
+
+    /// <summary>
+    /// As <see cref="UsePublicAddressesOnly(IHttpClientBuilder)"/>, plus the operator's
+    /// <see cref="UpstreamProxy"/> for its listed domains. For the scraper only.
+    /// </summary>
+    public static IHttpClientBuilder UsePublicAddressesWithUpstreamProxy(this IHttpClientBuilder builder) =>
+        builder.ConfigurePrimaryHttpMessageHandler(sp =>
+            Create(upstream: sp.GetRequiredService<UpstreamProxy>()));
 
     /// <summary>
     /// As <see cref="UsePublicAddressesOnly(IHttpClientBuilder)"/>, with the webhook policy: the

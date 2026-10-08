@@ -7,7 +7,8 @@ namespace Ophi.Infrastructure.Net;
 /// Resolve, check, connect — the one place both SSRF guards open outbound connections
 /// (<see cref="PublicAddressHandler"/> for HttpClient, <see cref="PinnedSocksProxy"/> for Chromium).
 /// The address that is checked is the address that is connected to, so a DNS answer that changes after
-/// the check (rebinding) cannot redirect the connection.
+/// the check (rebinding) cannot redirect the connection. A host that <see cref="UpstreamProxy.Routes"/>
+/// is reached through the upstream proxy, which is asked to tunnel to the checked address.
 /// </summary>
 internal static class PinnedConnector
 {
@@ -18,12 +19,14 @@ internal static class PinnedConnector
         int port,
         Func<string, CancellationToken, Task<IPAddress[]>> resolve,
         Func<IPAddress, bool> isBlocked,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        UpstreamProxy? upstream = null)
     {
         host = host.Trim('[', ']');
         var addresses = IPAddress.TryParse(host, out var literal)
             ? [literal]
             : await resolve(host, cancellationToken);
+        var viaUpstream = upstream?.Routes(host) == true;
 
         if (addresses.Length == 0)
             throw new SocketException((int)SocketError.HostNotFound);
@@ -32,9 +35,27 @@ internal static class PinnedConnector
         if (allowed.Length == 0)
             throw new BlockedDestinationException();
 
+        IOException? lastUpstreamError = null;
         SocketException? lastError = null;
         foreach (var address in allowed)
         {
+            if (viaUpstream)
+            {
+                try
+                {
+                    return await upstream!.ConnectAsync(address, port, cancellationToken);
+                }
+                catch (UpstreamProxyException ex)
+                {
+                    lastUpstreamError = ex;
+                }
+                catch (SocketException ex)
+                {
+                    lastError = ex;
+                }
+                continue;
+            }
+
             // Per-family socket: a dual-mode socket fails where IPv6 is disabled (some containers).
             var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
             try
@@ -54,6 +75,8 @@ internal static class PinnedConnector
             }
         }
 
+        if (lastUpstreamError is not null)
+            throw lastUpstreamError;
         throw lastError!;
     }
 

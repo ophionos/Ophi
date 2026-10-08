@@ -10,7 +10,10 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
 - **A store can refuse your network.** Scrapes leave from the host that runs the worker, and some
   retailers block by origin. Test a failing store from that host, not from a desktop browser. A
   challenge page is reported as "Blocked by anti-bot protection", and a URL that keeps hitting one is
-  paused. Resume it when your network changes.
+  paused. Resume it when your network changes. Or send that store through an upstream proxy:
+  `SCRAPE_PROXY_URL` plus the store's domains in `SCRAPE_PROXY_DOMAINS` (operator setting; users
+  cannot pick it). The browser path routes per connection host, so list a store's asset and API
+  domains too if the store checks that they come from the same address.
 - **Adding an adapter without network access:** save the product page as
   `tests/Ophi.Infrastructure.Tests/Scraping/Fixtures/{store}-product.html` and add a case to
   `StoreConfigFixtureTests`. A fixture proves the config matches that snapshot, not that the store
