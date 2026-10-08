@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using AngleSharp;
 using AngleSharp.Dom;
 using Microsoft.Extensions.Logging;
+using Ophi.Infrastructure.Net;
 using Ophi.Infrastructure.Scraping.Adapters;
 
 namespace Ophi.Infrastructure.Scraping;
@@ -121,6 +122,11 @@ public class ScrapingService(HttpClient httpClient, ILogger<ScrapingService> log
                 PageTitle = pageTitle
             };
         }
+        catch (HttpRequestException ex) when (PublicAddressHandler.IsBlockedDestination(ex))
+        {
+            logger.LogWarning("Refused to fetch {Url}: it resolves to a private or reserved address", url);
+            return ScrapingResult.Failure(PublicAddressHandler.BlockedMessage, ScrapeErrorCategory.BlockedDestination);
+        }
         catch (HttpRequestException ex)
         {
             logger.LogError(ex, "Network error scraping {Url}", url);
@@ -159,6 +165,11 @@ public class ScrapingService(HttpClient httpClient, ILogger<ScrapingService> log
 
             return await ParseWithConfigAsync(
                 fetch.Html, config, url, fetch.FinalUrl, fetch.StatusCode, cancellationToken);
+        }
+        catch (HttpRequestException ex) when (PublicAddressHandler.IsBlockedDestination(ex))
+        {
+            logger.LogWarning("Refused to fetch {Url}: it resolves to a private or reserved address", url);
+            return ScrapingResult.Failure(PublicAddressHandler.BlockedMessage, ScrapeErrorCategory.BlockedDestination);
         }
         catch (HttpRequestException ex)
         {

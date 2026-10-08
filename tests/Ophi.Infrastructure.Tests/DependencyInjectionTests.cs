@@ -3,6 +3,7 @@ using System.Net;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Ophi.Domain.Enums;
 using Ophi.Infrastructure.Discord;
@@ -115,6 +116,27 @@ public class DependencyInjectionTests
         logs.Should().NotContain(m => m.Contains("SECRET-TOKEN"));
     }
 
+    [Theory]
+    [InlineData("ScrapingService")]
+    [InlineData("IWebhookDispatchService")]
+    public void UserUrlClient_UsesThePublicAddressHandler(string clientName)
+    {
+        // Every client that fetches a user-chosen URL must connect through PublicAddressHandler.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(TimeProvider.System);
+        services.AddInfrastructure(BuildConfig(new Dictionary<string, string?> { ["POSTGRES_CONNECTION"] = "Host=unused" }));
+        using var provider = services.BuildServiceProvider();
+
+        HttpMessageHandler handler = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler(clientName);
+        while (handler is DelegatingHandler delegating)
+            handler = delegating.InnerHandler!;
+
+        var primary = handler.Should().BeOfType<SocketsHttpHandler>().Which;
+        primary.ConnectCallback.Should().NotBeNull();
+        primary.UseProxy.Should().BeFalse();
+    }
+
     private static (ServiceProvider Provider, ConcurrentQueue<string> Logs) BuildProviderCapturingLogs()
     {
         var logs = new ConcurrentQueue<string>();
@@ -125,8 +147,10 @@ public class DependencyInjectionTests
         {
             ["POSTGRES_CONNECTION"] = "Host=unused"
         }));
-        services.ConfigureHttpClientDefaults(b =>
-            b.ConfigurePrimaryHttpMessageHandler(() => new StubHandler()));
+        // Registered after AddInfrastructure so it also replaces the per-client primary handlers
+        // (UsePublicAddressesOnly); ConfigureHttpClientDefaults runs first and would lose to them.
+        services.ConfigureAll<HttpClientFactoryOptions>(o =>
+            o.HttpMessageHandlerBuilderActions.Add(b => b.PrimaryHandler = new StubHandler()));
         return (services.BuildServiceProvider(), logs);
     }
 

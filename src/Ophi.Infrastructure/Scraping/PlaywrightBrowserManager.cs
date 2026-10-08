@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
+using Ophi.Infrastructure.Net;
 
 namespace Ophi.Infrastructure.Scraping;
 
@@ -8,9 +9,14 @@ namespace Ophi.Infrastructure.Scraping;
 /// Ensures the browser is created once and reused across all scraping requests.
 /// Automatically resets and reinitializes if the browser process crashes.
 /// </summary>
-public sealed class PlaywrightBrowserManager(ILogger<PlaywrightBrowserManager> logger) : IPlaywrightBrowserManager
+public sealed class PlaywrightBrowserManager(
+    ILogger<PlaywrightBrowserManager> logger,
+    Func<PinnedSocksProxy>? startProxy = null) : IPlaywrightBrowserManager
 {
+    private readonly Func<PinnedSocksProxy> _startProxy = startProxy ?? (() => PinnedSocksProxy.Start());
+
     private IPlaywright? _playwright;
+    private PinnedSocksProxy? _proxy;
     private IBrowser? _browser;
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private bool _initialized;
@@ -62,20 +68,39 @@ public sealed class PlaywrightBrowserManager(ILogger<PlaywrightBrowserManager> l
             if (_initialized) return;
             ObjectDisposedException.ThrowIf(_disposed, this);
 
+            // SSRF guard: every connection the browser opens goes through the pinning proxy.
+            _proxy = _startProxy();
             _playwright = await Playwright.CreateAsync();
             _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
             {
                 Headless = true,
+                // "<-loopback>" removes Chromium's implicit loopback bypass, so localhost goes through
+                // the proxy (and is refused) like every other host.
+                Proxy = new Proxy { Server = _proxy.Server, Bypass = "<-loopback>" },
                 Args =
                 [
                     "--disable-blink-features=AutomationControlled",
                     "--disable-features=IsolateOrigins,site-per-process",
-                    "--no-sandbox"
+                    "--no-sandbox",
+                    // WebRTC sends UDP directly, around the SOCKS proxy; this keeps it inside the proxy (TCP only).
+                    "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"
                 ]
             });
             _initialized = true;
 
             logger.LogInformation("Playwright browser initialized");
+        }
+        catch
+        {
+            // A failed launch must not leave a listener behind; the next call starts a fresh one.
+            _playwright?.Dispose();
+            _playwright = null;
+            if (_proxy != null)
+            {
+                await _proxy.DisposeAsync();
+                _proxy = null;
+            }
+            throw;
         }
         finally
         {
@@ -105,6 +130,12 @@ public sealed class PlaywrightBrowserManager(ILogger<PlaywrightBrowserManager> l
                 try { _playwright.Dispose(); } catch { /* best effort */ }
                 _playwright = null;
             }
+
+            if (_proxy != null)
+            {
+                try { await _proxy.DisposeAsync(); } catch { /* best effort */ }
+                _proxy = null;
+            }
         }
         finally
         {
@@ -125,6 +156,12 @@ public sealed class PlaywrightBrowserManager(ILogger<PlaywrightBrowserManager> l
 
         _playwright?.Dispose();
         _playwright = null;
+
+        if (_proxy != null)
+        {
+            await _proxy.DisposeAsync();
+            _proxy = null;
+        }
         _initialized = false;
 
         _initLock.Dispose();
