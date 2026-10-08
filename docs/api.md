@@ -33,4 +33,4 @@ JSON `{error, message}`:
 | `GET /health/live` | Process is up |
 | `GET /health/ready` | Dependencies reachable (`database`, `wolverine`, `scraping`) |
 | `GET /health` | Alias of `/health/ready`; the compose healthcheck uses it |
-| `GET /metrics` | Prometheus; needs `MetricsToken` in Production |
+| `GET /metrics` | Prometheus; in Production it exists only when `MetricsToken` is set, and then needs `Authorization: Bearer <token>` |

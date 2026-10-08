@@ -7,7 +7,7 @@ internal static class HealthAndMetricsRouting
 {
     /// <summary>
     /// Maps the three health endpoints (liveness, readiness, legacy /health) and the
-    /// Prometheus /metrics scrape endpoint with token enforcement.
+    /// Prometheus /metrics scrape endpoint with token enforcement (unmapped in Production without a token).
     /// </summary>
     public static WebApplication MapHealthAndMetrics(this WebApplication app)
     {
@@ -31,7 +31,13 @@ internal static class HealthAndMetricsRouting
         });
 
         var metricsToken = app.Configuration["MetricsToken"];
-        MetricsAuthGuard.EnsureMetricsTokenConfigured(app.Environment, metricsToken);
+        if (!MetricsEndpointPolicy.IsEnabled(app.Environment, metricsToken))
+        {
+            // Unmapped rather than open: the gauges expose every user's tracked products and prices.
+            app.Logger.LogInformation("MetricsToken is not configured; /metrics is disabled.");
+            return app;
+        }
+
         if (string.IsNullOrWhiteSpace(metricsToken))
         {
             app.Logger.LogWarning(
