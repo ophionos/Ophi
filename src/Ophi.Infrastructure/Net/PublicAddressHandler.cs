@@ -53,6 +53,15 @@ public static class PublicAddressHandler
     /// </summary>
     public static IHttpClientBuilder UsePublicAddressesOnly(this IHttpClientBuilder builder) =>
         builder.ConfigurePrimaryHttpMessageHandler(() => Create());
+
+    /// <summary>
+    /// As <see cref="UsePublicAddressesOnly(IHttpClientBuilder)"/>, with the webhook policy: the
+    /// operator's <see cref="WebhookAddressPolicy.AllowedNetworks"/> are also reachable. The check still
+    /// runs on the resolved, pinned address of every hop.
+    /// </summary>
+    public static IHttpClientBuilder UseWebhookAddressPolicy(this IHttpClientBuilder builder) =>
+        builder.ConfigurePrimaryHttpMessageHandler(sp =>
+            Create(isBlocked: sp.GetRequiredService<WebhookAddressPolicy>().IsBlocked));
 }
 
 public sealed class BlockedDestinationException() : IOException(PublicAddressHandler.BlockedMessage);

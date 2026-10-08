@@ -17,21 +17,30 @@ public static class ProductValidationRules
     public const int ScrapeCacheTtlMinutesMax = 1440;
 
     internal static bool IsValidHttpUrl(string? url) =>
+        IsValidHttpUrl(url, AddressPolicy.IsBlocked, allowLocalNames: false);
+
+    /// <param name="isBlocked">The address policy of the client that will fetch the URL.</param>
+    /// <param name="allowLocalNames">Accept <c>.local</c> / <c>.internal</c> names, for a client whose
+    /// policy re-opens private networks; the connect-time check still decides.</param>
+    internal static bool IsValidHttpUrl(string? url, Func<IPAddress, bool> isBlocked, bool allowLocalNames) =>
         url != null &&
         Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
         (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) &&
-        !IsPrivateOrReservedHost(uri);
+        !IsPrivateOrReservedHost(uri, isBlocked, allowLocalNames);
 
-    private static bool IsPrivateOrReservedHost(Uri uri)
+    private static bool IsPrivateOrReservedHost(Uri uri, Func<IPAddress, bool> isBlocked, bool allowLocalNames)
     {
         var host = uri.Host.ToLowerInvariant();
 
-        if (host is "localhost" || host.EndsWith(".local", StringComparison.Ordinal) || host.EndsWith(".internal", StringComparison.Ordinal))
+        if (host is "localhost")
+            return true;
+
+        if (!allowLocalNames && (host.EndsWith(".local", StringComparison.Ordinal) || host.EndsWith(".internal", StringComparison.Ordinal)))
             return true;
 
         // Literal host only, for a fast 400. A DNS name that resolves to a private address (and every
         // redirect hop) is refused at connect time by PublicAddressHandler, the real control.
-        return IPAddress.TryParse(host, out var ip) && AddressPolicy.IsBlocked(ip);
+        return IPAddress.TryParse(host.Trim('[', ']'), out var ip) && isBlocked(ip);
     }
 
     public static IRuleBuilderOptions<T, string> MustBeValidHttpUrl<T>(

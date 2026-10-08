@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Api.Common.Validators;
+using Ophi.Infrastructure.Net;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
 
@@ -37,10 +38,10 @@ public static class UpdateWebhookTarget
 
     public class Validator : AbstractValidator<Command>
     {
-        public Validator()
+        public Validator(WebhookAddressPolicy addressPolicy)
         {
             RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
-            RuleFor(x => x.Url).NotEmpty().MaximumLength(2048).MustBeValidHttpUrl("URL must be a valid public HTTP or HTTPS URL");
+            RuleFor(x => x.Url).NotEmpty().MaximumLength(2048).MustBeAllowedWebhookUrl(addressPolicy);
             RuleFor(x => x.Events).NotEmpty().WithMessage("At least one event type is required.").MustContainValidEvents();
         }
     }

@@ -163,10 +163,12 @@ public static class DependencyInjection
 
         // Generic outbound webhooks — user target URLs often embed a secret (Slack, ntfy, Home
         // Assistant), so no URI logging here either. Interface-typed for the same reason as Discord.
+        // Parsed here so a bad Webhooks:AllowedNetworks fails startup in both the API and the worker.
+        services.AddSingleton(WebhookAddressPolicy.FromConfiguration(configuration[WebhookAddressPolicy.ConfigKey]));
         services.AddHttpClient<IWebhookDispatchService, WebhookDispatchService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);
-        }).RemoveAllLoggers().UsePublicAddressesOnly();
+        }).RemoveAllLoggers().UseWebhookAddressPolicy();
 
         return services;
     }

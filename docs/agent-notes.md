@@ -268,6 +268,9 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   today the scraper and the webhook dispatcher. Fixed-host clients (Telegram, Pushover, ECB, Discord's
   prefix-validated URL) do not need it. `DependencyInjectionTests.UserUrlClient_UsesThePublicAddressHandler`
   lists the guarded clients — add a new one there. Do not put back a proxy or a dual-mode socket.
+  The webhook client uses `.UseWebhookAddressPolicy()` instead: the same handler with
+  `WebhookAddressPolicy.IsBlocked`, which re-opens only the operator's `Webhooks:AllowedNetworks`
+  (limited to `AddressPolicy.ReopenableNetworks`). Never pass that policy to the scraper.
 - **`BlockedDestination` never falls back to Playwright** (`HybridScrapingService`): the browser would be
   refused too, with a less precise error.
 - **Chromium runs only through `PinnedSocksProxy`** (`PlaywrightBrowserManager`). Keep `Bypass = "<-loopback>"`

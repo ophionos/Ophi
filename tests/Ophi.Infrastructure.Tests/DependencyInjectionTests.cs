@@ -7,6 +7,7 @@ using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Ophi.Domain.Enums;
 using Ophi.Infrastructure.Discord;
+using Ophi.Infrastructure.Net;
 using Ophi.Infrastructure.Webhooks;
 
 namespace Ophi.Infrastructure.Tests;
@@ -135,6 +136,61 @@ public class DependencyInjectionTests
         var primary = handler.Should().BeOfType<SocketsHttpHandler>().Which;
         primary.ConnectCallback.Should().NotBeNull();
         primary.UseProxy.Should().BeFalse();
+    }
+
+    private static ServiceProvider BuildProviderWithAllowedNetworks(string allowedNetworks)
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(TimeProvider.System);
+        services.AddInfrastructure(BuildConfig(new Dictionary<string, string?>
+        {
+            ["POSTGRES_CONNECTION"] = "Host=unused",
+            [WebhookAddressPolicy.ConfigKey] = allowedNetworks
+        }));
+        return services.BuildServiceProvider();
+    }
+
+    [Fact]
+    public async Task WebhookAllowedNetworks_DoNotReopenThemForTheScraper()
+    {
+        // The allowlist is for webhooks only. The scraper fetches URLs any account can choose, so it
+        // must keep refusing private networks whatever the operator lists.
+        using var provider = BuildProviderWithAllowedNetworks("10.0.0.0/8");
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient("ScrapingService");
+
+        var act = () => client.GetAsync("http://10.255.255.1/", TestContext.Current.CancellationToken);
+
+        PublicAddressHandler.IsBlockedDestination((await act.Should().ThrowAsync<HttpRequestException>()).Which)
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task WebhookAllowedNetworks_ReopenThemForTheWebhookClient()
+    {
+        using var provider = BuildProviderWithAllowedNetworks("10.0.0.0/8");
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient("IWebhookDispatchService");
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(1));
+
+        // Nothing listens there: the connect attempt fails or times out, but it is not refused.
+        var act = () => client.GetAsync("http://10.255.255.1/", cts.Token);
+
+        PublicAddressHandler.IsBlockedDestination((await act.Should().ThrowAsync<Exception>()).Which)
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public void AddInfrastructure_WithAllowedNetworkOutsidePrivateRanges_Throws()
+    {
+        var services = new ServiceCollection();
+
+        var act = () => services.AddInfrastructure(BuildConfig(new Dictionary<string, string?>
+        {
+            [WebhookAddressPolicy.ConfigKey] = "169.254.0.0/16"
+        }));
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*169.254.0.0/16*");
     }
 
     private static (ServiceProvider Provider, ConcurrentQueue<string> Logs) BuildProviderCapturingLogs()
