@@ -44,13 +44,7 @@ AngleSharp and Playwright for scraping. Exact versions are in `Directory.Package
 Requirements: Docker with Compose v2. The images are built from source; the first build takes
 several minutes because the worker image installs Chromium.
 
-1. Create `docker/.env` with at least a metrics token:
-
-   ```bash
-   echo "MetricsToken=$(openssl rand -hex 32)" > docker/.env
-   ```
-
-2. Start the stack:
+1. Start the stack:
 
    ```bash
    docker compose -f docker/docker-compose.yml up -d --build
@@ -59,19 +53,21 @@ several minutes because the worker image installs Chromium.
    This runs PostgreSQL, the API (published on `:5000` for API-key clients), the worker, and the
    web app.
 
-3. Open <http://localhost:3000>, register your account, then set `REGISTRATION_ENABLED=false` in
-   `docker/.env` and run the `up` command again.
+2. Open <http://localhost:3000> and register your account.
+
+Optional: if other people can reach the instance, close sign-up after you register. Set
+`REGISTRATION_ENABLED=false` in `docker/.env` and run the `up` command again.
 
 Compose reads these variables from the environment or from `docker/.env`:
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `MetricsToken` | **yes** | Bearer token for `/metrics`. The API refuses to start in Production without it. |
 | `POSTGRES_PASSWORD` | recommended | Database password (default `ophi`). |
 | `APP_URL`, `ORIGIN` | when not on `localhost:3000` | Public URL of the web app (CORS, links in emails, SvelteKit origin check). |
-| `REGISTRATION_ENABLED` | recommended | `false` closes sign-up ([docs/security.md](docs/security.md)). |
+| `REGISTRATION_ENABLED` | when others can reach it | `false` closes sign-up ([docs/security.md](docs/security.md)). |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | no | Email alerts and password-reset mail. |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `PUSHOVER_APP_TOKEN` | no | One operator bot/app; each user saves only their own chat id / user key. |
+| `MetricsToken` | no | Enables Prometheus `/metrics` behind this bearer token (e.g. `openssl rand -hex 32`). Unset, the endpoint is off. |
 | `FORWARDED_HEADERS_KNOWN_NETWORKS` | behind your own reverse proxy | Which proxies to trust for client IPs (per-IP rate limits; [docs/security.md](docs/security.md)). |
 
 Discord alerts need no server setting: each user saves their own webhook URL.

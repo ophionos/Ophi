@@ -65,5 +65,7 @@ Tracked in [#16](https://github.com/ophionos/Ophi/issues/16). An internet-facing
   parameterizes queries.
 - The API sets a strict Content-Security-Policy, `X-Frame-Options: DENY`, `nosniff` and
   `Referrer-Policy`. SvelteKit pages get the same headers from the hook, but no CSP yet.
-- `/metrics` needs `MetricsToken` in Production, and the API refuses to start without it.
+- `/metrics` requires the `MetricsToken` bearer token. In Production without a token the endpoint
+  is not mapped, because its gauges expose every user's tracked products and prices. Outside
+  Production an unset token leaves it open, with a startup warning.
 - Secrets come from environment variables only.
