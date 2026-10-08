@@ -239,6 +239,11 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   The SSE URL is `${API_BASE}/events` — `API_BASE` already contains `/api/v1` (`liveUpdates.test.ts`
   guards the doubled prefix).
 - **CommandPalette must keep its `if (!isOpen) return` keydown guard**, or Enter/arrows are hijacked app-wide.
+- **No unguarded secure-context-only APIs** (`crypto.randomUUID`, `crypto.subtle`, `navigator.clipboard`).
+  Self-hosted instances are often opened over plain HTTP on a LAN address, where these are `undefined`;
+  `localhost`, jsdom, and Playwright against `localhost` all hide it. A toast id from `randomUUID` once
+  turned a successful registration into a "crypto.randomUUID is not a function" error. Use a counter for
+  local ids; wrap clipboard writes in `try` with a manual-copy fallback (`ApiKeyCreateModal`).
 - Shared building blocks: `shared/Modal.svelte`; `shared/SectionCard.svelte` (pass the lucide icon via
   its `icon` prop, and reuse the icon the app already uses for that concept); `menuKeyNav` for dropdown
   a11y; one `QuickAlert` per row in a `Map<productId, QuickAlert>`; `loadChart()` keeps Chart.js in its

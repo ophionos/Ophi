@@ -10,9 +10,10 @@ const DURATION_MS = 3500;
 
 function createToastStore() {
 	let items = $state<Toast[]>([]);
+	let nextId = 0;
 
 	function add(message: string, type: ToastType = 'info') {
-		const id = crypto.randomUUID();
+		const id = `toast-${++nextId}`;
 		items = [...items, { id, message, type }];
 		setTimeout(() => dismiss(id), DURATION_MS);
 	}
