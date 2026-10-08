@@ -28,43 +28,10 @@ public static class PublicAddressHandler
             // With a proxy the callback would connect to (and check) the proxy, not the target.
             UseProxy = false,
             ConnectCallback = async (context, cancellationToken) =>
-            {
-                var host = context.DnsEndPoint.Host.Trim('[', ']');
-                var addresses = IPAddress.TryParse(host, out var literal)
-                    ? [literal]
-                    : await resolve(host, cancellationToken);
-
-                if (addresses.Length == 0)
-                    throw new SocketException((int)SocketError.HostNotFound);
-
-                var allowed = addresses.Where(a => !isBlocked(a)).ToArray();
-                if (allowed.Length == 0)
-                    throw new BlockedDestinationException();
-
-                SocketException? lastError = null;
-                foreach (var address in allowed)
-                {
-                    // Per-family socket: a dual-mode socket fails where IPv6 is disabled (some containers).
-                    var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-                    try
-                    {
-                        await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), cancellationToken);
-                        return new NetworkStream(socket, ownsSocket: true);
-                    }
-                    catch (SocketException ex)
-                    {
-                        socket.Dispose();
-                        lastError = ex;
-                    }
-                    catch
-                    {
-                        socket.Dispose();
-                        throw;
-                    }
-                }
-
-                throw lastError!;
-            }
+                new NetworkStream(
+                    await PinnedConnector.ConnectAsync(
+                        context.DnsEndPoint.Host, context.DnsEndPoint.Port, resolve, isBlocked, cancellationToken),
+                    ownsSocket: true)
         };
     }
 

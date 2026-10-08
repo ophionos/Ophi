@@ -1,3 +1,4 @@
+using System.Net;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
@@ -15,6 +16,9 @@ public class PlaywrightScrapingServiceTests
     private readonly Mock<IPage> _pageMock;
     private readonly Mock<IBrowserContext> _contextMock;
     private readonly PlaywrightScrapingService _service;
+
+    /// <summary>What the start-URL pre-check resolves each host to. Unlisted hosts get a public address.</summary>
+    private readonly Dictionary<string, IPAddress[]> _dns = new(StringComparer.OrdinalIgnoreCase);
 
     public PlaywrightScrapingServiceTests()
     {
@@ -49,7 +53,64 @@ public class PlaywrightScrapingServiceTests
         _service = new PlaywrightScrapingService(
             loggerMock.Object,
             _configProviderMock.Object,
-            _browserManagerMock.Object);
+            _browserManagerMock.Object,
+            (host, _) => Task.FromResult(_dns.GetValueOrDefault(host) ?? [IPAddress.Parse("93.184.215.14")]));
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_HostResolvesToBlockedAddress_ReturnsBlockedDestinationWithoutOpeningAPage()
+    {
+        const string url = "https://intranet.example/product";
+        _dns["intranet.example"] = [IPAddress.Parse("10.0.0.5")];
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCategory.Should().Be(ScrapeErrorCategory.BlockedDestination);
+        result.Error.Should().NotContain("10.0.0.5");
+        _browserManagerMock.Verify(x => x.NewPageAsync(It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ScrapeWithConfigAsync_BlockedIpLiteral_ReturnsBlockedDestinationWithoutOpeningAPage()
+    {
+        var config = _configProviderMock.Object.GetGenericConfig();
+
+        var result = await _service.ScrapeWithConfigAsync(
+            "http://169.254.169.254/latest/meta-data", config, TestContext.Current.CancellationToken);
+
+        result.ErrorCategory.Should().Be(ScrapeErrorCategory.BlockedDestination);
+        _browserManagerMock.Verify(x => x.NewPageAsync(It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_MixedAnswer_IsNotRefusedByThePreCheck()
+    {
+        // Same rule as the proxy: a host with at least one allowed address is fetched (the proxy then
+        // connects only to the allowed one).
+        const string url = "https://mixed.example/product";
+        _dns["mixed.example"] = [IPAddress.Parse("10.0.0.5"), IPAddress.Parse("93.184.215.14")];
+        SetupPage(url, "$5.00", "Product");
+        _configProviderMock.Setup(x => x.GetConfigForUrl(url)).Returns((StoreConfig?)null);
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_NameDoesNotResolve_LeavesTheFailureToTheBrowser()
+    {
+        const string url = "https://gone.example/product";
+        _dns["gone.example"] = [];
+        _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>())).ReturnsAsync(_pageMock.Object);
+        _pageMock.Setup(x => x.GotoAsync(url, It.IsAny<PageGotoOptions>()))
+            .ThrowsAsync(new PlaywrightException("net::ERR_SOCKS_CONNECTION_FAILED"));
+        _configProviderMock.Setup(x => x.GetConfigForUrl(url)).Returns((StoreConfig?)null);
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.ErrorCategory.Should().NotBe(ScrapeErrorCategory.BlockedDestination);
     }
 
     [Fact]

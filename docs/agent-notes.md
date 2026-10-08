@@ -248,8 +248,13 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   today the scraper and the webhook dispatcher. Fixed-host clients (Telegram, Pushover, ECB, Discord's
   prefix-validated URL) do not need it. `DependencyInjectionTests.UserUrlClient_UsesThePublicAddressHandler`
   lists the guarded clients — add a new one there. Do not put back a proxy or a dual-mode socket.
-- **`BlockedDestination` never falls back to Playwright** (`HybridScrapingService`); the browser path has
-  the weaker guard.
+- **`BlockedDestination` never falls back to Playwright** (`HybridScrapingService`): the browser would be
+  refused too, with a less precise error.
+- **Chromium runs only through `PinnedSocksProxy`** (`PlaywrightBrowserManager`). Keep `Bypass = "<-loopback>"`
+  and the `--force-webrtc-ip-handling-policy=disable_non_proxied_udp` flag; without either, connections
+  skip the proxy. Do not add a `RouteAsync` address guard: it misses redirect hops, disables the HTTP
+  cache, and its verdict differs from the proxy's. `PinnedSocksProxyBrowserTests` (Integration trait,
+  not run in CI) proves both with a live listener at the blocked target.
 - **Scraping config order:** the store config loads BEFORE `FetchPageAsync` so `CustomUserAgent` reaches
   the request. `NewPageAsync(userAgent: null)` picks a random `BrowserProfiles` profile.
 - **Empty 2xx:** `client.ts` special-cases body-less `202`/`204`; treating them as errors once showed a

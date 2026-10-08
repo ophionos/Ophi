@@ -1,6 +1,8 @@
+using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
+using Ophi.Infrastructure.Net;
 using Ophi.Infrastructure.Scraping.Adapters;
 
 namespace Ophi.Infrastructure.Scraping;
@@ -9,8 +11,33 @@ namespace Ophi.Infrastructure.Scraping;
 /// Scraping service that uses Playwright for JavaScript-heavy sites.
 /// This service uses a headless browser to render the page before extraction.
 /// </summary>
-public class PlaywrightScrapingService(ILogger<PlaywrightScrapingService> logger, IStoreConfigProvider configProvider, IPlaywrightBrowserManager browserManager) : IScrapingService
+public class PlaywrightScrapingService(
+    ILogger<PlaywrightScrapingService> logger,
+    IStoreConfigProvider configProvider,
+    IPlaywrightBrowserManager browserManager,
+    Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null) : IScrapingService
 {
+    private readonly Func<string, CancellationToken, Task<IPAddress[]>> _resolve = resolve ?? Dns.GetHostAddressesAsync;
+
+    /// <summary>
+    /// The browser's SSRF control is <see cref="PinnedSocksProxy"/>, which refuses every blocked
+    /// connection, but Chromium reports that refusal as ERR_SOCKS_CONNECTION_FAILED — the same code as a
+    /// down host. This pre-check gives the common case (the product URL itself is private) its honest
+    /// <see cref="ScrapeErrorCategory.BlockedDestination"/> before a page opens. A blocked redirect hop
+    /// or sub-resource is still refused by the proxy; it just surfaces as a generic failure.
+    /// </summary>
+    private async Task<ScrapingResult?> RefuseBlockedStartUrlAsync(string url, CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+            !await PinnedConnector.IsRefusedAsync(uri.Host, _resolve, AddressPolicy.IsBlocked, cancellationToken))
+        {
+            return null;
+        }
+
+        logger.LogWarning("Refused to load {Url} in the browser: it resolves to a private or reserved address", url);
+        return ScrapingResult.Failure(PublicAddressHandler.BlockedMessage, ScrapeErrorCategory.BlockedDestination);
+    }
+
     private static Regex GetOrCreateRegex(string pattern) => ScrapeHelpers.GetOrCreateRegex(pattern);
 
     /// <summary>
@@ -34,6 +61,9 @@ public class PlaywrightScrapingService(ILogger<PlaywrightScrapingService> logger
     {
         try
         {
+            if (await RefuseBlockedStartUrlAsync(url, cancellationToken) is { } refused)
+                return refused;
+
             logger.LogDebug("Using Playwright with provided config {StoreId} for {Url}", config.Id, url);
 
             var page = await browserManager.NewPageAsync(config.CustomUserAgent);
@@ -151,6 +181,9 @@ public class PlaywrightScrapingService(ILogger<PlaywrightScrapingService> logger
                 : configProvider.GetConfigForUrl(url);
             var config = storeConfig?.Selectors ?? configProvider.GetGenericConfig().Selectors;
             var storeId = storeConfig?.Id ?? "generic";
+
+            if (await RefuseBlockedStartUrlAsync(url, cancellationToken) is { } refused)
+                return refused;
 
             logger.LogDebug("Using Playwright with {StoreId} adapter for {Url}", storeId, url);
 

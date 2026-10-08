@@ -4,23 +4,27 @@ using System.Text;
 
 namespace Ophi.Infrastructure.Tests.Net;
 
-/// <summary>A one-response-per-connection HTTP server on 127.0.0.1.</summary>
+/// <summary>A one-response-per-connection HTTP server on 127.0.0.1 (or another loopback address).</summary>
 internal sealed class LoopbackServer : IAsyncDisposable
 {
-    private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
+    private readonly TcpListener _listener;
     private readonly CancellationTokenSource _stop = new();
     private readonly string _response;
     private Task? _loop;
     private int _connections;
 
-    private LoopbackServer(string response) => _response = response;
+    private LoopbackServer(string response, IPAddress address)
+    {
+        _response = response;
+        _listener = new TcpListener(address, 0);
+    }
 
     public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
     public int Connections => Volatile.Read(ref _connections);
 
-    public static Task<LoopbackServer> StartAsync(string response)
+    public static Task<LoopbackServer> StartAsync(string response, IPAddress? address = null)
     {
-        var server = new LoopbackServer(response);
+        var server = new LoopbackServer(response, address ?? IPAddress.Loopback);
         server._listener.Start();
         server._loop = server.AcceptLoopAsync();
         return Task.FromResult(server);

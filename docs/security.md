@@ -65,9 +65,16 @@ follows redirects itself, and every hop goes through the same check. A refused s
 `BlockedDestination`; its message never contains the resolved address. The client ignores
 `HTTP(S)_PROXY`, because with a proxy the check would see the proxy, not the target.
 
-**Browser path (`RequiresJavaScript` stores): open.** Chromium does its own DNS and follows redirects
-without the HTTP client, and any user can create a store with `RequiresJavaScript`. A blocked HTTP
-scrape never falls back to Playwright. Tracked in [#16](https://github.com/ophionos/Ophi/issues/16).
+**Browser path (`RequiresJavaScript` stores).** Chromium launches through `PinnedSocksProxy`, an
+in-process SOCKS5 proxy on 127.0.0.1. Chromium sends the hostname, and the proxy resolves it and
+connects with the same check-then-connect code as the HTTP path (`PinnedConnector`). So every browser
+connection is checked: navigation, each redirect hop, sub-resources and WebSockets. TLS runs
+end-to-end through the tunnel. The bypass list is `<-loopback>`, because Chromium otherwise sends
+loopback directly. WebRTC UDP does not use a SOCKS proxy, so the browser launches with
+`--force-webrtc-ip-handling-policy=disable_non_proxied_udp`. Chromium reports a refused connection
+as `ERR_SOCKS_CONNECTION_FAILED`, the same code as a down host. A pre-check on the start URL therefore
+returns `BlockedDestination` before a page opens; a blocked redirect hop is still refused, but shows
+as a generic failure. A blocked HTTP scrape never falls back to Playwright.
 
 ## Other measures
 
