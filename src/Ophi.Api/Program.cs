@@ -102,7 +102,6 @@ builder.Services.AddResponseCompression();
 builder.Services
     .AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"])
-    .AddCheck<WolverineHealthCheck>("wolverine", tags: ["ready"])
     .AddCheck<ScrapeHealthCheck>("scraping", HealthStatus.Degraded, ["ready"]);
 
 builder.Services.AddOphiForwardedHeaders(builder.Configuration);

@@ -75,8 +75,8 @@ public class HealthEndpointTests(OphiWebApplicationFactory factory) : IsolatedIn
         checks.TryGetProperty("database", out var db).Should().BeTrue();
         db.GetProperty("status").GetString().Should().Be("healthy");
 
-        checks.TryGetProperty("wolverine", out var wolverine).Should().BeTrue();
-        wolverine.GetProperty("status").GetString().Should().Be("healthy");
+        // No "wolverine" check: resolving IMessageBus always succeeded, so it claimed coverage it lacked.
+        checks.TryGetProperty("wolverine", out _).Should().BeFalse();
 
         checks.TryGetProperty("scraping", out var scraping).Should().BeTrue();
         scraping.GetProperty("status").GetString().Should().Be("healthy");
