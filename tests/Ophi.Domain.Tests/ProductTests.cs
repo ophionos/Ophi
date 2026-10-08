@@ -3,7 +3,7 @@ using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
 using Ophi.Domain.Extensions;
 
-namespace Ophi.Infrastructure.Tests.Domain;
+namespace Ophi.Domain.Tests;
 
 public class ProductTests
 {

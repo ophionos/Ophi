@@ -2,7 +2,7 @@ using FluentAssertions;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
 
-namespace Ophi.Infrastructure.Tests.Domain;
+namespace Ophi.Domain.Tests;
 
 public class AlertTests
 {

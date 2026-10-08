@@ -96,12 +96,12 @@ jobs:
         #     install` that CI does not provide. xunit.v3 4.0.0 does still accept the VSTest
         #     --filter grammar, but it can't be combined with the --filter-* family, so the native
         #     spelling is the one to build on. Verified as a real exclusion, not a no-op:
-        #     Ophi.Infrastructure.Tests discovers 667 unfiltered, 660 with this flag, and 7 with
+        #     Ophi.Infrastructure.Tests discovers 636 unfiltered, 629 with this flag, and 7 with
         #     --filter-trait "Category=Integration".
         #   --report-xunit-trx  replaces --logger "trx;..." (--logger is gone). This is xunit.v3's
         #     own TRX reporter, so it is version-locked to xunit.v3 and needs no
         #     Microsoft.Testing.Extensions.TrxReport. The filename is left at its default
-        #     (user_machine_timestamp) — a fixed LogFileName would make all three projects overwrite
+        #     (user_machine_timestamp) — a fixed LogFileName would make the test projects overwrite
         #     one file. Each TRX records its assembly in codeBase, so attribution survives.
         #   --results-directory pins where those reports land. MTP's default is per-test-app, and
         #     `dotnet test` overrides it to the working directory; pinning keeps it in step with the
