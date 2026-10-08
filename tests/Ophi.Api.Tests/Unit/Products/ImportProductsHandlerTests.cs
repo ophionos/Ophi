@@ -2,10 +2,12 @@ using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Ophi.Api.Features.Products;
 using Ophi.Domain.Entities;
 using Ophi.Infrastructure.Persistence;
+using Ophi.Infrastructure.Settings;
 using Ophi.TestHelpers;
 using Wolverine;
 
@@ -21,7 +23,8 @@ public class ImportProductsHandlerTests : IDisposable
     public ImportProductsHandlerTests()
     {
         (_dbContext, _connection) = TestDbContextFactory.Create();
-        _handler = new ImportProducts.Handler(_dbContext, Mock.Of<IMessageBus>(), NullLogger<ImportProducts.Handler>.Instance);
+        _handler = new ImportProducts.Handler(_dbContext, Mock.Of<IMessageBus>(),
+            Options.Create(new AlertSettings { MaxAlertsPerUser = 1 }), NullLogger<ImportProducts.Handler>.Instance);
 
         _dbContext.Users.Add(new User { Id = _userId, Email = "import@example.com", Name = "Importer", PasswordHash = "hash" });
         _dbContext.SaveChanges();
@@ -65,6 +68,45 @@ public class ImportProductsHandlerTests : IDisposable
         result.Added.Should().Be(0);
         result.Errors.Should().ContainSingle().Which.Should().StartWith("Line 2:");
         (await _dbContext.Tags.CountAsync(TestContext.Current.CancellationToken)).Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task Handle_WithNonPositiveTargetPrice_ReportsLineError(decimal target)
+    {
+        // A price is > 0 (docs/agent-notes.md § Pricing); a target of 0 never fires and a negative
+        // one is nonsense. Reject the row rather than create an alert that can't mean anything.
+        var result = await Import(Row(2, "https://shop.example.com/zero", target: target));
+
+        result.Added.Should().Be(0);
+        result.Errors.Should().ContainSingle().Which.Should().StartWith("Line 2:");
+        (await _dbContext.Alerts.CountAsync(TestContext.Current.CancellationToken)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WithRepeatedTagInRow_AddsTagOnce()
+    {
+        var result = await Import(Row(2, "https://shop.example.com/dup", tags: "sale, Sale,sale"));
+
+        result.Added.Should().Be(1);
+        (await _dbContext.ProductTags.CountAsync(TestContext.Current.CancellationToken)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WithMoreTargetsThanAlertCap_ImportsExtraAlertsPaused()
+    {
+        // Same rule as CreateAlert and ImportBackup: the per-user active-alert cap holds, and
+        // alerts beyond it arrive paused rather than being dropped.
+        var result = await Import(
+            Row(2, "https://shop.example.com/one", target: 10m),
+            Row(3, "https://shop.example.com/two", target: 20m));
+
+        result.Added.Should().Be(2);
+        var alerts = await _dbContext.Alerts.ToListAsync(TestContext.Current.CancellationToken);
+        alerts.Should().HaveCount(2);
+        alerts.Count(a => a.IsActive).Should().Be(1);
+        result.Errors.Should().ContainSingle(e => e.Contains("paused"));
     }
 
     public void Dispose()

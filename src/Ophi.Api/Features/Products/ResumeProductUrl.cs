@@ -42,6 +42,11 @@ public static class ResumeProductUrl
 
             productUrl.Resume();
             product.RecomputePriceAnomaly();
+            // The dispatcher scans only Active products: without this a URL resumed on an errored
+            // product is never scraped again. A product the user paused stays paused. The URL's
+            // price rejoins the product MIN on its next scrape, not from its stale pre-pause value.
+            if (product.Status == ProductStatus.Error)
+                product.MarkActive();
 
             await dbContext.SaveChangesAsync(cancellationToken);
             logger.LogInformation("URL {ProductUrlId} resumed on product {ProductId}", request.ProductUrlId, request.ProductId);

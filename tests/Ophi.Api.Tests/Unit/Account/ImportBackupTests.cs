@@ -194,6 +194,40 @@ public class ImportBackupTests : IDisposable
         (await act.Should().ThrowAsync<ApiException>()).Which.StatusCode.Should().Be(400);
     }
 
+    [Fact]
+    public async Task Import_SkipsAStoreWithMissingFields_WithAWarningNotACrash()
+    {
+        // A hand-edited file can omit any string; System.Text.Json leaves it null despite the record's
+        // non-nullable annotation. That must be a skipped store, not a NullReferenceException and a 500.
+        var bundle = Bundle() with
+        {
+            Stores = [new BackupStore("broken", null!, null!, null!, null!, false, null, null, null, null)]
+        };
+
+        var result = await ImportAsync(bundle);
+
+        result.StoresAdded.Should().Be(0);
+        result.Warnings.Should().ContainSingle(w => w.Contains("broken"));
+    }
+
+    [Fact]
+    public async Task Import_DropsNonPositiveCurrentPrices_KeepingTheProduct()
+    {
+        // A price is > 0 (docs/agent-notes.md § Pricing). A 0 or negative stored price would show as
+        // the current price and drive the aggregate, so it is imported as "no price yet" instead.
+        var product = Product("Odd", "https://shop.test/odd") with { CurrentPrice = 0m, PreviousPrice = -5m };
+        product = product with { Urls = [product.Urls[0] with { CurrentPrice = -1m }] };
+
+        var result = await ImportAsync(Bundle(product));
+
+        result.ProductsAdded.Should().Be(1);
+        var db = Fresh();
+        var saved = await db.Products.SingleAsync(TestContext.Current.CancellationToken);
+        saved.CurrentPrice.Should().BeNull();
+        saved.PreviousPrice.Should().BeNull();
+        (await db.ProductUrls.SingleAsync(TestContext.Current.CancellationToken)).CurrentPrice.Should().BeNull();
+    }
+
     public void Dispose()
     {
         _db.Dispose();

@@ -28,7 +28,8 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
   saves only a chat id or user key. Their settings cards are hidden when the server has no token.
   Both send plain text, so a product name cannot inject formatting.
 - `Alerts:MaxAlertsPerUser` (default 100) counts **active** alerts. Resuming a paused alert counts
-  against it. Pausing keeps the trigger history.
+  against it. Pausing keeps the trigger history. Both imports (CSV `target_price`, backup) create
+  alerts beyond the cap as paused and say so.
 
 ## Account backup
 

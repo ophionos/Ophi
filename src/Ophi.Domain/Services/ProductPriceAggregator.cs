@@ -47,11 +47,7 @@ public static class ProductPriceAggregator
         // code so the result depends on neither list order nor a meaningless decimal comparison.
         if (comparable.Count == 0)
         {
-            var anchorCurrency = urlPrices
-                .GroupBy(u => u.Currency, StringComparer.OrdinalIgnoreCase)
-                .OrderByDescending(g => g.Count())
-                .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-                .First().Key;
+            var anchorCurrency = DominantCurrency(urlPrices.Select(u => u.Currency));
 
             comparable = urlPrices
                 .Where(u => string.Equals(u.Currency, anchorCurrency, StringComparison.OrdinalIgnoreCase))
@@ -97,5 +93,18 @@ public static class ProductPriceAggregator
     /// <see cref="ProductUrl"/> to compute the min — avoids forcing callers to materialize the
     /// full entity when an EF projection works.
     /// </summary>
+    /// <summary>
+    /// The currency most of <paramref name="currencies"/> are in, ties broken on the code so the
+    /// result depends on neither list order nor a decimal comparison. The one rule for "which
+    /// currency do we compare in" whenever prices in several currencies must yield one winner
+    /// (the product MIN above, a comparison group's best price). Null for an empty sequence.
+    /// </summary>
+    public static string? DominantCurrency(IEnumerable<string> currencies) =>
+        currencies
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault()?.Key;
+
     public readonly record struct UrlPrice(decimal Price, string Currency);
 }

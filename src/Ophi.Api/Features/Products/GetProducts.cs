@@ -94,7 +94,8 @@ public static class GetProducts
         decimal? priceMin,
         decimal? priceMax,
         List<SparklinePointDto>? sparkline,
-        ICollection<Domain.Entities.Alert> alerts)
+        ICollection<Domain.Entities.Alert> alerts,
+        string productCurrency)
     {
         if (currentPrice == null || priceMin == null || priceMax == null || sparkline == null || sparkline.Count < 2)
             return null;
@@ -128,7 +129,9 @@ public static class GetProducts
         // 3. Alert proximity (30% weight)
         double alertScore;
         var belowAlertTargets = alerts
-            .Where(a => a.IsActive && a.Condition == Domain.Enums.AlertCondition.Below)
+            // A target in another currency (dormant since a re-point) is not comparable to the price.
+            .Where(a => a.IsActive && a.Condition == Domain.Enums.AlertCondition.Below &&
+                        !a.HasCurrencyMismatch(productCurrency))
             .Select(a => a.TargetPrice)
             .ToList();
 
@@ -211,10 +214,12 @@ public static class GetProducts
                 query = query.Where(p => p.Status == parsedStatus);
             }
 
+            // Only history in the product's own currency is comparable: a URL re-pointed to another
+            // region leaves points in a currency the current price can't be measured against.
             Expression<Func<Product, bool>> isAtLowest = p =>
                 p.CurrentPrice != null &&
-                p.PriceHistory.Any() &&
-                p.CurrentPrice == p.PriceHistory.Min(pp => pp.Price);
+                p.PriceHistory.Any(pp => pp.Currency == p.Currency) &&
+                p.CurrentPrice == p.PriceHistory.Where(pp => pp.Currency == p.Currency).Min(pp => pp.Price);
 
             if (request.AtLowest == true)
             {
@@ -293,8 +298,8 @@ public static class GetProducts
                 {
                     AtLowest = g.Count(p =>
                         p.CurrentPrice != null &&
-                        p.PriceHistory.Any() &&
-                        p.CurrentPrice == p.PriceHistory.Min(pp => pp.Price)),
+                        p.PriceHistory.Any(pp => pp.Currency == p.Currency) &&
+                        p.CurrentPrice == p.PriceHistory.Where(pp => pp.Currency == p.Currency).Min(pp => pp.Price)),
                     PriceDrops = g.Count(p =>
                         p.CurrentPrice != null && p.PreviousPrice != null && p.PreviousPrice != 0 &&
                         p.CurrentPrice < p.PreviousPrice),
@@ -331,7 +336,8 @@ public static class GetProducts
                             {
                                 TargetPrice = a.TargetPrice,
                                 Condition = a.Condition,
-                                IsActive = a.IsActive
+                                IsActive = a.IsActive,
+                                Currency = a.Currency
                             })
                             .ToList()
                     })
@@ -347,7 +353,8 @@ public static class GetProducts
                 var cutoff = timeProvider.GetUtcNow().UtcDateTime.AddDays(-14);
 
                 var pricePoints = await dbContext.PricePoints
-                    .Where(pp => productIds.Contains(pp.ProductId) && pp.RecordedAt >= cutoff)
+                    .Where(pp => productIds.Contains(pp.ProductId) && pp.RecordedAt >= cutoff &&
+                                 pp.Currency == pp.Product.Currency)
                     .OrderBy(pp => pp.RecordedAt)
                     .Select(pp => new { pp.ProductId, pp.Price, pp.RecordedAt })
                     .ToListAsync(cancellationToken);
@@ -358,9 +365,10 @@ public static class GetProducts
                     g => g.Key,
                     g => g.GroupBy(pp => pp.RecordedAt.Date)
                           .OrderBy(dg => dg.Key)
+                          // The day's low, matching the product price (the MIN across URLs).
                           .Select(dg => new SparklinePointDto(
                               dg.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                              dg.Last().Price))
+                              dg.Min(pp => pp.Price)))
                           .ToList()
                 );
 
@@ -411,7 +419,7 @@ public static class GetProducts
                     ps?.Min,
                     ps?.Max,
                     sparklineData != null
-                        ? ComputeDealScore(p.CurrentPrice, ps?.Min, ps?.Max, sp, alertSummary.BelowAlerts)
+                        ? ComputeDealScore(p.CurrentPrice, ps?.Min, ps?.Max, sp, alertSummary.BelowAlerts, p.Currency)
                         : null,
                     affiliateUrl,
                     p.CheckIntervalMinutes,

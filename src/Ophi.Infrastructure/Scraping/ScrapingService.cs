@@ -133,6 +133,9 @@ public class ScrapingService(HttpClient httpClient, ILogger<ScrapingService> log
         }
         catch (Exception ex)
         {
+            // A cancelled scrape is not a scrape failure; reporting it as one budgets a host
+            // shutdown against the URL's auto-pause count. Same rule as PlaywrightScrapingService.
+            cancellationToken.ThrowIfCancellationRequested();
             logger.LogError(ex, "Error scraping product from {Url}", url);
             return ScrapingResult.Failure($"Scraping error: {ex.Message}");
         }
@@ -169,6 +172,7 @@ public class ScrapingService(HttpClient httpClient, ILogger<ScrapingService> log
         }
         catch (Exception ex)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             logger.LogError(ex, "Error scraping product from {Url} with config {StoreId}", url, config.Id);
             return ScrapingResult.Failure($"Scraping error: {ex.Message}");
         }

@@ -42,6 +42,41 @@ public class ResumeProductUrlTests : IDisposable
         _handler = new ResumeProductUrl.Handler(_dbContext, NullLogger<ResumeProductUrl.Handler>.Instance);
     }
 
+    [Theory]
+    [InlineData(ProductStatus.Error, ProductStatus.Active)]
+    [InlineData(ProductStatus.Paused, ProductStatus.Paused)]
+    public async Task Handle_OnProductInStatus_LeavesProductSchedulable(ProductStatus before, ProductStatus expected)
+    {
+        // The dispatcher scans only Active products, so a URL resumed on an errored product was
+        // never scraped again. A product the user paused stays paused: resuming a URL is not
+        // resuming the product.
+        var product = new Product
+        {
+            Id = Guid.NewGuid(),
+            UserId = _testUserId,
+            Name = "Errored Product",
+            Currency = "USD",
+            Status = before
+        };
+        var productUrl = new ProductUrl
+        {
+            Id = Guid.NewGuid(),
+            ProductId = product.Id,
+            Url = "https://example.com/errored",
+            Currency = "USD",
+            Status = ProductUrlStatus.Paused,
+            FailureCount = 5
+        };
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.Add(productUrl);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(new ResumeProductUrl.Command(product.Id, productUrl.Id, _testUserId), TestContext.Current.CancellationToken);
+
+        var updated = await _dbContext.Products.FindAsync([product.Id], TestContext.Current.CancellationToken);
+        updated!.Status.Should().Be(expected);
+    }
+
     [Fact]
     public async Task Handle_PausedUrl_ResumesSuccessfully()
     {
