@@ -27,7 +27,7 @@ public static class CreateApiKey
         .WithSummary("Create an API key")
         .WithDescription("Creates a new API key. The raw key is returned exactly once in the response — it cannot be retrieved again.")
         .Produces<Response>(201)
-        .RequireAuthorization();
+        .RequireAuthorization(AuthPolicies.SessionOnly);
     }
 
     public record Request(string Name, List<string> Scopes, DateTime? ExpiresAt = null);

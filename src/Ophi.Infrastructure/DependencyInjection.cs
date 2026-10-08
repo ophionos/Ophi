@@ -130,11 +130,12 @@ public static class DependencyInjection
         });
         // RemoveAllLoggers: the webhook URL is the credential, and the default HttpClient logging
         // handlers write the full request URI at Information (only the query string is redacted).
-        services.AddHttpClient<DiscordWebhookService>(client =>
+        // Register the interface as the typed client: a separate AddScoped<IDiscordService, ...>
+        // resolves the default HttpClient, which drops both the timeout and RemoveAllLoggers.
+        services.AddHttpClient<IDiscordService, DiscordWebhookService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(10);
         }).RemoveAllLoggers();
-        services.AddScoped<IDiscordService, DiscordWebhookService>();
 
         // Push channels — one operator bot / app; users store only their recipient.
         services.Configure<TelegramSettings>(options =>
@@ -162,12 +163,12 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
-        // Generic outbound webhooks
-        services.AddHttpClient<WebhookDispatchService>(client =>
+        // Generic outbound webhooks — user target URLs often embed a secret (Slack, ntfy, Home
+        // Assistant), so no URI logging here either. Interface-typed for the same reason as Discord.
+        services.AddHttpClient<IWebhookDispatchService, WebhookDispatchService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);
-        });
-        services.AddScoped<IWebhookDispatchService, WebhookDispatchService>();
+        }).RemoveAllLoggers();
 
         return services;
     }

@@ -7,7 +7,9 @@
 - **Scripting:** bearer API keys (`ophi_...`), SHA-256 hashed at rest, with optional expiry and scopes.
   `ApiKeyScopeMiddleware` refuses a key without `write` on any method other than
   GET/HEAD/OPTIONS/TRACE. The rule is method-based, so read-only keys are also refused on non-mutating
-  POSTs (`/stores/detect`, `/stores/test`, `/webhooks/{id}/test`). That cost is accepted.
+  POSTs (`/stores/detect`, `/stores/test`, `/webhooks/{id}/test`). That cost is accepted. Keys are
+  created and deleted from a signed-in session only (403 for a key), so a leaked key cannot mint a
+  replacement that outlives its expiry or revocation.
 - **Security stamp:** each session cookie carries the user's stamp, which `SecurityStampGuard` checks
   on every request (60 s cache). A password change or reset rotates the stamp and signs out every
   other session; the caller gets a fresh cookie.

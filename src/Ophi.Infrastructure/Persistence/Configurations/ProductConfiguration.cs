@@ -6,13 +6,15 @@ namespace Ophi.Infrastructure.Persistence.Configurations;
 
 public class ProductConfiguration : IEntityTypeConfiguration<Product>
 {
+    public const int NameMaxLength = 500;
+
     public void Configure(EntityTypeBuilder<Product> builder)
     {
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Name)
             .IsRequired()
-            .HasMaxLength(500);
+            .HasMaxLength(NameMaxLength);
 
         builder.Property(p => p.ImageUrl)
             .HasMaxLength(2048);

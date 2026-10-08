@@ -157,6 +157,32 @@ public class ApiKeyEndpointsTests : IsolatedIntegrationTest, IClassFixture<OphiW
     }
 
     [Fact]
+    public async Task ApiKeyAuth_WriteKey_CannotCreateApiKey()
+    {
+        // A leaked key must not mint a fresh, non-expiring key: that would outlive the leaked
+        // key's expiry and its revocation. Key management is cookie-session only.
+        using var apiClient = await CreateApiKeyClientAsync(["read", "write"]);
+
+        var response = await apiClient.PostAsJsonAsync("/api/v1/api-keys", new
+        {
+            Name = "minted",
+            Scopes = new[] { "read", "write" }
+        }, TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task ApiKeyAuth_WriteKey_CannotDeleteApiKey()
+    {
+        using var apiClient = await CreateApiKeyClientAsync(["read", "write"]);
+
+        var response = await apiClient.DeleteAsync($"/api/v1/api-keys/{Guid.NewGuid()}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
     public async Task CookieSession_IsUnaffectedByScopeEnforcement()
     {
         // Cookie principals carry no scopes claim and must never be restricted by it.

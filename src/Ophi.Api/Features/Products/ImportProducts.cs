@@ -8,6 +8,7 @@ using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
 using Ophi.Domain.Messages.Commands;
 using Ophi.Infrastructure.Persistence;
+using Ophi.Infrastructure.Persistence.Configurations;
 using Wolverine;
 
 namespace Ophi.Api.Features.Products;
@@ -168,6 +169,18 @@ public static class ImportProducts
                     continue;
                 }
 
+                // Every row is saved in one SaveChanges, so a value over its varchar bound would
+                // fail the whole import on Postgres (SQLite ignores the bound). Reject the row instead.
+                var tagNames = string.IsNullOrEmpty(row.Tags)
+                    ? []
+                    : row.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                if (OverColumnLimit(row, tagNames) is { } limitError)
+                {
+                    errors.Add($"Line {row.LineNumber}: {limitError}");
+                    continue;
+                }
+
                 var name = string.IsNullOrEmpty(row.Name) ? "Loading..." : row.Name;
 
                 var product = new Product
@@ -204,33 +217,27 @@ public static class ImportProducts
                     });
                 }
 
-                if (!string.IsNullOrEmpty(row.Tags))
+                foreach (var tagName in tagNames)
                 {
-                    var tagNames = row.Tags
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-                    foreach (var tagName in tagNames)
+                    var key = tagName.ToLowerInvariant();
+                    if (!existingTags.TryGetValue(key, out var tagId))
                     {
-                        var key = tagName.ToLowerInvariant();
-                        if (!existingTags.TryGetValue(key, out var tagId))
+                        var newTag = new Tag
                         {
-                            var newTag = new Tag
-                            {
-                                Id = Guid.NewGuid(),
-                                UserId = command.UserId,
-                                Name = tagName
-                            };
-                            dbContext.Tags.Add(newTag);
-                            tagId = newTag.Id;
-                            existingTags[key] = tagId;
-                        }
-
-                        dbContext.ProductTags.Add(new ProductTag
-                        {
-                            ProductId = product.Id,
-                            TagId = tagId
-                        });
+                            Id = Guid.NewGuid(),
+                            UserId = command.UserId,
+                            Name = tagName
+                        };
+                        dbContext.Tags.Add(newTag);
+                        tagId = newTag.Id;
+                        existingTags[key] = tagId;
                     }
+
+                    dbContext.ProductTags.Add(new ProductTag
+                    {
+                        ProductId = product.Id,
+                        TagId = tagId
+                    });
                 }
 
                 existingUrls.Add(row.Url);
@@ -251,6 +258,17 @@ public static class ImportProducts
                 command.UserId, added, skipped, errors.Count);
 
             return new ImportResponse(added, skipped, errors);
+        }
+
+        private static string? OverColumnLimit(ImportRow row, string[] tagNames)
+        {
+            if (row.Url.Length > ProductUrlConfiguration.UrlMaxLength)
+                return $"URL longer than {ProductUrlConfiguration.UrlMaxLength} characters";
+            if (row.Name?.Length > ProductConfiguration.NameMaxLength)
+                return $"name longer than {ProductConfiguration.NameMaxLength} characters";
+            if (tagNames.FirstOrDefault(t => t.Length > TagConfiguration.NameMaxLength) is { } longTag)
+                return $"tag '{longTag[..20]}…' longer than {TagConfiguration.NameMaxLength} characters";
+            return null;
         }
     }
 }

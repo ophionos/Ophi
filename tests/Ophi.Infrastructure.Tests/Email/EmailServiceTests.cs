@@ -146,6 +146,28 @@ public class EmailServiceTests
     }
 
     [Fact]
+    public async Task SendPriceAlertAsync_WithMarkupInScrapedName_EncodesItInBody()
+    {
+        // The product name is scraped from the merchant page, so the merchant controls it. Raw
+        // markup in the alert email would let a page plant links or content in the user's inbox.
+        var alert = new PriceAlertEmail(
+            ToEmail: "user@example.com",
+            ToName: "Test User",
+            ProductName: "<a href=\"https://phish.example\">Verify your account</a>",
+            ProductUrl: "https://example.com/p?a=1&b=\"><img src=x>",
+            CurrentPrice: 49.99m,
+            TargetPrice: 50.00m,
+            Currency: "USD"
+        );
+
+        await _service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+
+        _capturedMessage!.HtmlBody.Should().NotContain("<a href=\"https://phish.example\">");
+        _capturedMessage.HtmlBody.Should().Contain("&lt;a href=");
+        _capturedMessage.HtmlBody.Should().NotContain("<img src=x>");
+    }
+
+    [Fact]
     public async Task SendPriceAlertAsync_WithValidAlert_IncludesPricesInBody()
     {
         // Arrange
