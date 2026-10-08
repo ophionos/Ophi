@@ -49,3 +49,6 @@ tmpclaude-*
 
 # Local UI-verification screenshots (see .claude/skills/dev-stack)
 shots/
+
+# Operator database dumps (scripts/db-backup.sh)
+backups/

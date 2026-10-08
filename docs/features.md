@@ -38,3 +38,6 @@ and alerts. Credentials and outbound webhooks are never included. Restore only m
 overwrites, it skips a product with an already-tracked URL, and it restores settings only into an
 account with no products. The compose `web` service sets `BODY_SIZE_LIMIT=26M` so uploads above
 adapter-node's 512K default reach the API.
+
+The operator backs up the whole database with `scripts/db-backup.sh` and `scripts/db-restore.sh`
+(README § Database backup and restore).
