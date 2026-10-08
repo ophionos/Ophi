@@ -63,12 +63,13 @@ services:
     environment:
       - DB_PROVIDER=postgres
       - ConnectionStrings__Postgres=Host=db;Port=5432;Database=ophi;Username=ophi;Password=${POSTGRES_PASSWORD:-ophi}
+      # Same value as the api: any link the worker ever puts in an email must point at the web UI.
+      - APP_URL=${APP_URL:-http://localhost:3000}
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
       - SMTP_FROM=${SMTP_FROM:-}
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-}
       - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN:-}
