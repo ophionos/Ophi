@@ -27,7 +27,8 @@ public static class TestStore
         .WithSummary("Test a store configuration")
         .WithDescription("Performs a live scrape using the provided store configuration and URL without saving anything. Returns the extracted product name, price, currency, and image URL. Useful for validating selectors before saving a store configuration.")
         .Produces<Response>(200)
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .RequireRateLimiting(Common.RateLimitPolicies.OutboundFetch);
     }
 
     public record Request(string StoreId, string TestUrl);

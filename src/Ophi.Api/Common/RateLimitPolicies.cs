@@ -10,6 +10,12 @@ public static class RateLimitPolicies
     public const string StoreCreation = "store-creation";
     public const string WebhookCreation = "webhook-creation";
 
+    /// <summary>
+    /// Endpoints that make the server fetch or post to a caller-chosen URL (store detect/test, webhook
+    /// and notification-channel tests). Each call can hold an outbound request for the full HTTP timeout.
+    /// </summary>
+    public const string OutboundFetch = "outbound-fetch";
+
     private static readonly Dictionary<string, SlidingWindowRateLimiterOptions> Limits = new()
     {
         [ProductCreation] = new SlidingWindowRateLimiterOptions
@@ -37,6 +43,13 @@ public static class RateLimitPolicies
         {
             PermitLimit = 10,
             Window = TimeSpan.FromHours(1),
+            SegmentsPerWindow = 6,
+            QueueLimit = 0
+        },
+        [OutboundFetch] = new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
             SegmentsPerWindow = 6,
             QueueLimit = 0
         }

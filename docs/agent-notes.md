@@ -226,8 +226,11 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   work in that handler.
 - **CSRF:** a 403 "Missing required request header" from curl means no `X-Requested-With`.
 - **Rate limits** are effectively unlimited in Development (e2e registers many users from one IP).
-  Testing skips `UseRateLimiter`, so `ForwardedHeadersTests` rebuild the forwarded-headers + rate-limit
-  registration on a bare TestServer.
+  Testing skips the limiters, so `ForwardedHeadersTests` and `RateLimitPipelineTests` rebuild the
+  registration on a bare TestServer. `UseRateLimiter` must run after `UseAuthentication`, or every
+  partition is the client IP; `UseOphiAuthenticationAndRateLimiting` owns that order (and the per-IP
+  guard in front) — change it there, not in `Program.cs`. A new endpoint that calls a caller-chosen URL
+  takes `RateLimitPolicies.OutboundFetch`.
 - **Trusting `X-Forwarded-For` is safe only while every path from a trusted address overwrites it.**
   If the SvelteKit hook ever passes client headers through, any client picks its own partition and the
   `auth` limit stops limiting. `handle.test.ts` and `ForwardedHeadersTests` guard both sides.

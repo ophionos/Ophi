@@ -1,15 +1,24 @@
-using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Ophi.Api.Common.Middleware;
 
 namespace Ophi.Api.Common.Startup;
 
 internal static class RateLimitSetup
 {
+    /// <summary>Global limiter cap per partition (a user, or the client IP when anonymous), per minute.</summary>
+    internal const int GlobalPerPartitionLimit = 120;
+
+    /// <summary>
+    /// Pre-authentication cap per client IP, per minute. Above the global cap because every user
+    /// behind one proxy address shares it (the compose stack without trusted forwarded headers).
+    /// </summary>
+    internal const int PreAuthPerIpLimit = 600;
+
     /// <summary>
     /// Registers the global per-user/IP limiter plus the per-policy limiters used by
-    /// auth and creation endpoints. Development gets a relaxed global cap so E2E
-    /// suites don't hit it.
+    /// auth, creation and outbound-fetch endpoints, and the pre-authentication per-IP guard.
+    /// Development gets a relaxed global cap so E2E suites don't hit it.
     /// </summary>
     public static IServiceCollection AddOphiRateLimiting(this IServiceCollection services, IWebHostEnvironment env)
     {
@@ -18,27 +27,23 @@ internal static class RateLimitSetup
         // a single (localhost) IP — the dev-server proxy and tests all share one
         // partition, and a per-IP fixed window otherwise accumulates across the
         // suite and back-to-back re-runs. The Testing env keeps the real caps.
-        var globalRateLimit = env.IsDevelopment() ? Unlimited : 120;
+        var globalRateLimit = env.IsDevelopment() ? Unlimited : GlobalPerPartitionLimit;
         var authRateLimit = env.IsDevelopment() ? Unlimited : 10;
+
+        services.AddSingleton(new PreAuthRateLimiter(env.IsDevelopment() ? Unlimited : PreAuthPerIpLimit));
 
         services.AddRateLimiter(options =>
         {
+            // Per user once authenticated — which is why UseRateLimiter runs after UseAuthentication.
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-            {
-                var key = context.User.Identity?.IsAuthenticated == true
-                    ? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                      ?? context.Connection.RemoteIpAddress?.ToString()
-                    : context.Connection.RemoteIpAddress?.ToString();
-
-                return RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: key ?? "anonymous",
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: RateLimitPolicies.GetPartitionKey(context),
                     factory: _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = globalRateLimit,
                         Window = TimeSpan.FromSeconds(60),
                         QueueLimit = 0
-                    });
-            });
+                    }));
 
             options.AddPolicy("auth", context =>
                 RateLimitPartition.GetFixedWindowLimiter(
@@ -58,6 +63,7 @@ internal static class RateLimitSetup
             AddCreationPolicy(options, RateLimitPolicies.AlertCreation, env);
             AddCreationPolicy(options, RateLimitPolicies.StoreCreation, env);
             AddCreationPolicy(options, RateLimitPolicies.WebhookCreation, env);
+            AddCreationPolicy(options, RateLimitPolicies.OutboundFetch, env);
 
             options.OnRejected = async (context, token) =>
             {
@@ -69,6 +75,25 @@ internal static class RateLimitSetup
     }
 
     private const int Unlimited = 1_000_000;
+
+    /// <summary>
+    /// Authentication and authorization with the rate limiters around them, in the one order that works:
+    /// the per-IP guard first (it bounds the API-key lookup), then authentication, then the main limiter
+    /// (so its partitions see the user), then authorization (so 401/403 responses still count).
+    /// </summary>
+    public static IApplicationBuilder UseOphiAuthenticationAndRateLimiting(this IApplicationBuilder app, bool enableRateLimiting)
+    {
+        if (enableRateLimiting)
+            app.UseMiddleware<PreAuthRateLimitMiddleware>();
+
+        app.UseAuthentication();
+
+        if (enableRateLimiting)
+            app.UseRateLimiter();
+
+        app.UseAuthorization();
+        return app;
+    }
 
     private static void AddCreationPolicy(RateLimiterOptions options, string policyName, IWebHostEnvironment env)
     {

@@ -22,7 +22,8 @@ public static class TestWebhookTarget
         .WithSummary("Send a test payload to a webhook target")
         .WithDescription("Fires a synthetic test payload to verify the webhook URL is reachable.")
         .Produces<Response>(200)
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .RequireRateLimiting(Common.RateLimitPolicies.OutboundFetch);
     }
 
     public record Command(Guid Id, Guid UserId);

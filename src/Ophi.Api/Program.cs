@@ -134,15 +134,16 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseResponseCompression();
 
 // Skip CSRF and rate limiting in integration test environment
-if (!app.Environment.EnvironmentName.Equals("Testing", StringComparison.OrdinalIgnoreCase))
+var isTesting = app.Environment.EnvironmentName.Equals("Testing", StringComparison.OrdinalIgnoreCase);
+if (!isTesting)
 {
     app.UseMiddleware<CsrfMiddleware>();
-    app.UseRateLimiter();
 }
 
 app.UseCors();
-app.UseAuthentication();
-app.UseAuthorization();
+// Per-IP guard → authentication → per-user limiters → authorization. RateLimitPipelineTests drive
+// this same call; see RateLimitSetup for why the order matters.
+app.UseOphiAuthenticationAndRateLimiting(enableRateLimiting: !isTesting);
 
 app.UseHttpMetrics(); // Prometheus HTTP request metrics
 app.UseMiddleware<RequestLoggingMiddleware>();
