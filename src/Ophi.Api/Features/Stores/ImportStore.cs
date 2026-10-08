@@ -1,4 +1,3 @@
-using System.Text.Json;
 using FluentValidation;
 using Json.Path;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +5,7 @@ using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Domain.Entities;
 using Ophi.Infrastructure.Persistence;
+using Ophi.Infrastructure.Persistence.Configurations;
 using Ophi.Infrastructure.Scraping.Adapters;
 using Wolverine;
 
@@ -94,6 +94,19 @@ public static class ImportStore
                 .Must(patterns => patterns.All(p => !string.IsNullOrWhiteSpace(p)))
                 .WithMessage("Domain patterns cannot be empty");
 
+            RuleFor(x => x.DomainPatterns)
+                .Must(StoreValidationHelper.DomainPatternsFitColumn)
+                .WithMessage(StoreValidationHelper.DomainPatternsTooLongMessage);
+
+            RuleFor(x => x.Selectors)
+                .Must(s => StoreValidationHelper.SelectorsFitColumn(s.ToConfig()))
+                .When(x => x.Selectors != null)
+                .WithMessage(StoreValidationHelper.SelectorsTooLongMessage);
+
+            RuleFor(x => x.PriceLocale)
+                .MaximumLength(StoreConfigurationConfiguration.PriceLocaleMaxLength)
+                .WithMessage(StoreValidationHelper.PriceLocaleTooLongMessage);
+
             RuleFor(x => x.Selectors)
                 .NotNull().WithMessage("Selectors are required")
                 .DependentRules(() =>
@@ -149,17 +162,7 @@ public static class ImportStore
             var priceLocale = request.PriceLocale ?? "en-US";
             StoreValidationHelper.ValidatePriceLocale(priceLocale);
 
-            var selectorConfig = new StoreSelectorConfig
-            {
-                PriceSelectors = request.Selectors.PriceSelectors,
-                NameSelectors = request.Selectors.NameSelectors,
-                ImageSelectors = request.Selectors.ImageSelectors,
-                PriceRegexPatterns = request.Selectors.PriceRegexPatterns,
-                ImageRegexPatterns = request.Selectors.ImageRegexPatterns,
-                PriceJsonPaths = request.Selectors.PriceJsonPaths,
-                NameJsonPaths = request.Selectors.NameJsonPaths,
-                ImageJsonPaths = request.Selectors.ImageJsonPaths
-            };
+            var selectorConfig = request.Selectors.ToConfig();
 
             var storeConfiguration = new StoreConfiguration
             {
@@ -167,8 +170,8 @@ public static class ImportStore
                 UserId = request.UserId,
                 StoreId = request.StoreId,
                 Name = request.Name,
-                DomainPatternsJson = JsonSerializer.Serialize(request.DomainPatterns),
-                SelectorsJson = JsonSerializer.Serialize(selectorConfig),
+                DomainPatternsJson = StoreValidationHelper.SerializeDomainPatterns(request.DomainPatterns),
+                SelectorsJson = StoreValidationHelper.SerializeSelectors(selectorConfig),
                 PriceLocale = priceLocale,
                 RequiresJavaScript = request.RequiresJavaScript,
                 CurrencyOverride = request.CurrencyOverride

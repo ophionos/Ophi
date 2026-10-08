@@ -3,6 +3,8 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Infrastructure.Persistence;
+using Ophi.Infrastructure.Persistence.Configurations;
+using Ophi.Infrastructure.Scraping.Adapters;
 
 namespace Ophi.Api.Features.Stores;
 
@@ -55,4 +57,29 @@ internal static class StoreValidationHelper
             throw new ApiException($"Invalid price locale: '{priceLocale}'", 400, "Bad Request");
         }
     }
+
+    /// <summary>
+    /// The one serialization of <c>DomainPatternsJson</c>. Validators measure this exact string
+    /// against the column bound, so the handlers must store it — not a re-serialization.
+    /// </summary>
+    public static string SerializeDomainPatterns(string[] patterns) => JsonSerializer.Serialize(patterns);
+
+    /// <summary>The one serialization of <c>SelectorsJson</c>; see <see cref="SerializeDomainPatterns"/>.</summary>
+    public static string SerializeSelectors(StoreSelectorConfig config) => JsonSerializer.Serialize(config);
+
+    public static bool DomainPatternsFitColumn(string[]? patterns) =>
+        patterns is null ||
+        SerializeDomainPatterns(patterns).Length <= StoreConfigurationConfiguration.DomainPatternsJsonMaxLength;
+
+    public static bool SelectorsFitColumn(StoreSelectorConfig config) =>
+        SerializeSelectors(config).Length <= StoreConfigurationConfiguration.SelectorsJsonMaxLength;
+
+    public static readonly string DomainPatternsTooLongMessage =
+        $"Domain patterns are too long (at most {StoreConfigurationConfiguration.DomainPatternsJsonMaxLength} characters in total)";
+
+    public static readonly string SelectorsTooLongMessage =
+        $"Selectors are too long (at most {StoreConfigurationConfiguration.SelectorsJsonMaxLength} characters in total)";
+
+    public static readonly string PriceLocaleTooLongMessage =
+        $"Price locale must not exceed {StoreConfigurationConfiguration.PriceLocaleMaxLength} characters";
 }

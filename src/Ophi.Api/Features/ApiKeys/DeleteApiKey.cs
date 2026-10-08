@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Ophi.Api.Common.Auth;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Infrastructure.Persistence;
@@ -21,7 +22,7 @@ public static class DeleteApiKey
         .WithSummary("Revoke an API key")
         .WithDescription("Permanently deletes an API key. Any scripts using this key will immediately lose access.")
         .Produces(204)
-        .RequireAuthorization();
+        .RequireAuthorization(AuthPolicies.SessionOnly);
     }
 
     public record Command(Guid Id, Guid UserId);

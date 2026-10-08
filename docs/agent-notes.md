@@ -156,7 +156,11 @@ missing Postgres can't silently drop provider coverage. Known classes:
 
 - **varchar overflow rolls back the save and poisons the message.** `Notification.Title` is
   `varchar(200)` but product names run longer; every title goes through `Notification.BuildTitle`.
-  Any bounded column written from a longer source field is this class.
+  Any bounded column written from a longer source field is this class. API input is bounded by the
+  same numbers: the EF configurations expose them as `public const` (`StoreConfigurationConfiguration`,
+  `ProductConfiguration`, `ProductUrlConfiguration`, `TagConfiguration`) and validators read those. A
+  JSON column is measured on the exact serialized string (`StoreValidationHelper.Serialize*`), not
+  field by field. A batch save (`ImportProducts`) rejects the oversized row, not the whole file.
 - **The trigram index must match EF's emitted cast.** EF emits `lower(("Url")::text)`; an index on
   `lower("Url")` is ignored. `IX_ProductUrls_Url_trgm` is raw SQL kept out of the EF model (SQLite has
   no pg_trgm). Verify with `query.ToQueryString()`, never a hand-written predicate.
@@ -176,7 +180,16 @@ missing Postgres can't silently drop provider coverage. Known classes:
 Behavior and trust model: [security.md](security.md). The invariants a change can break:
 
 - **An HttpClient whose URL path carries a secret must call `.RemoveAllLoggers()`** — default logging
-  writes the full URI and redacts only the query. Discord and Telegram do this in `DependencyInjection`.
+  writes the full URI and redacts only the query. Discord, Telegram, and outbound webhooks do this in
+  `DependencyInjection`. **Register the interface as the typed client** (`AddHttpClient<IFoo, Foo>`): a
+  separate `AddScoped<IFoo, Foo>` resolves the default `HttpClient`, which silently drops the timeout
+  and `RemoveAllLoggers`. `DependencyInjectionTests` resolve each interface and assert no URL is logged.
+- **API keys cannot manage API keys.** Create and delete use `AuthPolicies.SessionOnly`; otherwise a
+  leaked write key mints a non-expiring key that outlives its own expiry and revocation. Apply the
+  policy to any new credential-management endpoint. (`ChangePassword` and `DeleteAccount` are safe for
+  a key: both re-verify the current password.)
+- **Scraped text is attacker-controlled.** The merchant page sets the product name; HTML-encode it in
+  any HTML output (`EmailService.Html`). Discord, Telegram, and Pushover send it as plain text.
 - **SecurityStamp rules for new endpoints:** any credential/identity mutation re-issues the cookie via
   `SignInUserAsync(id, email, name, stamp)` in the same request; after rotating call
   `stampGuard.Refresh(id, newStamp)`; after deleting a user call `stampGuard.Evict(id)`. Response records

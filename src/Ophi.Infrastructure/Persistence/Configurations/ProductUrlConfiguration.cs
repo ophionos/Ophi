@@ -6,13 +6,15 @@ namespace Ophi.Infrastructure.Persistence.Configurations;
 
 public class ProductUrlConfiguration : IEntityTypeConfiguration<ProductUrl>
 {
+    public const int UrlMaxLength = 2048;
+
     public void Configure(EntityTypeBuilder<ProductUrl> builder)
     {
         builder.HasKey(pu => pu.Id);
 
         builder.Property(pu => pu.Url)
             .IsRequired()
-            .HasMaxLength(2048);
+            .HasMaxLength(UrlMaxLength);
 
         builder.Property(pu => pu.StoreId)
             .HasMaxLength(100);

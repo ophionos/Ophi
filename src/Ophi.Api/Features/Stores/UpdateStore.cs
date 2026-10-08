@@ -1,10 +1,10 @@
-using System.Text.Json;
 using FluentValidation;
 using Json.Path;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Infrastructure.Persistence;
+using Ophi.Infrastructure.Persistence.Configurations;
 using Ophi.Infrastructure.Scraping.Adapters;
 using Wolverine;
 
@@ -98,7 +98,20 @@ public static class UpdateStore
         string[]? PriceJsonPaths = null,
         string[]? NameJsonPaths = null,
         string[]? ImageJsonPaths = null
-    );
+    )
+    {
+        public StoreSelectorConfig ToConfig() => new()
+        {
+            PriceSelectors = PriceSelectors,
+            NameSelectors = NameSelectors,
+            ImageSelectors = ImageSelectors,
+            PriceRegexPatterns = PriceRegexPatterns,
+            ImageRegexPatterns = ImageRegexPatterns,
+            PriceJsonPaths = PriceJsonPaths,
+            NameJsonPaths = NameJsonPaths,
+            ImageJsonPaths = ImageJsonPaths
+        };
+    }
 
     public class Validator : AbstractValidator<Command>
     {
@@ -115,6 +128,19 @@ public static class UpdateStore
                 .NotEmpty().WithMessage("At least one domain pattern is required")
                 .Must(patterns => patterns.All(p => !string.IsNullOrWhiteSpace(p)))
                 .WithMessage("Domain patterns cannot be empty");
+
+            RuleFor(x => x.DomainPatterns)
+                .Must(StoreValidationHelper.DomainPatternsFitColumn)
+                .WithMessage(StoreValidationHelper.DomainPatternsTooLongMessage);
+
+            RuleFor(x => x.Selectors)
+                .Must(s => StoreValidationHelper.SelectorsFitColumn(s.ToConfig()))
+                .When(x => x.Selectors != null)
+                .WithMessage(StoreValidationHelper.SelectorsTooLongMessage);
+
+            RuleFor(x => x.PriceLocale)
+                .MaximumLength(StoreConfigurationConfiguration.PriceLocaleMaxLength)
+                .WithMessage(StoreValidationHelper.PriceLocaleTooLongMessage);
 
             RuleFor(x => x.Selectors)
                 .NotNull().WithMessage("Selectors are required")
@@ -168,17 +194,7 @@ public static class UpdateStore
             // Check for duplicate domain patterns across user's other stores (exclude current store)
             await StoreValidationHelper.CheckDomainOverlapAsync(dbContext, request.UserId, request.DomainPatterns, request.Id, cancellationToken);
 
-            var selectorConfig = new StoreSelectorConfig
-            {
-                PriceSelectors = request.Selectors.PriceSelectors,
-                NameSelectors = request.Selectors.NameSelectors,
-                ImageSelectors = request.Selectors.ImageSelectors,
-                PriceRegexPatterns = request.Selectors.PriceRegexPatterns,
-                ImageRegexPatterns = request.Selectors.ImageRegexPatterns,
-                PriceJsonPaths = request.Selectors.PriceJsonPaths,
-                NameJsonPaths = request.Selectors.NameJsonPaths,
-                ImageJsonPaths = request.Selectors.ImageJsonPaths
-            };
+            var selectorConfig = request.Selectors.ToConfig();
 
             // Validate PriceLocale if provided
             if (request.PriceLocale != null)
@@ -188,8 +204,8 @@ public static class UpdateStore
             }
 
             store.Name = request.Name;
-            store.DomainPatternsJson = JsonSerializer.Serialize(request.DomainPatterns);
-            store.SelectorsJson = JsonSerializer.Serialize(selectorConfig);
+            store.DomainPatternsJson = StoreValidationHelper.SerializeDomainPatterns(request.DomainPatterns);
+            store.SelectorsJson = StoreValidationHelper.SerializeSelectors(selectorConfig);
             if (request.RequiresJavaScript.HasValue)
                 store.RequiresJavaScript = request.RequiresJavaScript.Value;
 

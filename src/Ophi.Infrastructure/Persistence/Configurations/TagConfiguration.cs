@@ -6,13 +6,15 @@ namespace Ophi.Infrastructure.Persistence.Configurations;
 
 public class TagConfiguration : IEntityTypeConfiguration<Tag>
 {
+    public const int NameMaxLength = 50;
+
     public void Configure(EntityTypeBuilder<Tag> builder)
     {
         builder.HasKey(t => t.Id);
 
         builder.Property(t => t.Name)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(NameMaxLength);
 
         builder.Property(t => t.Color)
             .IsRequired()

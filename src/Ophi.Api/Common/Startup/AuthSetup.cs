@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Ophi.Api.Common.Auth;
+using Ophi.Api.Common.Middleware;
 using Ophi.Infrastructure.Persistence;
 
 namespace Ophi.Api.Common.Startup;
@@ -18,8 +19,8 @@ internal static class AuthSetup
     {
         // Persist Data Protection keys so session cookies survive container/process
         // restarts. Without this, keys live in the container's ephemeral filesystem and
-        // every redeploy regenerates them, logging every user out. Keys go next to the
-        // SQLite database (the persistent data volume). Skipped under Testing so the
+        // every redeploy regenerates them, logging every user out. Keys go in the directory
+        // DATABASE_PATH names (the persistent data volume). Skipped under Testing so the
         // integration test factory keeps its default in-memory keyring.
         if (!env.IsEnvironment("Testing"))
         {
@@ -83,7 +84,11 @@ internal static class AuthSetup
                 ApiKeyAuthenticationHandler.SchemeName, null);
 
         services.AddSingleton<SecurityStampGuard>();
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+            options.AddPolicy(AuthPolicies.SessionOnly, policy => policy
+                .RequireAuthenticatedUser()
+                .RequireAssertion(context =>
+                    !context.User.HasClaim(c => c.Type == ApiKeyScopeMiddleware.ScopesClaim))));
         return services;
     }
 }

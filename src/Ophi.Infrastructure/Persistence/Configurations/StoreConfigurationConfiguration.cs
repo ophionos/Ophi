@@ -6,6 +6,12 @@ namespace Ophi.Infrastructure.Persistence.Configurations;
 
 public class StoreConfigurationConfiguration : IEntityTypeConfiguration<StoreConfiguration>
 {
+    // Public so the API validators bound input by the same numbers; a longer value passes SQLite
+    // (which ignores varchar bounds) and fails Postgres with a 500.
+    public const int DomainPatternsJsonMaxLength = 2000;
+    public const int SelectorsJsonMaxLength = 10000;
+    public const int PriceLocaleMaxLength = 10;
+
     public void Configure(EntityTypeBuilder<StoreConfiguration> builder)
     {
         builder.HasKey(s => s.Id);
@@ -20,15 +26,15 @@ public class StoreConfigurationConfiguration : IEntityTypeConfiguration<StoreCon
 
         builder.Property(s => s.DomainPatternsJson)
             .IsRequired()
-            .HasMaxLength(2000);
+            .HasMaxLength(DomainPatternsJsonMaxLength);
 
         builder.Property(s => s.SelectorsJson)
             .IsRequired()
-            .HasMaxLength(10000);
+            .HasMaxLength(SelectorsJsonMaxLength);
 
         builder.Property(s => s.PriceLocale)
             .IsRequired()
-            .HasMaxLength(10)
+            .HasMaxLength(PriceLocaleMaxLength)
             .HasDefaultValue("en-US");
 
         builder.Property(s => s.RequiresJavaScript)

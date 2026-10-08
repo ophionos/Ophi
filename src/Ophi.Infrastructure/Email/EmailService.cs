@@ -1,3 +1,4 @@
+using System.Net;
 using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,15 +14,17 @@ public class EmailService(IOptions<EmailSettings> settings, ILogger<EmailService
     public async Task SendPriceAlertAsync(PriceAlertEmail alert, CancellationToken cancellationToken = default)
     {
         var subject = $"Price Alert: {alert.ProductName} dropped to {alert.Currency} {alert.CurrentPrice:F2}!";
+        // The product name (and so the whole body) is scraped from the merchant's page: encode
+        // every interpolated value, or the page controls markup in the user's inbox.
         var body = $"""
             <h2>Price Alert!</h2>
             <p>Great news! The product you're tracking has reached your target price.</p>
 
-            <h3>{alert.ProductName}</h3>
-            <p><strong>Current Price:</strong> {alert.Currency} {alert.CurrentPrice:F2}</p>
-            <p><strong>Your Target:</strong> {AlertTargetFormatter.Describe(alert.TargetPrice, alert.Condition, alert.Currency)}</p>
+            <h3>{Html(alert.ProductName)}</h3>
+            <p><strong>Current Price:</strong> {Html(alert.Currency)} {alert.CurrentPrice:F2}</p>
+            <p><strong>Your Target:</strong> {Html(AlertTargetFormatter.Describe(alert.TargetPrice, alert.Condition, alert.Currency))}</p>
 
-            <p><a href="{alert.ProductUrl}">View Product</a></p>
+            <p><a href="{Html(alert.ProductUrl)}">View Product</a></p>
 
             <hr />
             <p style="color: #666; font-size: 12px;">
@@ -40,7 +43,7 @@ public class EmailService(IOptions<EmailSettings> settings, ILogger<EmailService
             <h2>Password Reset Request</h2>
             <p>You requested to reset your password. Click the link below to continue:</p>
 
-            <p><a href="{resetUrl}">Reset Password</a></p>
+            <p><a href="{Html(resetUrl)}">Reset Password</a></p>
 
             <p>If you didn't request this, you can safely ignore this email.</p>
             <p>This link will expire in 1 hour.</p>
@@ -75,6 +78,8 @@ public class EmailService(IOptions<EmailSettings> settings, ILogger<EmailService
 
         await SendEmailAsync(toEmail, toName, subject, body, cancellationToken);
     }
+
+    private static string Html(string value) => WebUtility.HtmlEncode(value);
 
     private async Task SendEmailAsync(string toEmail, string toName, string subject, string htmlBody, CancellationToken cancellationToken)
     {
