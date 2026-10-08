@@ -46,6 +46,10 @@ re-opens those networks for webhooks only. The scraper still refuses them.
   Loopback, link-local (cloud metadata) and the other reserved ranges stay closed.
 - The check still runs on the resolved address of every connection and redirect hop.
 - With any network listed, webhook URLs may also use `.local` / `.internal` names.
+- **Never list the network the Ophi containers run on.** Compose bridge networks sit inside
+  172.16.0.0/12 (or 192.168.0.0/16). With that range listed, a webhook to `http://db:5432/` or
+  `http://api:5000/` resolves into it and is sent, so any account can probe the stack's own
+  containers. List the LAN `/24` or the tailnet range, never a whole private block.
 - **Every account on the instance can send webhooks to the listed networks.** Use it on a
   single-operator instance, or with sign-up closed, and list the narrowest networks that work.
 

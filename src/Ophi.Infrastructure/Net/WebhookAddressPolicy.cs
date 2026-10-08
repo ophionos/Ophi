@@ -37,7 +37,7 @@ public sealed class WebhookAddressPolicy
                     range.Contains(network.BaseAddress) && network.PrefixLength >= range.PrefixLength))
                 throw new InvalidOperationException(
                     $"{ConfigKey}: '{entry}' is outside the networks that can be re-opened " +
-                    "(10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, fc00::/7).");
+                    $"({string.Join(", ", AddressPolicy.ReopenableNetworks)}).");
 
             networks.Add(network);
         }
