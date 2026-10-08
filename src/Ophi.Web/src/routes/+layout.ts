@@ -1,4 +1,11 @@
-const publicRoutes = ['/', '/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password'];
+const publicRoutes = [
+	'/',
+	'/auth/login',
+	'/auth/register',
+	'/auth/forgot-password',
+	'/auth/reset-password',
+	'/auth/confirm-email'
+];
 
 export const load = async ({ fetch, url }) => {
 	const isPublic = publicRoutes.includes(url.pathname);

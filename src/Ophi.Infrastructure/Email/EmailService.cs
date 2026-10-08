@@ -57,6 +57,49 @@ public class EmailService(IOptions<EmailSettings> settings, ILogger<EmailService
         await SendEmailAsync(email, "", subject, body, cancellationToken);
     }
 
+    public async Task SendEmailChangeConfirmationAsync(string newEmail, string token, CancellationToken cancellationToken = default)
+    {
+        var confirmUrl = $"{_settings.AppUrl}/auth/confirm-email?token={token}";
+        const string subject = "Confirm Your New Ophi Email";
+        var body = $"""
+            <h2>Confirm your new email address</h2>
+            <p>Someone signed in to your Ophi account asked to use this address for sign-in.
+            Open the link below to confirm the change:</p>
+
+            <p><a href="{Html(confirmUrl)}">Confirm email change</a></p>
+
+            <p>If you didn't request this, ignore this email. The account keeps its current address.</p>
+            <p>This link will expire in 24 hours.</p>
+
+            <hr />
+            <p style="color: #666; font-size: 12px;">
+                Ophi Price Tracker
+            </p>
+            """;
+
+        await SendEmailAsync(newEmail, "", subject, body, cancellationToken);
+    }
+
+    public async Task SendEmailChangeNoticeAsync(string currentEmail, string newEmail, CancellationToken cancellationToken = default)
+    {
+        const string subject = "Ophi Email Change Requested";
+        var body = $"""
+            <h2>Email change requested</h2>
+            <p>Someone signed in to your Ophi account asked to change its sign-in email to
+            <strong>{Html(newEmail)}</strong>.</p>
+
+            <p>Nothing changes until the link sent to that address is opened. If you didn't
+            request this, change your password now.</p>
+
+            <hr />
+            <p style="color: #666; font-size: 12px;">
+                Ophi Price Tracker
+            </p>
+            """;
+
+        await SendEmailAsync(currentEmail, "", subject, body, cancellationToken);
+    }
+
     public async Task SendTestEmailAsync(string toEmail, string toName, CancellationToken cancellationToken = default)
     {
         // Deliberately NOT the price-alert template. A test that arrives titled

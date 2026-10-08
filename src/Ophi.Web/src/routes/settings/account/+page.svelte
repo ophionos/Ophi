@@ -24,6 +24,8 @@
 	let email = $state('');
 	let profileCurrentPassword = $state('');
 	let profileLoading = $state(false);
+	// Known only from this page's last save: the loader user (cookie claims) does not carry it.
+	let pendingEmail = $state<string | null>(null);
 
 	$effect(() => {
 		savedName = data.user?.name ?? '';
@@ -59,8 +61,14 @@
 			name = updated.name;
 			email = updated.email;
 			profileCurrentPassword = '';
-			auth.setUser(updated);
-			toast.success('Profile updated');
+			pendingEmail = updated.pendingEmail ?? null;
+			auth.setUser({ id: updated.id, email: updated.email, name: updated.name });
+			// currentPassword is only sent with an email change, so a name-only save keeps the plain toast.
+			if (payload.currentPassword && updated.pendingEmail) {
+				toast.success(`Check ${updated.pendingEmail} to confirm the new email`);
+			} else {
+				toast.success('Profile updated');
+			}
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to update profile');
 		} finally {
@@ -179,6 +187,16 @@
 				/>
 			</div>
 		</div>
+
+		{#if pendingEmail}
+			<p
+				class="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2"
+				data-testid="profile-pending-email"
+			>
+				Waiting for confirmation from <strong>{pendingEmail}</strong>. You sign in with
+				{savedEmail} until you open the link sent there.
+			</p>
+		{/if}
 
 		{#if emailChanged}
 			<div>

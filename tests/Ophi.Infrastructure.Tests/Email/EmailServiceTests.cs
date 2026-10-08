@@ -561,4 +561,36 @@ public class EmailServiceTests
     }
 
     #endregion
+
+    #region Email change
+
+    [Fact]
+    public async Task SendEmailChangeConfirmationAsync_SendsConfirmLinkToTheNewAddress()
+    {
+        await _service.SendEmailChangeConfirmationAsync("new@example.com", "ABC123", TestContext.Current.CancellationToken);
+
+        (_capturedMessage!.To.Single() as MailboxAddress)!.Address.Should().Be("new@example.com");
+        _capturedMessage.HtmlBody.Should().Contain("https://ophi.example.com/auth/confirm-email?token=ABC123");
+    }
+
+    [Fact]
+    public async Task SendEmailChangeNoticeAsync_SendsToTheOldAddressAndNamesTheNewOne()
+    {
+        await _service.SendEmailChangeNoticeAsync("old@example.com", "new@example.com", TestContext.Current.CancellationToken);
+
+        (_capturedMessage!.To.Single() as MailboxAddress)!.Address.Should().Be("old@example.com");
+        _capturedMessage.HtmlBody.Should().Contain("new@example.com");
+    }
+
+    // The new address is user input that the EmailAddress validator barely constrains.
+    [Fact]
+    public async Task SendEmailChangeNoticeAsync_EncodesTheNewAddress()
+    {
+        await _service.SendEmailChangeNoticeAsync("old@example.com", "\"<b>x\"@example.com", TestContext.Current.CancellationToken);
+
+        _capturedMessage!.HtmlBody.Should().NotContain("<b>x");
+        _capturedMessage.HtmlBody.Should().Contain("&lt;b&gt;x");
+    }
+
+    #endregion
 }

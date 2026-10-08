@@ -35,6 +35,7 @@ internal static class EndpointRouting
         // Account (signed-in self-service)
         app.MapChangePasswordEndpoint();
         app.MapUpdateProfileEndpoint();
+        app.MapConfirmEmailChangeEndpoint();
         app.MapDeleteAccountEndpoint();
         app.MapExportBackupEndpoint();
         app.MapImportBackupEndpoint();

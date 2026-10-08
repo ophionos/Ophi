@@ -127,6 +127,53 @@ describe('Account Settings — Profile card', () => {
 		});
 	});
 
+	it('should keep the current email and show the pending address when confirmation is required', async () => {
+		vi.mocked(api.updateProfile).mockResolvedValue({
+			id: 'u1',
+			email: 'me@example.com',
+			name: 'Original Name',
+			pendingEmail: 'new@example.com'
+		});
+		renderPage();
+
+		await fireEvent.input(screen.getByTestId('profile-email'), {
+			target: { value: 'new@example.com' }
+		});
+		await fireEvent.input(screen.getByTestId('profile-current-password'), {
+			target: { value: 'Password1' }
+		});
+		await fireEvent.click(screen.getByTestId('profile-save'));
+
+		await waitFor(() => {
+			expect(screen.getByTestId('profile-pending-email')).toHaveTextContent('new@example.com');
+		});
+		expect(screen.getByTestId('profile-email')).toHaveValue('me@example.com');
+		expect(toast.success).toHaveBeenCalledWith('Check new@example.com to confirm the new email');
+	});
+
+	it('should not show a pending address after a save that changed the email at once', async () => {
+		vi.mocked(api.updateProfile).mockResolvedValue({
+			id: 'u1',
+			email: 'new@example.com',
+			name: 'Original Name',
+			pendingEmail: null
+		});
+		renderPage();
+
+		await fireEvent.input(screen.getByTestId('profile-email'), {
+			target: { value: 'new@example.com' }
+		});
+		await fireEvent.input(screen.getByTestId('profile-current-password'), {
+			target: { value: 'Password1' }
+		});
+		await fireEvent.click(screen.getByTestId('profile-save'));
+
+		await waitFor(() => {
+			expect(toast.success).toHaveBeenCalledWith('Profile updated');
+		});
+		expect(screen.queryByTestId('profile-pending-email')).not.toBeInTheDocument();
+	});
+
 	it('should update the auth store after a successful save', async () => {
 		vi.mocked(api.updateProfile).mockResolvedValue({
 			id: 'u1',
