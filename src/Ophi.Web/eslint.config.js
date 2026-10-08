@@ -102,7 +102,8 @@ export default [
 		files: ['**/service-worker.ts'],
 		languageOptions: {
 			globals: {
-				ServiceWorkerGlobalScope: 'readonly'
+				ServiceWorkerGlobalScope: 'readonly',
+				FetchEvent: 'readonly'
 			}
 		}
 	},

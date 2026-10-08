@@ -43,12 +43,12 @@
 		window.addEventListener('offline', goOffline);
 		window.addEventListener('online', backOnline);
 		const worker = 'serviceWorker' in navigator ? navigator.serviceWorker : null;
-		worker?.addEventListener('message', onWorkerMessage as EventListener);
+		worker?.addEventListener('message', onWorkerMessage);
 
 		return () => {
 			window.removeEventListener('offline', goOffline);
 			window.removeEventListener('online', backOnline);
-			worker?.removeEventListener('message', onWorkerMessage as EventListener);
+			worker?.removeEventListener('message', onWorkerMessage);
 		};
 	});
 </script>
