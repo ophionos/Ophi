@@ -29,6 +29,12 @@ public class WebhookDispatchService(
         await Task.WhenAll(matching.Select(target => SafePostAsync(target.Url, target.Name, target.Id, eventType, payload, ct)));
     }
 
+    /// <summary>
+    /// The only error a webhook test returns. The raw failure ("connection refused", a timeout, an HTTP
+    /// status) would let a caller probe which hosts and ports exist behind the server.
+    /// </summary>
+    public const string TestFailedMessage = "The webhook could not be delivered. Check the URL and that the endpoint accepts POST requests.";
+
     public async Task<(bool Success, string? Error)> SendTestAsync(string url, CancellationToken ct = default)
     {
         var payload = new WebhookPayload(
@@ -46,9 +52,11 @@ public class WebhookDispatchService(
             await PostAsync(url, "test", payload, ct);
             return (true, null);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!ct.IsCancellationRequested)
         {
-            return (false, ex.Message);
+            // Exception type only: the message can carry the target host, and the URL can carry a token.
+            logger.LogInformation("Webhook test failed: {ExceptionType}", ex.GetType().Name);
+            return (false, TestFailedMessage);
         }
     }
 

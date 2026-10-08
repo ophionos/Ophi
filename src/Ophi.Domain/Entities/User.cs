@@ -54,6 +54,13 @@ public class User : BaseEntity
     }
 
     /// <summary>
+    /// Replaces the hash of the <em>same</em> password with one made under the current hasher
+    /// parameters. Unlike <see cref="ChangePassword"/> it keeps the security stamp, so existing
+    /// sessions stay valid.
+    /// </summary>
+    public void UpgradePasswordHash(string rehashedPassword) => PasswordHash = rehashedPassword;
+
+    /// <summary>
     /// Updates display name and login email (normalized to lowercase). Does not rotate
     /// the security stamp — profile edits keep existing sessions alive.
     /// </summary>

@@ -15,20 +15,20 @@ public class ForgotPasswordHandlerTests : IDisposable
     private readonly SqliteConnection _connection;
     private readonly OphiDbContext _dbContext;
     private readonly Mock<IEmailService> _emailServiceMock;
-    private readonly ForgotPassword.Handler _handler;
+    private readonly ForgotPassword.SendResetEmailHandler _handler;
 
     public ForgotPasswordHandlerTests()
     {
         (_dbContext, _connection) = TestDbContextFactory.Create();
         _emailServiceMock = new Mock<IEmailService>();
-        _handler = new ForgotPassword.Handler(_dbContext, _emailServiceMock.Object, TimeProvider.System, NullLogger<ForgotPassword.Handler>.Instance);
+        _handler = new ForgotPassword.SendResetEmailHandler(_dbContext, _emailServiceMock.Object, TimeProvider.System, NullLogger<ForgotPassword.SendResetEmailHandler>.Instance);
     }
 
     [Fact]
     public async Task Handle_WithExistingEmail_SendsResetEmail()
     {
         SeedUser("user@example.com");
-        var command = new ForgotPassword.Command("user@example.com");
+        var command = new ForgotPassword.SendResetEmail("user@example.com");
 
         await _handler.Handle(command, TestContext.Current.CancellationToken);
 
@@ -41,7 +41,7 @@ public class ForgotPasswordHandlerTests : IDisposable
     public async Task Handle_WithExistingEmail_SetsResetTokenOnUser()
     {
         var user = SeedUser("user@example.com");
-        var command = new ForgotPassword.Command("user@example.com");
+        var command = new ForgotPassword.SendResetEmail("user@example.com");
 
         await _handler.Handle(command, TestContext.Current.CancellationToken);
 
@@ -53,7 +53,7 @@ public class ForgotPasswordHandlerTests : IDisposable
     [Fact]
     public async Task Handle_WithNonExistentEmail_DoesNotThrow()
     {
-        var command = new ForgotPassword.Command("nobody@example.com");
+        var command = new ForgotPassword.SendResetEmail("nobody@example.com");
 
         var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
 
@@ -63,7 +63,7 @@ public class ForgotPasswordHandlerTests : IDisposable
     [Fact]
     public async Task Handle_WithNonExistentEmail_DoesNotSendEmail()
     {
-        var command = new ForgotPassword.Command("nobody@example.com");
+        var command = new ForgotPassword.SendResetEmail("nobody@example.com");
 
         await _handler.Handle(command, TestContext.Current.CancellationToken);
 
@@ -80,7 +80,7 @@ public class ForgotPasswordHandlerTests : IDisposable
         user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddMinutes(30);
         _dbContext.SaveChanges();
 
-        var command = new ForgotPassword.Command("user@example.com");
+        var command = new ForgotPassword.SendResetEmail("user@example.com");
         await _handler.Handle(command, TestContext.Current.CancellationToken);
 
         var updatedUser = _dbContext.Users.First(u => u.Id == user.Id);
@@ -91,7 +91,7 @@ public class ForgotPasswordHandlerTests : IDisposable
     public async Task Handle_WithUppercaseEmail_NormalizesToLowercase()
     {
         SeedUser("user@example.com");
-        var command = new ForgotPassword.Command("USER@EXAMPLE.COM");
+        var command = new ForgotPassword.SendResetEmail("USER@EXAMPLE.COM");
 
         await _handler.Handle(command, TestContext.Current.CancellationToken);
 

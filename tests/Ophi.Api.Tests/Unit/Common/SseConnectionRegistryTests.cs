@@ -83,4 +83,26 @@ public class SseConnectionRegistryTests
         payload.Should().Be("still-here");
         leaving.Reader.TryRead(out _).Should().BeFalse();
     }
+
+    [Fact]
+    public async Task Register_ConcurrentWithLastUnregister_ConnectionStillReceivesPublishes()
+    {
+        // Register racing the Unregister that empties the bucket must never leave the new connection
+        // in a bucket that is no longer in the registry (it would stay open but receive nothing).
+        for (var i = 0; i < 2_000; i++)
+        {
+            var userId = Guid.NewGuid();
+            var leaving = _registry.Register(userId);
+            SseConnection? joining = null;
+
+            await Task.WhenAll(
+                Task.Run(() => _registry.Unregister(userId, leaving.Id), TestContext.Current.CancellationToken),
+                Task.Run(() => joining = _registry.Register(userId), TestContext.Current.CancellationToken));
+
+            await _registry.PublishAsync(userId, "ping");
+
+            joining!.Reader.TryRead(out var payload).Should().BeTrue($"iteration {i} lost the connection");
+            payload.Should().Be("ping");
+        }
+    }
 }

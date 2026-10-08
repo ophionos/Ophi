@@ -16,9 +16,22 @@ public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddlewa
         {
             await next(context);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!context.Response.HasStarted)
         {
             await HandleExceptionAsync(context, ex);
+        }
+        catch (OperationCanceledException)
+        {
+            // The client went away mid-stream (an SSE disconnect, an aborted export). Nothing to send.
+            logger.LogDebug("Request cancelled after the response started");
+        }
+        catch (Exception ex)
+        {
+            // The status line is already on the wire, so an error body would throw and hide this
+            // exception. Log it here and rethrow so the server aborts the connection.
+            logger.LogError(ex, "Unhandled exception after the response started on {Method} {Path}",
+                context.Request.Method, context.Request.Path.Value);
+            throw;
         }
     }
 

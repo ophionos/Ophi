@@ -4,8 +4,7 @@ namespace Ophi.Infrastructure.Discord;
 
 public interface IDiscordService
 {
-    bool IsConfigured { get; }
-    Task SendPriceAlertAsync(DiscordPriceAlert alert, CancellationToken cancellationToken = default);
+    /// <summary>Posts to the user's own webhook; a blank URL is a no-op.</summary>
     Task SendPriceAlertAsync(DiscordPriceAlert alert, string webhookUrl, CancellationToken cancellationToken = default);
 }
 

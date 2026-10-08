@@ -1,7 +1,6 @@
 using System.Net;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using Ophi.Domain.Enums;
@@ -22,52 +21,14 @@ public class DiscordWebhookServiceTests
         _loggerMock = new Mock<ILogger<DiscordWebhookService>>();
     }
 
-    private DiscordWebhookService CreateService(string webhookUrl = "")
-    {
-        var settings = Options.Create(new DiscordSettings { WebhookUrl = webhookUrl });
-        return new DiscordWebhookService(_httpClient, settings, TimeProvider.System, _loggerMock.Object);
-    }
+    private const string WebhookUrl = "https://discord.com/api/webhooks/123/abc";
 
-    [Fact]
-    public void IsConfigured_WhenWebhookUrlEmpty_ReturnsFalse()
-    {
-        var service = CreateService();
-        service.IsConfigured.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsConfigured_WhenWebhookUrlSet_ReturnsTrue()
-    {
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
-        service.IsConfigured.Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsConfigured_WhenWebhookUrlWhitespace_ReturnsFalse()
-    {
-        var service = CreateService("   ");
-        service.IsConfigured.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task SendPriceAlertAsync_WhenNotConfigured_DoesNotSendRequest()
-    {
-        var service = CreateService();
-        var alert = new DiscordPriceAlert("Widget", "https://example.com", 45m, 50m, "USD");
-
-        await service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
-
-        _httpHandlerMock.Protected().Verify(
-            "SendAsync",
-            Times.Never(),
-            ItExpr.IsAny<HttpRequestMessage>(),
-            ItExpr.IsAny<CancellationToken>());
-    }
+    private DiscordWebhookService CreateService() =>
+        new(_httpClient, TimeProvider.System, _loggerMock.Object);
 
     [Fact]
     public async Task SendPriceAlertAsync_WhenConfigured_PostsToWebhookUrl()
     {
-        var webhookUrl = "https://discord.com/api/webhooks/123/abc";
         _httpHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -75,17 +36,17 @@ public class DiscordWebhookServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
 
-        var service = CreateService(webhookUrl);
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Widget", "https://example.com/widget", 45m, 50m, "USD");
 
-        await service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+        await service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         _httpHandlerMock.Protected().Verify(
             "SendAsync",
             Times.Once(),
             ItExpr.Is<HttpRequestMessage>(req =>
                 req.Method == HttpMethod.Post &&
-                req.RequestUri!.ToString() == webhookUrl),
+                req.RequestUri!.ToString() == WebhookUrl),
             ItExpr.IsAny<CancellationToken>());
     }
 
@@ -104,10 +65,10 @@ public class DiscordWebhookServiceTests
             })
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
 
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Super Widget", "https://example.com/widget", 45.99m, 50.00m, "EUR");
 
-        await service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+        await service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         capturedBody.Should().NotBeNull();
         capturedBody.Should().Contain("Super Widget");
@@ -134,11 +95,11 @@ public class DiscordWebhookServiceTests
             })
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
 
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
+        var service = CreateService();
         var alert = new DiscordPriceAlert(
             "Super Widget", "https://example.com/widget", 45.99m, 20m, "USD", AlertCondition.PercentDrop);
 
-        await service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+        await service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         capturedBody.Should().NotBeNull();
         capturedBody.Should().Contain("20%");
@@ -161,11 +122,11 @@ public class DiscordWebhookServiceTests
             })
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
 
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
+        var service = CreateService();
         var alert = new DiscordPriceAlert(
             "Super Widget", "https://example.com/widget", 45.99m, 50m, "USD", AlertCondition.Below);
 
-        await service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+        await service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         capturedBody.Should().Contain("USD 50.00");
         capturedBody.Should().NotContain("50%");
@@ -181,10 +142,10 @@ public class DiscordWebhookServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.InternalServerError));
 
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Widget", "https://example.com", 45m, 50m, "USD");
 
-        var act = () => service.SendPriceAlertAsync(alert);
+        var act = () => service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         await act.Should().ThrowAsync<HttpRequestException>();
     }
@@ -199,10 +160,10 @@ public class DiscordWebhookServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
 
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Widget", "https://example.com", 45m, 50m, "USD");
 
-        await service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+        await service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         _httpHandlerMock.Protected().Verify(
             "SendAsync",
@@ -223,7 +184,7 @@ public class DiscordWebhookServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
 
-        var service = CreateService(); // No global config
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Widget", "https://example.com", 45m, 50m, "USD");
 
         await service.SendPriceAlertAsync(alert, explicitUrl, TestContext.Current.CancellationToken);
@@ -284,10 +245,10 @@ public class DiscordWebhookServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(status));
 
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Widget", "https://example.com", 45m, 50m, "USD");
 
-        var act = () => service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+        var act = () => service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         await act.Should().ThrowAsync<HttpRequestException>(
             $"Discord {(int)status} should surface to the caller, not be silently swallowed");
@@ -306,10 +267,10 @@ public class DiscordWebhookServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(status));
 
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Widget", "https://example.com", 45m, 50m, "USD");
 
-        var act = () => service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+        var act = () => service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         await act.Should().ThrowAsync<HttpRequestException>(
             "5xx must propagate so Wolverine retry/error policies can react");
@@ -325,10 +286,10 @@ public class DiscordWebhookServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Connection refused"));
 
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Widget", "https://example.com", 45m, 50m, "USD");
 
-        var act = () => service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+        var act = () => service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         var thrown = await act.Should().ThrowAsync<HttpRequestException>();
         thrown.Which.Message.Should().Contain("Connection refused");
@@ -344,10 +305,10 @@ public class DiscordWebhookServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new TaskCanceledException("Request timed out"));
 
-        var service = CreateService("https://discord.com/api/webhooks/123/abc");
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Widget", "https://example.com", 45m, 50m, "USD");
 
-        var act = () => service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+        var act = () => service.SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
 
         await act.Should().ThrowAsync<TaskCanceledException>(
             "timeouts must propagate so Wolverine can retry the message");
@@ -364,7 +325,7 @@ public class DiscordWebhookServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Unauthorized));
 
-        var service = CreateService(); // no global config
+        var service = CreateService();
         var alert = new DiscordPriceAlert("Widget", "https://example.com", 45m, 50m, "USD");
         const string explicitUrl = "https://discord.com/api/webhooks/456/xyz";
 

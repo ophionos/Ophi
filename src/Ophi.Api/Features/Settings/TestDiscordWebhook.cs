@@ -21,7 +21,8 @@ public static class TestDiscordWebhook
         .WithTags("Settings")
         .WithSummary("Send a test Discord webhook message")
         .Produces<Response>()
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .RequireRateLimiting(Common.RateLimitPolicies.OutboundFetch);
     }
 
     public record Command

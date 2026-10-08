@@ -123,11 +123,7 @@ public static class DependencyInjection
         services.AddSingleton<ISmtpClientFactory, SmtpClientFactory>();
         services.AddScoped<IEmailService, EmailService>();
 
-        // Discord
-        services.Configure<DiscordSettings>(options =>
-        {
-            options.WebhookUrl = configuration["DISCORD_WEBHOOK_URL"] ?? "";
-        });
+        // Discord (each user's own webhook URL; there is no operator-wide one)
         // RemoveAllLoggers: the webhook URL is the credential, and the default HttpClient logging
         // handlers write the full request URI at Information (only the query string is redacted).
         // Register the interface as the typed client: a separate AddScoped<IDiscordService, ...>

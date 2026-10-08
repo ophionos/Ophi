@@ -52,7 +52,7 @@ internal static class HealthAndMetricsRouting
                 endpointBuilder.RequestDelegate = async context =>
                 {
                     var authHeader = context.Request.Headers.Authorization.ToString();
-                    if (!authHeader.Equals($"Bearer {metricsToken}", StringComparison.Ordinal))
+                    if (!MetricsEndpointPolicy.IsAuthorized(authHeader, metricsToken))
                     {
                         context.Response.StatusCode = 401;
                         return;

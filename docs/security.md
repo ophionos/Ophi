@@ -32,9 +32,13 @@ reports the state so the UI can hide the form. The default is open.
 
 ## Rate limits and the client IP
 
-The global limiter (120/min) partitions by user, or by client IP when anonymous; the `auth` policy
-(10/min) partitions by client IP. Creation endpoints (products, alerts, stores, webhooks) have per-user
-sliding windows. Development lifts all limits.
+A per-IP guard (600/min) runs before authentication, so a flood of made-up API keys cannot reach the
+key lookup unthrottled. The other limiters run after authentication: the global limiter (120/min)
+partitions by user, or by client IP when anonymous; the `auth` policy (10/min) partitions by client
+IP. Creation endpoints (products, alerts, stores, webhooks) have per-user sliding windows. Endpoints
+that call a caller-chosen URL (store detect/test, webhook and notification-channel tests) share the
+per-user `outbound-fetch` policy (10/min), and the webhook test returns one generic error so its
+failures cannot map internal hosts. Development lifts all limits.
 
 The API sees the client IP only through a proxy:
 

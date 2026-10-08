@@ -47,31 +47,40 @@ public sealed class SseConnectionRegistry : ISseConnectionRegistry
 
     private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<Guid, Channel<string>>> _byUser = new();
 
+    // Serialises bucket creation/removal so a Register cannot add to a bucket that a concurrent
+    // Unregister is dropping (the connection would stay open but never receive a publish). Connect and
+    // disconnect are rare; PublishAsync stays lock-free.
+    private readonly Lock _bucketLock = new();
+
     public SseConnection Register(Guid userId)
     {
         var channel = Channel.CreateBounded<string>(ChannelOptions);
         var connectionId = Guid.NewGuid();
-        var connections = _byUser.GetOrAdd(userId, _ => new ConcurrentDictionary<Guid, Channel<string>>());
-        connections[connectionId] = channel;
+        lock (_bucketLock)
+        {
+            var connections = _byUser.GetOrAdd(userId, _ => new ConcurrentDictionary<Guid, Channel<string>>());
+            connections[connectionId] = channel;
+        }
+
         return new SseConnection(connectionId, channel.Reader);
     }
 
     public void Unregister(Guid userId, Guid connectionId)
     {
-        if (!_byUser.TryGetValue(userId, out var connections))
-            return;
-
-        if (connections.TryRemove(connectionId, out var channel))
-            channel.Writer.TryComplete();
-
-        // Drop the user bucket once empty so the dictionary doesn't accumulate idle keys. Guard against
-        // a concurrent Register racing in between: only remove if still empty, and re-add if we lost.
-        if (connections.IsEmpty)
+        Channel<string>? channel;
+        lock (_bucketLock)
         {
-            _byUser.TryRemove(userId, out _);
-            if (!connections.IsEmpty)
-                _byUser.TryAdd(userId, connections);
+            if (!_byUser.TryGetValue(userId, out var connections))
+                return;
+
+            connections.TryRemove(connectionId, out channel);
+
+            // Drop the user bucket once empty so the dictionary doesn't accumulate idle keys.
+            if (connections.IsEmpty)
+                _byUser.TryRemove(userId, out _);
         }
+
+        channel?.Writer.TryComplete();
     }
 
     public ValueTask PublishAsync(Guid userId, string payload)

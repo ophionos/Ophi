@@ -20,7 +20,8 @@ public static class DetectStore
         .WithSummary("Detect store for a URL")
         .WithDescription("Fetches the page at the given URL and analyzes its HTML to suggest a store name, domain, and selectors for a new store configuration. Returns success=false with an error when the page cannot be fetched or no selectors are found. Nothing is saved.")
         .Produces<Response>(200)
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .RequireRateLimiting(Common.RateLimitPolicies.OutboundFetch);
     }
 
     public record Request(string Url);

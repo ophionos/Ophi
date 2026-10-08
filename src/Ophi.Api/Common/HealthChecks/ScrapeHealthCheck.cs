@@ -14,25 +14,23 @@ public class ScrapeHealthCheck(OphiDbContext dbContext, TimeProvider timeProvide
         try
         {
             var cutoff = timeProvider.GetUtcNow().UtcDateTime.AddHours(-1);
-            var logs = await dbContext.ScrapeLogs
-                .Where(l => l.CreatedAt >= cutoff)
-                .Select(l => l.Success)
-                .ToListAsync(cancellationToken);
+            var recent = dbContext.ScrapeLogs.Where(l => l.CreatedAt >= cutoff);
+            var total = await recent.CountAsync(cancellationToken);
 
-            if (logs.Count == 0)
+            if (total == 0)
             {
                 return HealthCheckResult.Healthy("No scrapes in the last hour",
                     new Dictionary<string, object> { ["totalScrapes"] = 0 });
             }
 
-            var successCount = logs.Count(s => s);
-            var successRate = (double)successCount / logs.Count;
+            var successCount = await recent.CountAsync(l => l.Success, cancellationToken);
+            var successRate = (double)successCount / total;
             var data = new Dictionary<string, object>
             {
                 ["successRate"] = Math.Round(successRate, 3),
-                ["totalScrapes"] = logs.Count,
+                ["totalScrapes"] = total,
                 ["successCount"] = successCount,
-                ["failureCount"] = logs.Count - successCount
+                ["failureCount"] = total - successCount
             };
 
             return successRate >= MinSuccessRate

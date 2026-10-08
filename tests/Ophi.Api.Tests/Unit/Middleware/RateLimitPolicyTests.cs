@@ -16,7 +16,8 @@ public class RateLimitPolicyTests
             RateLimitPolicies.ProductCreation,
             RateLimitPolicies.AlertCreation,
             RateLimitPolicies.StoreCreation,
-            RateLimitPolicies.WebhookCreation
+            RateLimitPolicies.WebhookCreation,
+            RateLimitPolicies.OutboundFetch
         };
 
         names.Should().OnlyHaveUniqueItems();

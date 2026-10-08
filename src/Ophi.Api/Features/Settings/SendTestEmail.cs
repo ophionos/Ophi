@@ -26,7 +26,8 @@ public static class SendTestEmail
         .WithTags("Settings")
         .WithSummary("Send a test email to the signed-in user's own account address")
         .Produces<Response>()
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .RequireRateLimiting(Common.RateLimitPolicies.OutboundFetch);
     }
 
     /// <summary>

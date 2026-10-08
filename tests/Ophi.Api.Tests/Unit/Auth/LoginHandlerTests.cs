@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Features.Auth;
@@ -210,6 +211,48 @@ public class LoginHandlerTests : IDisposable
             x => x.VerifyHashedPassword(user, user.PasswordHash, command.Password),
             Times.Once
         );
+    }
+
+    [Fact]
+    public async Task Handle_WhenRehashNeeded_StoresNewHashWithoutRotatingSecurityStamp()
+    {
+        // A hash made under older PBKDF2 parameters is upgraded on the next good login. The stamp
+        // stays, so the upgrade does not sign the user out of their other sessions.
+        var user = new User { Id = Guid.NewGuid(), Email = "test@example.com", Name = "Test User", PasswordHash = "old_hash" };
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var stamp = user.SecurityStamp;
+        var command = new Login.Command("test@example.com", "correct_password");
+
+        _passwordHasherMock
+            .Setup(x => x.VerifyHashedPassword(user, "old_hash", command.Password))
+            .Returns(PasswordVerificationResult.SuccessRehashNeeded);
+        _passwordHasherMock
+            .Setup(x => x.HashPassword(user, command.Password))
+            .Returns("new_hash");
+
+        await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        var saved = _dbContext.Users.AsNoTracking().Single(u => u.Id == user.Id);
+        saved.PasswordHash.Should().Be("new_hash");
+        saved.SecurityStamp.Should().Be(stamp);
+    }
+
+    [Fact]
+    public async Task Handle_WhenHashIsCurrent_DoesNotRehash()
+    {
+        var user = new User { Id = Guid.NewGuid(), Email = "test@example.com", Name = "Test User", PasswordHash = "hash" };
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var command = new Login.Command("test@example.com", "correct_password");
+
+        _passwordHasherMock
+            .Setup(x => x.VerifyHashedPassword(user, "hash", command.Password))
+            .Returns(PasswordVerificationResult.Success);
+
+        await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        _passwordHasherMock.Verify(x => x.HashPassword(It.IsAny<User>(), It.IsAny<string>()), Times.Never);
     }
 
     public void Dispose()

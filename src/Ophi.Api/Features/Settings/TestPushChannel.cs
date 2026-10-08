@@ -37,7 +37,8 @@ public static class TestPushChannel
         .WithTags("Settings")
         .WithSummary("Send a test Telegram or Pushover message")
         .Produces<Response>()
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .RequireRateLimiting(Common.RateLimitPolicies.OutboundFetch);
     }
 
     public record Command(PushChannel Channel)

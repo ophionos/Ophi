@@ -218,11 +218,19 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   NOT skipped in Testing.
 - **Cookie `Secure` policy is gated on `IsProduction()`**, not `!IsDevelopment()`, which would break Testing.
 - **`Login` verifies a decoy hash for an unknown email** so response time doesn't reveal accounts. The
-  decoy comes from the injected `IPasswordHasher<User>` so it tracks tuned iteration counts.
+  decoy comes from the injected `IPasswordHasher<User>` so it tracks tuned iteration counts. On
+  `SuccessRehashNeeded` it stores the new hash with `User.UpgradePasswordHash`, never `ChangePassword`
+  (that rotates the stamp and signs out every other session).
+- **`ForgotPassword` does no lookup on the request path.** It publishes `SendResetEmail`, handled in
+  the API process, so known and unknown emails cost the same. Keep new account-existence-dependent
+  work in that handler.
 - **CSRF:** a 403 "Missing required request header" from curl means no `X-Requested-With`.
 - **Rate limits** are effectively unlimited in Development (e2e registers many users from one IP).
-  Testing skips `UseRateLimiter`, so `ForwardedHeadersTests` rebuild the forwarded-headers + rate-limit
-  registration on a bare TestServer.
+  Testing skips the limiters, so `ForwardedHeadersTests` and `RateLimitPipelineTests` rebuild the
+  registration on a bare TestServer. `UseRateLimiter` must run after `UseAuthentication`, or every
+  partition is the client IP; `UseOphiAuthenticationAndRateLimiting` owns that order (and the per-IP
+  guard in front) — change it there, not in `Program.cs`. A new endpoint that calls a caller-chosen URL
+  takes `RateLimitPolicies.OutboundFetch`.
 - **Trusting `X-Forwarded-For` is safe only while every path from a trusted address overwrites it.**
   If the SvelteKit hook ever passes client headers through, any client picks its own partition and the
   `auth` limit stops limiting. `handle.test.ts` and `ForwardedHeadersTests` guard both sides.
@@ -306,7 +314,10 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
 - **FluentValidation:** `TestValidate()` + `ShouldHaveValidationErrorFor`; `RuleForEach` inference needs
   the `Expression.Convert(body, typeof(IEnumerable<T>))` workaround.
 - **Replacing the DbContext in `OphiWebApplicationFactory`** must also remove
-  `IDbContextOptionsConfiguration<OphiDbContext>`, or the postgres options lambda still runs.
+  `IDbContextOptionsConfiguration<OphiDbContext>`, or the postgres options lambda still runs. It
+  uses a temp-file SQLite DB with a connection per context. Do not go back to one shared
+  `:memory:` `SqliteConnection`: it is not thread-safe, and a background handler that opens a context
+  while a test queries gets `SQLITE_BUSY` and its message goes to the error queue.
 - **The runner is Microsoft.Testing.Platform** (xunit.v3 4 dropped the VSTest bridge, and the .NET 10
   SDK rejects VSTest). Three pieces must stay in sync: `global.json` `"test": {"runner": ...}` (keep it
   free of an `sdk` section), `UseMicrosoftTestingPlatformRunner` in `Directory.Build.props`, and

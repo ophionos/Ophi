@@ -1,13 +1,11 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Ophi.Infrastructure.Formatting;
 
 namespace Ophi.Infrastructure.Discord;
 
 public class DiscordWebhookService(
     HttpClient httpClient,
-    IOptions<DiscordSettings> settings,
     TimeProvider timeProvider,
     ILogger<DiscordWebhookService> logger) : IDiscordService
 {
@@ -15,21 +13,6 @@ public class DiscordWebhookService(
     {
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
-
-    private readonly DiscordSettings _settings = settings.Value;
-
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(_settings.WebhookUrl);
-
-    public Task SendPriceAlertAsync(DiscordPriceAlert alert, CancellationToken cancellationToken = default)
-    {
-        if (!IsConfigured)
-        {
-            logger.LogDebug("Discord webhook not configured, skipping notification");
-            return Task.CompletedTask;
-        }
-
-        return PostAlertAsync(alert, _settings.WebhookUrl, cancellationToken);
-    }
 
     public Task SendPriceAlertAsync(DiscordPriceAlert alert, string webhookUrl, CancellationToken cancellationToken = default)
     {
