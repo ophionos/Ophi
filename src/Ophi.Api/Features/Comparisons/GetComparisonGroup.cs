@@ -4,6 +4,7 @@ using Ophi.Api.Common.Extensions;
 using Ophi.Api.Common.Helpers;
 using Ophi.Api.Features.Products;
 using Ophi.Domain.Extensions;
+using Ophi.Domain.Services;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
 
@@ -80,7 +81,10 @@ public static class GetComparisonGroup
                     p.ImageUrl,
                     p.CurrentPrice,
                     p.Currency,
+                // History points carry their own currency; a URL re-pointed to another region
+                // leaves points the product's currency can't be plotted against.
                 PriceHistory = p.PriceHistory
+                    .Where(ph => string.Equals(ph.Currency, p.Currency, StringComparison.OrdinalIgnoreCase))
                     .OrderBy(ph => ph.RecordedAt)
                     .Select(ph => new PriceHistoryPointDto(ph.RecordedAt.Date, ph.Price))
                     .ToList(),
@@ -90,14 +94,18 @@ public static class GetComparisonGroup
                 };
             }).ToList();
 
-            // Calculate best price (lowest non-null current price)
+            // Best price: choose the currency first, then the MIN inside it. EUR 80 is not
+            // cheaper than USD 100, and rates are display-only (docs/agent-notes.md § Pricing).
             var productsWithPrice = products.Where(p => p.CurrentPrice.HasValue).ToList();
             Guid? bestPriceProductId = null;
             decimal? bestPrice = null;
 
-            if (productsWithPrice.Count > 0)
+            var bestCurrency = ProductPriceAggregator.DominantCurrency(productsWithPrice.Select(p => p.Currency));
+            if (bestCurrency != null)
             {
-                var bestProduct = productsWithPrice.OrderBy(p => p.CurrentPrice!.Value).First();
+                var bestProduct = productsWithPrice
+                    .Where(p => string.Equals(p.Currency, bestCurrency, StringComparison.OrdinalIgnoreCase))
+                    .MinBy(p => p.CurrentPrice!.Value)!;
                 bestPriceProductId = bestProduct.Id;
                 bestPrice = bestProduct.CurrentPrice;
             }

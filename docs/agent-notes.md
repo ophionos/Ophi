@@ -72,6 +72,10 @@ other kind of fact. Link to owners; don't restate them here.
   against a cancelled token and dead-lettering the check. The catch-all `RetryWithCooldown` never
   elapses in a dying process, and `UseDurableLocalQueues` recovers the envelope on restart. Cost: one
   error log per in-flight scrape per restart. Accepted.
+  - Every catch-all on the path must let it through. `ScrapingService` calls
+    `ThrowIfCancellationRequested()` first in both catch-alls (an `HttpClient` timeout also throws
+    `TaskCanceledException`, but with the token not cancelled it stays a Network failure), and
+    `ScrapeNewProductHandler` filters `when (ex is not OperationCanceledException)`.
 - **Native AOT was evaluated and rejected** (EF Core AOT is experimental; the dynamic `.Where(...)`
   composition in `GetProducts` and migrations are unsupported).
 
@@ -88,11 +92,18 @@ other kind of fact. Link to owners; don't restate them here.
   non-positive value won the MIN, became history, and fired every "below" alert. Every
   `ScrapingResult.Price` originates in `PriceParser`, so the single `AsPrice` guard covers all routes,
   and returning null makes callers try the next selector. Do NOT relax to `>= 0`. The anomaly
-  detector is no backstop: at `SuspiciousCount == 1` it warns but persists.
+  detector is no backstop: at `SuspiciousCount == 1` it warns but persists. The imports bypass the
+  parser, so they check it themselves: a CSV `target_price` ≤ 0 is a line error, and a backup price
+  ≤ 0 is restored as null.
 - **`ProductPriceAggregator.ApplyAggregate` compares only within the product's currency.** EUR 95
   beats USD 100 numerically while costing more. When no URL matches, the product re-anchors onto the
   **dominant** currency (most URLs, ties by code) and takes the MIN within it. Any fallback must
-  choose a currency before comparing two decimals.
+  choose a currency before comparing two decimals. `ProductPriceAggregator.DominantCurrency` is the
+  one implementation; `GetComparisonGroup` uses it for the group's best price.
+  - **Read paths obey the same rule.** History may hold other currencies (a URL that changed
+    currency, a re-anchor), so the at-lowest flag, the product statistics, the sparklines and the
+    comparison history filter price points to the product's (or URL's) currency. The deal score
+    ignores alerts with `HasCurrencyMismatch`. A sparkline point is the day's MIN, not the last scrape.
   - **A re-anchor clears `PreviousPrice`.** It has no currency of its own, so a USD baseline next to a
     EUR price showed USD 100 → EUR 92 as an 8 % drop (dashboard, price-drop filter, webhook `OldPrice`).
     The frontend already renders a null `previousPrice` as "no change".

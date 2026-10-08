@@ -112,7 +112,9 @@ public static class GetProduct
             // Single query for 90 days — derive both statistics and 14-day sparkline from it
             var startDate = timeProvider.GetUtcNow().UtcDateTime.AddDays(-90);
             var allPricePoints = await dbContext.PricePoints
-                .Where(pp => pp.ProductId == request.ProductId && pp.RecordedAt >= startDate)
+                // Statistics compare prices, so only the product's own currency (see GetProducts).
+                .Where(pp => pp.ProductId == request.ProductId && pp.RecordedAt >= startDate &&
+                             pp.Currency == product.Currency)
                 .OrderBy(pp => pp.RecordedAt)
                 .Select(pp => new { pp.Price, pp.RecordedAt })
                 .ToListAsync(cancellationToken);
@@ -172,14 +174,14 @@ public static class GetProduct
                 sparklinePoints = recentPrices
                     .GroupBy(pp => pp.RecordedAt.Date)
                     .OrderBy(g => g.Key)
-                    .Select(g => new GetProducts.SparklinePointDto(g.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), g.Last().Price))
+                    .Select(g => new GetProducts.SparklinePointDto(g.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), g.Min(pp => pp.Price)))
                     .ToList();
                 sparklineMin = recentPrices.Min(pp => pp.Price);
                 sparklineMax = recentPrices.Max(pp => pp.Price);
             }
 
             var dealScore = GetProducts.ComputeDealScore(
-                product.CurrentPrice, sparklineMin, sparklineMax, sparklinePoints, product.Alerts);
+                product.CurrentPrice, sparklineMin, sparklineMax, sparklinePoints, product.Alerts, product.Currency);
 
             // Calculate price change percentage
             decimal? priceChange = null;

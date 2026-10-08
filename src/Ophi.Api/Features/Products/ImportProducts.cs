@@ -2,6 +2,7 @@ using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Ophi.Api.Common.Extensions;
 using static Ophi.Api.Common.Validators.ProductValidationRules;
 using Ophi.Domain.Entities;
@@ -9,6 +10,7 @@ using Ophi.Domain.Enums;
 using Ophi.Domain.Messages.Commands;
 using Ophi.Infrastructure.Persistence;
 using Ophi.Infrastructure.Persistence.Configurations;
+using Ophi.Infrastructure.Settings;
 using Wolverine;
 
 namespace Ophi.Api.Features.Products;
@@ -131,7 +133,7 @@ public static class ImportProducts
         return string.IsNullOrEmpty(value) ? null : value.Trim();
     }
 
-    public class Handler(OphiDbContext dbContext, IMessageBus messageBus, ILogger<Handler> logger)
+    public class Handler(OphiDbContext dbContext, IMessageBus messageBus, IOptions<AlertSettings> alertSettings, ILogger<Handler> logger)
     {
         public async Task<ImportResponse> Handle(Command command, CancellationToken cancellationToken)
         {
@@ -143,6 +145,12 @@ public static class ImportProducts
             var existingTags = await dbContext.Tags
                 .Where(t => t.UserId == command.UserId)
                 .ToDictionaryAsync(t => t.Name.ToLowerInvariant(), t => t.Id, cancellationToken);
+
+            // The per-user active-alert cap holds here as in CreateAlert and ImportBackup: targets
+            // beyond it are imported as paused alerts, not dropped.
+            var activeAlerts = await dbContext.Alerts.CountAsync(a => a.UserId == command.UserId && a.IsActive, cancellationToken);
+            var maxAlerts = alertSettings.Value.MaxAlertsPerUser;
+            var alertsPaused = 0;
 
             var added = 0;
             var skipped = 0;
@@ -173,11 +181,18 @@ public static class ImportProducts
                 // fail the whole import on Postgres (SQLite ignores the bound). Reject the row instead.
                 var tagNames = string.IsNullOrEmpty(row.Tags)
                     ? []
-                    : row.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    : row.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
                 if (OverColumnLimit(row, tagNames) is { } limitError)
                 {
                     errors.Add($"Line {row.LineNumber}: {limitError}");
+                    continue;
+                }
+
+                if (row.TargetPrice <= 0)
+                {
+                    errors.Add($"Line {row.LineNumber}: target_price must be greater than 0");
                     continue;
                 }
 
@@ -206,6 +221,10 @@ public static class ImportProducts
 
                 if (row.TargetPrice.HasValue)
                 {
+                    var active = activeAlerts < maxAlerts;
+                    if (active) activeAlerts++;
+                    else alertsPaused++;
+
                     dbContext.Alerts.Add(new Alert
                     {
                         Id = Guid.NewGuid(),
@@ -213,7 +232,7 @@ public static class ImportProducts
                         UserId = command.UserId,
                         Condition = AlertCondition.Below,
                         TargetPrice = row.TargetPrice.Value,
-                        IsActive = true
+                        IsActive = active
                     });
                 }
 
@@ -245,6 +264,9 @@ public static class ImportProducts
 
                 scrapeQueue.Add(productUrl.Id);
             }
+
+            if (alertsPaused > 0)
+                errors.Add($"{alertsPaused} alert(s) were imported paused: the account reached its limit of {maxAlerts} active alerts.");
 
             if (added > 0)
             {

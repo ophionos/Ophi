@@ -361,6 +361,46 @@ public class GetComparisonGroupHandlerTests : IDisposable
         productResult.Currency.Should().Be("USD");
     }
 
+    [Fact]
+    public async Task Handle_WithMixedCurrencies_PicksBestPriceWithinDominantCurrency()
+    {
+        // EUR 80 is not cheaper than USD 100 — raw decimals are not comparable across currencies.
+        // Pick the currency first (the one most members are priced in), then the MIN inside it.
+        var group = CreateGroup("Mixed");
+        var eur = CreateProduct("EU listing", 80m, "EUR");
+        var usdCheap = CreateProduct("US cheap", 100m);
+        var usdDear = CreateProduct("US dear", 120m);
+        foreach (var p in new[] { eur, usdCheap, usdDear }) p.ComparisonGroupId = group.Id;
+        _dbContext.ComparisonGroups.Add(group);
+        _dbContext.Products.AddRange(eur, usdCheap, usdDear);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetComparisonGroup.Query(group.Id, _testUserId), TestContext.Current.CancellationToken);
+
+        result.BestPriceProductId.Should().Be(usdCheap.Id);
+        result.BestPrice.Should().Be(100m);
+        result.Products.Single(p => p.Id == eur.Id).IsBestPrice.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_WithHistoryInAnotherCurrency_ExcludesItFromProductHistory()
+    {
+        var group = CreateGroup("History");
+        var product = CreateProduct("Re-pointed", 100m);
+        product.ComparisonGroupId = group.Id;
+        _dbContext.ComparisonGroups.Add(group);
+        _dbContext.Products.Add(product);
+        var now = DateTime.UtcNow;
+        _dbContext.PricePoints.AddRange(
+            new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, Price = 90m, Currency = "EUR", RecordedAt = now.AddDays(-2) },
+            new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, Price = 100m, Currency = "USD", RecordedAt = now.AddDays(-1) });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetComparisonGroup.Query(group.Id, _testUserId), TestContext.Current.CancellationToken);
+
+        result.Products.Single().PriceHistory.Select(h => h.Price).Should().Equal(100m);
+    }
+
     private ComparisonGroup CreateGroup(string name)
     {
         return new ComparisonGroup
@@ -371,16 +411,16 @@ public class GetComparisonGroupHandlerTests : IDisposable
         };
     }
 
-    private Product CreateProduct(string name, decimal? price)
+    private Product CreateProduct(string name, decimal? price, string currency = "USD")
     {
-        var product = TestEntityFactory.Product(_testUserId).Named(name).Priced(price).Build();
+        var product = TestEntityFactory.Product(_testUserId).Named(name).Priced(price).WithCurrency(currency).Build();
         // Seed a ProductUrl so the handler can resolve the Url field
         _dbContext.ProductUrls.Add(new ProductUrl
         {
             Id = Guid.NewGuid(),
             ProductId = product.Id,
             Url = $"https://example.com/product/{Guid.NewGuid()}",
-            Currency = "USD"
+            Currency = currency
         });
         return product;
     }

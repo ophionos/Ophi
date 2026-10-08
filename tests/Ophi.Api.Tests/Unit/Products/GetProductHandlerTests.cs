@@ -108,6 +108,25 @@ public class GetProductHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithHistoryInAnotherCurrency_ComputesStatisticsInProductCurrency()
+    {
+        var product = CreateProduct("Re-pointed", "https://example.com/rp");
+        product.CurrentPrice = 100.00m;
+        _dbContext.Products.Add(product);
+        _dbContext.PricePoints.AddRange(
+            new PricePoint { ProductId = product.Id, Price = 9000.00m, Currency = "JPY", RecordedAt = DateTime.UtcNow.AddDays(-5) },
+            new PricePoint { ProductId = product.Id, Price = 80.00m, Currency = "USD", RecordedAt = DateTime.UtcNow.AddDays(-3) },
+            new PricePoint { ProductId = product.Id, Price = 100.00m, Currency = "USD", RecordedAt = DateTime.UtcNow.AddDays(-1) });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetProduct.Query(product.Id, _testUserId), TestContext.Current.CancellationToken);
+
+        result.Statistics.Min.Should().Be(80.00m);
+        result.Statistics.Max.Should().Be(100.00m);
+        result.Statistics.Average.Should().Be(90.00m);
+    }
+
+    [Fact]
     public async Task Handle_WithPriceHistory_CalculatesStatistics()
     {
         // Arrange

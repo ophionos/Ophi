@@ -28,12 +28,11 @@ public class ScrapingServiceResilienceTests
     }
 
     [Fact]
-    public async Task ScrapeProductAsync_WhenCancelled_DoesNotCrash()
+    public async Task ScrapeProductAsync_WhenCancelled_RethrowsCancellation()
     {
-        // ScrapingService's top-level `catch (Exception)` swallows cancellation into a
-        // ScrapingResult.Failure(...) rather than propagating. That's the established
-        // behavior so the worker sees a uniform shape. This test pins it: a cancelled
-        // scrape must return cleanly, not surface an unhandled OperationCanceledException.
+        // A cancelled scrape (host shutdown, aborted request) is not a scrape failure: reporting
+        // it as one budgets a restart against the URL's auto-pause count. It must escape to the
+        // worker's retry rule (docs/agent-notes.md § Messaging), as PlaywrightScrapingService does.
         const string url = "https://example.com/slow";
         var slowResponse = new TaskCompletionSource<HttpResponseMessage>();
         _mockHttp.When(url).Respond(_ => slowResponse.Task);
@@ -45,8 +44,20 @@ public class ScrapingServiceResilienceTests
         slowResponse.TrySetCanceled(cts.Token);
 
         var act = async () => await scrapeTask;
-        var result = await act.Should().NotThrowAsync();
-        result.Subject.Success.Should().BeFalse("the scrape was interrupted mid-flight");
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_WhenTimedOutWithoutCancellation_ReturnsNetworkFailure()
+    {
+        // The other side of the filter: a timeout on a live token is a real scrape failure.
+        const string url = "https://example.com/timeout";
+        _mockHttp.When(url).Throw(new TaskCanceledException("timeout"));
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCategory.Should().Be(ScrapeErrorCategory.NetworkError);
     }
 
     [Theory]

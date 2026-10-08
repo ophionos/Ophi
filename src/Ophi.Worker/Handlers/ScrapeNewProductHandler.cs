@@ -206,7 +206,8 @@ public static class ScrapeNewProductHandler
             await PublishScrapeCompleted();
             return null;
         }
-        catch (Exception ex)
+        // Cancellation escapes untouched: it is not a scrape failure (docs/agent-notes.md § Messaging).
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Error scraping product URL {ProductUrlId}", command.ProductUrlId);
 

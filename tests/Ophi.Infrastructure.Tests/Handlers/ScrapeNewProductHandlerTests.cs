@@ -536,6 +536,47 @@ public class ScrapeNewProductHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task HandleAsync_WhenScrapeIsCancelled_RethrowsWithoutRecordingFailure()
+    {
+        // Cancellation is not a scrape failure: it must not mark the product Error or spend the
+        // URL's failure budget. It escapes to the retry rule (docs/agent-notes.md § Messaging).
+        var product = new Product
+        {
+            Id = Guid.NewGuid(),
+            UserId = _testUserId,
+            Name = "Loading...",
+            Currency = "USD",
+            Status = ProductStatus.Pending
+        };
+        var productUrl = new ProductUrl
+        {
+            Id = Guid.NewGuid(),
+            ProductId = product.Id,
+            Url = "https://example.com/cancelled",
+            Currency = "USD"
+        };
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.Add(productUrl);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync(productUrl.Url, null, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await ScrapeNewProductHandler.HandleAsync(
+                new ScrapeProductUrlCommand(productUrl.Id), _dbContext, _scrapingServiceMock.Object,
+                _autoCreateStoreServiceMock.Object, _configProviderMock.Object,
+                TimeProvider.System, Mock.Of<IMessageBus>(), _loggerMock.Object, TestContext.Current.CancellationToken));
+
+        _dbContext.ChangeTracker.Clear();
+        var saved = await _dbContext.Products.Include(p => p.ProductUrls)
+            .SingleAsync(p => p.Id == product.Id, TestContext.Current.CancellationToken);
+        saved.Status.Should().Be(ProductStatus.Pending);
+        saved.ProductUrls.Single().FailureCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task HandleAsync_WithDetectedSelector_PersistsSelector()
     {
         // Arrange

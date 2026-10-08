@@ -8,6 +8,7 @@ using Ophi.Api.Features.Settings;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
 using Ophi.Infrastructure.Persistence;
+using Ophi.Infrastructure.Persistence.Configurations;
 using Ophi.Infrastructure.Settings;
 using Wolverine;
 using static Ophi.Api.Common.Validators.ProductValidationRules;
@@ -126,9 +127,14 @@ public static class ImportBackup
             int storesAdded = 0, storesKept = 0;
             foreach (var s in bundle.Stores)
             {
-                if (knownStores.Contains(s.StoreId)) { storesKept++; continue; }
-                if (string.IsNullOrWhiteSpace(s.StoreId) || s.StoreId.Length > 50 || s.Name.Length > 100
-                    || s.DomainPatternsJson.Length > 2000 || s.SelectorsJson.Length > 10000 || s.PriceLocale.Length > 10)
+                if (s.StoreId is not null && knownStores.Contains(s.StoreId)) { storesKept++; continue; }
+                // A hand-edited file can leave any of these null (System.Text.Json ignores the
+                // non-nullable annotations), so each is null-checked before its length.
+                if (string.IsNullOrWhiteSpace(s.StoreId) || s.StoreId.Length > 50
+                    || string.IsNullOrWhiteSpace(s.Name) || s.Name.Length > 100
+                    || s.DomainPatternsJson is not { Length: <= StoreConfigurationConfiguration.DomainPatternsJsonMaxLength }
+                    || s.SelectorsJson is not { Length: <= StoreConfigurationConfiguration.SelectorsJsonMaxLength }
+                    || s.PriceLocale is not { Length: <= StoreConfigurationConfiguration.PriceLocaleMaxLength })
                 {
                     warnings.Add($"Store '{s.StoreId}' skipped: invalid configuration");
                     continue;
@@ -173,8 +179,8 @@ public static class ImportBackup
                     UserId = userId,
                     Name = p.Name,
                     ImageUrl = p.ImageUrl is { Length: <= 2048 } img && IsValidHttpUrl(img) ? img : null,
-                    CurrentPrice = p.CurrentPrice,
-                    PreviousPrice = p.PreviousPrice,
+                    CurrentPrice = PositiveOrNull(p.CurrentPrice),
+                    PreviousPrice = PositiveOrNull(p.PreviousPrice),
                     Currency = NormalizeCurrency(p.Currency),
                     Status = ParseEnum(p.Status, ProductStatus.Active),
                     IsFavourite = p.IsFavourite,
@@ -196,7 +202,7 @@ public static class ImportBackup
                         ProductId = product.Id,
                         Url = u.Url,
                         StoreId = u.StoreId is { Length: <= 100 } sid ? sid : null,
-                        CurrentPrice = u.CurrentPrice,
+                        CurrentPrice = PositiveOrNull(u.CurrentPrice),
                         Currency = NormalizeCurrency(u.Currency),
                         // Kept so the dispatcher schedules these normally instead of all at once.
                         LastCheckedAt = u.LastCheckedAt,
@@ -308,6 +314,9 @@ public static class ImportBackup
 
         private static T ParseEnum<T>(string? value, T fallback) where T : struct, Enum =>
             Enum.TryParse<T>(value, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed) ? parsed : fallback;
+
+        // A price is > 0 (docs/agent-notes.md § Pricing); anything else is restored as "no price yet".
+        private static decimal? PositiveOrNull(decimal? price) => price > 0 ? price : null;
     }
 
     public static void MapImportBackupEndpoint(this IEndpointRouteBuilder routes) =>

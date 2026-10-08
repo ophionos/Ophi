@@ -1275,6 +1275,74 @@ public class GetProductsHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithHistoryInAnotherCurrency_ComparesAtLowestWithinProductCurrency()
+    {
+        // A URL re-pointed from EUR to USD leaves EUR 90 in the history. USD 100 is the lowest USD
+        // price ever seen; EUR 90 says nothing about it.
+        var product = CreateProduct("Re-pointed", "https://example.com/rp");
+        product.CurrentPrice = 100m;
+        _dbContext.Products.Add(product);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _dbContext.PricePoints.AddRange(
+            CreatePricePoint(product, 90m, daysAgo: 3, currency: "EUR"),
+            CreatePricePoint(product, 120m, daysAgo: 2),
+            CreatePricePoint(product, 100m, daysAgo: 1));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var filtered = await _handler.Handle(new GetProducts.Query(_testUserId, AtLowest: true), TestContext.Current.CancellationToken);
+        var all = await _handler.Handle(new GetProducts.Query(_testUserId, IncludeSparkline: true), TestContext.Current.CancellationToken);
+
+        filtered.Items.Should().ContainSingle(p => p.Id == product.Id);
+        all.AtLowestCount.Should().Be(1);
+        var item = all.Items.Single();
+        item.Sparkline!.Select(sp => sp.Price).Should().Equal(120m, 100m);
+        item.PriceMin.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task Handle_WithBelowAlertInAnotherCurrency_IgnoresItInDealScore()
+    {
+        // A dormant EUR 150 target on a product now priced in USD is not "already below target".
+        var withAlert = CreateProduct("With alert", "https://example.com/wa");
+        var without = CreateProduct("Without alert", "https://example.com/wo");
+        withAlert.CurrentPrice = without.CurrentPrice = 100m;
+        _dbContext.Products.AddRange(withAlert, without);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        foreach (var p in new[] { withAlert, without })
+            _dbContext.PricePoints.AddRange(CreatePricePoint(p, 120m, daysAgo: 2), CreatePricePoint(p, 100m, daysAgo: 1));
+        _dbContext.Alerts.Add(new Alert
+        {
+            Id = Guid.NewGuid(), ProductId = withAlert.Id, UserId = _testUserId,
+            Condition = AlertCondition.Below, TargetPrice = 150m, Currency = "EUR", IsActive = true
+        });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetProducts.Query(_testUserId, IncludeSparkline: true), TestContext.Current.CancellationToken);
+
+        result.Items.Single(i => i.Id == withAlert.Id).DealScore
+            .Should().Be(result.Items.Single(i => i.Id == without.Id).DealScore);
+    }
+
+    [Fact]
+    public async Task Handle_WithTwoUrlsScrapedSameDay_SparklineShowsDailyLow()
+    {
+        // The product price is the MIN across its URLs; a day's sparkline point must be too,
+        // not whichever URL happened to be scraped last.
+        var product = CreateProduct("Two stores", "https://example.com/two");
+        _dbContext.Products.Add(product);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var day = DateTime.UtcNow.Date.AddDays(-1);
+        _dbContext.PricePoints.AddRange(
+            new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, Price = 10m, Currency = "USD", RecordedAt = day.AddHours(8) },
+            new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, Price = 20m, Currency = "USD", RecordedAt = day.AddHours(9) });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetProducts.Query(_testUserId, IncludeSparkline: true), TestContext.Current.CancellationToken);
+
+        result.Items.Single().Sparkline!.Select(sp => sp.Price).Should().Equal(10m);
+    }
+
+    [Fact]
     public async Task Handle_WithAtLowestFalse_ReturnsAllProducts()
     {
         // Arrange
@@ -1636,14 +1704,14 @@ public class GetProductsHandlerTests : IDisposable
         return product;
     }
 
-    private static PricePoint CreatePricePoint(Product product, decimal price, int daysAgo = 0) =>
+    private static PricePoint CreatePricePoint(Product product, decimal price, int daysAgo = 0, string currency = "USD") =>
         new()
         {
             Id = Guid.NewGuid(),
             ProductId = product.Id,
             ProductUrlId = product.ProductUrls.First().Id,
             Price = price,
-            Currency = "USD",
+            Currency = currency,
             RecordedAt = DateTime.UtcNow.AddDays(-daysAgo)
         };
 
