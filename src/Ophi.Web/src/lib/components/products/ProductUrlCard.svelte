@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ExternalLink, Trash2, LoaderCircle, TriangleAlert, RotateCcw, Settings, Trophy, Pause, Play, PackageX } from 'lucide-svelte';
+	import { ExternalLink, Trash2, LoaderCircle, TriangleAlert, RotateCcw, Settings, Trophy, Pause, Play, PackageX, ShieldCheck } from 'lucide-svelte';
 	import type { ProductUrl } from '$lib/api/client';
 	import { formatPrice } from '$lib/format';
 	import { onDestroy } from 'svelte';
@@ -12,6 +12,8 @@
 		onDelete?: (urlId: string) => Promise<void>;
 		onRetry?: (urlId: string) => Promise<void>;
 		onResume?: (urlId: string) => Promise<void>;
+		/** Set only when the server offers challenge solving (GET /challenge/available). */
+		onSolveChallenge?: (urlId: string) => void;
 	}
 
 	let {
@@ -21,7 +23,8 @@
 		isBuiltInStore = false,
 		onDelete,
 		onRetry,
-		onResume
+		onResume,
+		onSolveChallenge
 	}: Props = $props();
 
 	let deleting = $state(false);
@@ -51,6 +54,11 @@
 	const isBlockedFromNetwork = $derived(
 		productUrl.status === 'paused' &&
 			/anti-bot|blocked/i.test(productUrl.lastError ?? productUrl.suspiciousReason ?? '')
+	);
+
+	// Same rule as the server's StartChallenge.IsChallengeError.
+	const canSolveChallenge = $derived(
+		onSolveChallenge !== undefined && /anti-bot/i.test(productUrl.lastError ?? '')
 	);
 
 	function getDomain(url: string): string {
@@ -185,8 +193,13 @@
 						class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 break-words"
 						data-testid="url-blocked-hint"
 					>
-						This store is refusing automated requests from this server's network. Retrying won't
-						change that — resume the URL if the network changes.
+						{#if canSolveChallenge}
+							This store is refusing automated requests. Solve the challenge once to let checks
+							through for 7 days.
+						{:else}
+							This store is refusing automated requests from this server's network. Retrying won't
+							change that — resume the URL if the network changes.
+						{/if}
 					</p>
 				{/if}
 			{/if}
@@ -206,6 +219,17 @@
 				{:else}
 					<Play size={16} />
 				{/if}
+			</button>
+		{/if}
+		{#if canSolveChallenge}
+			<button
+				onclick={() => onSolveChallenge?.(productUrl.id)}
+				class="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+				title="Solve challenge"
+				aria-label="Solve challenge"
+				data-testid="solve-challenge-button"
+			>
+				<ShieldCheck size={16} />
 			</button>
 		{/if}
 		{#if onRetry}

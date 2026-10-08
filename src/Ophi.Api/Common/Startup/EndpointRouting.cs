@@ -6,6 +6,7 @@ using Ophi.Api.Features.Comparisons;
 using Ophi.Api.Features.Events;
 using Ophi.Api.Features.Fx;
 using Ophi.Api.Features.Notifications;
+using Ophi.Api.Features.Challenges;
 using Ophi.Api.Features.Products;
 using Ophi.Api.Features.Scraping;
 using Ophi.Api.Features.Settings;
@@ -55,6 +56,13 @@ internal static class EndpointRouting
         app.MapCreateProductEndpoint();
         app.MapExportProductsEndpoint();
         app.MapImportProductsEndpoint();
+
+        // Anti-bot challenge sessions
+        app.MapGetChallengeAvailabilityEndpoint();
+        app.MapStartChallengeEndpoint();
+        app.MapGetChallengeEndpoint();
+        app.MapSendChallengeInputEndpoint();
+        app.MapCloseChallengeEndpoint();
 
         // Alerts
         app.MapCreateAlertEndpoint();

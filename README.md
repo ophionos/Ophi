@@ -71,6 +71,7 @@ Compose reads these variables from the environment or from `docker/.env`:
 | `WEBHOOK_ALLOWED_NETWORKS` | no | Private networks outbound webhooks may reach, e.g. `192.168.1.0/24,100.64.0.0/10` for a LAN or tailnet ntfy/Gotify ([docs/security.md](docs/security.md)). |
 | `SCRAPE_PROXY_URL` | no | `http://` or `socks5://` proxy (optional `user:password@`) for scrapes of the domains in `SCRAPE_PROXY_DOMAINS`, for stores that refuse your network ([docs/security.md](docs/security.md)). |
 | `SCRAPE_PROXY_DOMAINS` | with `SCRAPE_PROXY_URL` | Comma-separated store domains, e.g. `shop.example,cdn.shop.example`. Each covers its subdomains. |
+| `CHALLENGE_SOLVING` | no | `true` lets users solve a store's anti-bot challenge in a remote browser ([docs/security.md](docs/security.md)). Adds Chromium to the `api` image: run `docker compose build api` after you change it. |
 | `FORWARDED_HEADERS_KNOWN_NETWORKS` | behind your own reverse proxy | Which proxies to trust for client IPs (per-IP rate limits; [docs/security.md](docs/security.md)). |
 
 Discord alerts need no server setting: each user saves their own webhook URL.

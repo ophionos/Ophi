@@ -21,6 +21,7 @@
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 	import ProductUrlCard from '$lib/components/products/ProductUrlCard.svelte';
 	import AddUrlModal from '$lib/components/products/AddUrlModal.svelte';
+	import ChallengeModal from '$lib/components/products/ChallengeModal.svelte';
 	import ScrapeHistory from '$lib/components/products/ScrapeHistory.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import {
@@ -64,6 +65,7 @@
 	let showEditModal = $state(false);
 	let showDeleteConfirm = $state(false);
 	let showAddUrlModal = $state(false);
+	let challengeUrlId = $state<string | null>(null);
 
 	// Live-refresh while a scrape is in flight (e.g. a just-added URL). The page hydrates from an
 	// SSR snapshot and otherwise only re-fetches on user actions, so a scrape that finishes after
@@ -242,6 +244,15 @@
 			toast.success('Scrape retry triggered');
 		} catch {
 			toast.error('Failed to retry scrape');
+		}
+	}
+
+	async function handleChallengeSolved() {
+		challengeUrlId = null;
+		try {
+			product = await api.getProduct(productId);
+		} catch {
+			// The live refresh picks the new state up.
 		}
 	}
 
@@ -499,6 +510,9 @@
 									onDelete={handleRemoveUrl}
 									onRetry={handleRetryScrape}
 									onResume={handleResumeUrl}
+									onSolveChallenge={pageData.challengeAvailable
+										? (urlId) => (challengeUrlId = urlId)
+										: undefined}
 								/>
 							{/each}
 						</SectionCard>
@@ -624,6 +638,16 @@
 		onClose={() => (showAddUrlModal = false)}
 		onSave={handleAddUrl}
 	/>
+
+	{#if challengeUrlId}
+		<ChallengeModal
+			isOpen
+			{productId}
+			urlId={challengeUrlId}
+			onClose={() => (challengeUrlId = null)}
+			onSolved={handleChallengeSolved}
+		/>
+	{/if}
 
 	<!-- Delete Confirmation Modal -->
 	<ConfirmModal

@@ -19,6 +19,7 @@ public class OphiDbContext(DbContextOptions<OphiDbContext> options) : DbContext(
     public DbSet<WebhookTarget> WebhookTargets => Set<WebhookTarget>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
     public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
+    public DbSet<StoreClearance> StoreClearances => Set<StoreClearance>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

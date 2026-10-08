@@ -284,6 +284,14 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   not run in CI) proves both with a live listener at the blocked target.
 - **Scraping config order:** the store config loads BEFORE `FetchPageAsync` so `CustomUserAgent` reaches
   the request. `NewPageAsync(userAgent: null)` picks a random `BrowserProfiles` profile.
+- **Store clearances** (`StoreClearance`, `ChallengeSessionManager`): a saved clearance replaces the
+  store config's `CustomUserAgent` in `PlaywrightScrapingService`, because the cookies are bound to the
+  browser that earned them. `StoreClearanceStore` reads and deletes with `ExecuteDelete`/`AsNoTracking`:
+  the worker calls it inside a scrape whose handler shares the scoped `OphiDbContext`, and a
+  `SaveChanges` there would flush the handler's pending changes early. Sessions live in the API
+  process (Chromium only with `INSTALL_CHROMIUM`). `GET /challenge` re-checks the blocked URLs with
+  top-level `RetryScrapeProductUrl` invokes from the endpoint, not from inside the handler.
+  `ChallengeSessionBrowserTests` (Integration trait) proves the loop in a real Chromium.
 - **Empty 2xx:** `client.ts` special-cases body-less `202`/`204`; treating them as errors once showed a
   false "Failed to retry scrape" toast.
 - **TimeProvider:** production code uses injected `TimeProvider` (static Wolverine handlers take it as a

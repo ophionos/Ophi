@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -9,22 +10,29 @@ internal sealed class LoopbackServer : IAsyncDisposable
 {
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _stop = new();
-    private readonly string _response;
+    private readonly Func<string, string> _respond;
     private Task? _loop;
     private int _connections;
 
-    private LoopbackServer(string response, IPAddress address)
+    private LoopbackServer(Func<string, string> respond, IPAddress address)
     {
-        _response = response;
+        _respond = respond;
         _listener = new TcpListener(address, 0);
     }
 
     public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
     public int Connections => Volatile.Read(ref _connections);
 
-    public static Task<LoopbackServer> StartAsync(string response, IPAddress? address = null)
+    /// <summary>The request heads received, in order.</summary>
+    public ConcurrentQueue<string> Requests { get; } = new();
+
+    public static Task<LoopbackServer> StartAsync(string response, IPAddress? address = null) =>
+        StartAsync(_ => response, address);
+
+    /// <summary>Answers each request with <paramref name="respond"/>(request head).</summary>
+    public static Task<LoopbackServer> StartAsync(Func<string, string> respond, IPAddress? address = null)
     {
-        var server = new LoopbackServer(response, address ?? IPAddress.Loopback);
+        var server = new LoopbackServer(respond, address ?? IPAddress.Loopback);
         server._listener.Start();
         server._loop = server.AcceptLoopAsync();
         return Task.FromResult(server);
@@ -39,8 +47,10 @@ internal sealed class LoopbackServer : IAsyncDisposable
                 using var socket = await _listener.AcceptSocketAsync(_stop.Token);
                 Interlocked.Increment(ref _connections);
                 var buffer = new byte[4096];
-                await socket.ReceiveAsync(buffer, SocketFlags.None, _stop.Token);
-                await socket.SendAsync(Encoding.ASCII.GetBytes(_response), SocketFlags.None, _stop.Token);
+                var read = await socket.ReceiveAsync(buffer, SocketFlags.None, _stop.Token);
+                var head = Encoding.ASCII.GetString(buffer, 0, read);
+                Requests.Enqueue(head);
+                await socket.SendAsync(Encoding.ASCII.GetBytes(_respond(head)), SocketFlags.None, _stop.Token);
                 socket.Shutdown(SocketShutdown.Both);
             }
         }

@@ -246,6 +246,29 @@ class ApiClient {
 		return this.request(`/products/${productId}/urls/${urlId}/resume`, { method: 'POST' });
 	}
 
+	// Anti-bot challenge sessions (operator opt-in; see docs/security.md)
+	async getChallengeAvailability() {
+		return this.request<{ available: boolean }>('/challenge/available');
+	}
+
+	async startChallenge(productId: string, urlId: string) {
+		return this.request<{ host: string }>(`/products/${productId}/urls/${urlId}/challenge`, {
+			method: 'POST'
+		});
+	}
+
+	async getChallenge() {
+		return this.request<ChallengeFrame>('/challenge');
+	}
+
+	async sendChallengeInput(input: ChallengeInput) {
+		return this.request<void>('/challenge/input', { method: 'POST', body: JSON.stringify(input) });
+	}
+
+	async closeChallenge() {
+		return this.request<void>('/challenge', { method: 'DELETE' });
+	}
+
 	// Tags
 	async getTags(search?: string) {
 		const query = new URLSearchParams();
@@ -688,6 +711,19 @@ export interface Product {
 	checkIntervalMinutes?: number;
 	hasPriceAnomaly?: boolean;
 }
+
+export interface ChallengeFrame {
+	state: 'none' | 'active' | 'solved';
+	/** Base64 JPEG of the 1920x1080 remote page, while active. */
+	image?: string;
+	host?: string;
+}
+
+/** Pointer coordinates are in the remote 1920x1080 viewport. */
+export type ChallengeInput =
+	| { kind: 'down' | 'up'; x: number; y: number }
+	| { kind: 'text'; text: string }
+	| { kind: 'key'; key: string };
 
 export interface ProductUrl {
 	id: string;

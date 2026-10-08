@@ -326,4 +326,40 @@ describe('ProductUrlCard', () => {
 			expect(screen.queryByTestId('url-blocked-hint')).not.toBeInTheDocument();
 		});
 	});
+
+	describe('challenge solving', () => {
+		const blocked: ProductUrl = {
+			...mockProductUrl,
+			status: 'paused',
+			lastError: 'Blocked by anti-bot protection'
+		};
+
+		it('should show the solve button when the URL was blocked and solving is available', async () => {
+			const onSolveChallenge = vi.fn();
+			render(ProductUrlCard, { props: { ...defaultProps, productUrl: blocked, onSolveChallenge } });
+
+			await fireEvent.click(screen.getByTestId('solve-challenge-button'));
+
+			expect(onSolveChallenge).toHaveBeenCalledWith('url-1');
+			expect(screen.getByTestId('url-blocked-hint').textContent).toContain('Solve the challenge');
+		});
+
+		it('should not show the solve button when solving is not available', () => {
+			render(ProductUrlCard, { props: { ...defaultProps, productUrl: blocked } });
+
+			expect(screen.queryByTestId('solve-challenge-button')).not.toBeInTheDocument();
+		});
+
+		it('should not show the solve button when the URL was not blocked', () => {
+			render(ProductUrlCard, {
+				props: {
+					...defaultProps,
+					productUrl: { ...mockProductUrl, lastError: 'Page not found (HTTP 404)' },
+					onSolveChallenge: vi.fn()
+				}
+			});
+
+			expect(screen.queryByTestId('solve-challenge-button')).not.toBeInTheDocument();
+		});
+	});
 });

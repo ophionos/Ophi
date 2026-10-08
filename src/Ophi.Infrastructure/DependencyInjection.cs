@@ -98,6 +98,15 @@ public static class DependencyInjection
                 (sp, _) => sp.GetRequiredService<PlaywrightScrapingService>());
         }
 
+        services.AddScoped<IStoreClearanceStore, StoreClearanceStore>();
+
+        // Interactive anti-bot solving (API only; needs a browser in the API process).
+        services.AddSingleton<IChallengeSessionManager>(sp => new ChallengeSessionManager(
+            configuration.GetValue<bool>(ChallengeSessionManager.EnabledKey),
+            sp.GetService<IPlaywrightBrowserManager>(),
+            sp.GetService<TimeProvider>() ?? TimeProvider.System,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ChallengeSessionManager>>()));
+
         // Hybrid service that tries HTTP first, falls back to Playwright
         services.AddScoped<IScrapingService, HybridScrapingService>();
 
