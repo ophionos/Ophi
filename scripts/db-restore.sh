@@ -74,8 +74,8 @@ trap '"${compose[@]}" start api worker' EXIT
 psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity
          WHERE datname IN ('ophi', '$scratch') AND backend_type = 'client backend'
            AND pid <> pg_backend_pid()" > /dev/null
-psql -c "ALTER DATABASE ophi RENAME TO $backup_name"
-psql -c "ALTER DATABASE $scratch RENAME TO ophi"
+# One -c string is one transaction: both renames happen, or neither does.
+psql -c "ALTER DATABASE ophi RENAME TO $backup_name; ALTER DATABASE $scratch RENAME TO ophi"
 "${compose[@]}" start api worker
 trap - EXIT
 
