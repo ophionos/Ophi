@@ -125,4 +125,16 @@ public class UpdateTagValidatorTests
         // Assert
         result.ShouldNotHaveValidationErrorFor(x => x.Color);
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Validate_WithBlankName_ShouldHaveError(string name)
+    {
+        // Null means "leave the name alone"; a blank name would rename the tag to nothing,
+        // which CreateTag refuses.
+        var result = _validator.TestValidate(new UpdateTag.Command(Guid.NewGuid(), name, null, null));
+
+        result.ShouldHaveValidationErrorFor(x => x.Name);
+    }
 }

@@ -12,7 +12,7 @@ public class ImportStoreValidatorTests
         "my-store",
         "My Store",
         ["mystore.com"],
-        new CreateStore.StoreSelectorDto(
+        new StoreSelectorDto(
             [".price"],
             [".name"],
             [".img"],
@@ -82,7 +82,7 @@ public class ImportStoreValidatorTests
     {
         var command = CreateValidCommand() with
         {
-            Selectors = new CreateStore.StoreSelectorDto([], [".name"], [".img"], null, null)
+            Selectors = new StoreSelectorDto([], [".name"], [".img"], null, null)
         };
         var result = _validator.TestValidate(command);
         result.ShouldHaveValidationErrorFor(x => x.Selectors.PriceSelectors);
@@ -93,7 +93,7 @@ public class ImportStoreValidatorTests
     {
         var command = CreateValidCommand() with
         {
-            Selectors = new CreateStore.StoreSelectorDto(
+            Selectors = new StoreSelectorDto(
                 [".price"], [".name"], [".img"], null, null,
                 ["$.offers.price"], ["$.name"], ["$.image"])
         };
@@ -106,7 +106,7 @@ public class ImportStoreValidatorTests
     {
         var command = CreateValidCommand() with
         {
-            Selectors = new CreateStore.StoreSelectorDto(
+            Selectors = new StoreSelectorDto(
                 [".price"], [".name"], [".img"], null, null,
                 ImageJsonPaths: ["[[[bad"])
         };

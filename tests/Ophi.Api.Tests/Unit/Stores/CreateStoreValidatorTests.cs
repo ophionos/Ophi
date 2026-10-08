@@ -13,7 +13,7 @@ public class CreateStoreValidatorTests
             "test-store",
             "Test Store",
             ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null),
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null),
             "en-US",
             false,
             currencyOverride
@@ -52,7 +52,7 @@ public class CreateStoreValidatorTests
     {
         var command = new CreateStore.Command(
             "test-store", "Test", ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null,
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null,
                 ["$.offers.price"], ["$.name"], ["$.image"]),
             "en-US", false, null
         ) { UserId = Guid.NewGuid() };
@@ -75,7 +75,7 @@ public class CreateStoreValidatorTests
     {
         var command = new CreateStore.Command(
             "test-store", "Test", ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null,
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null,
                 ["[[[invalid"]),
             "en-US", false, null
         ) { UserId = Guid.NewGuid() };
@@ -91,7 +91,7 @@ public class CreateStoreValidatorTests
     {
         var command = new CreateStore.Command(
             "test-store", "Test", ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null,
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null,
                 PriceJsonPaths: ["  "]),
             "en-US", false, null
         ) { UserId = Guid.NewGuid() };

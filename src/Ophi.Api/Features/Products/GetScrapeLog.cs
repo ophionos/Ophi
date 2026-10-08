@@ -19,7 +19,7 @@ public static class GetScrapeLog
         .WithName("GetScrapeLog")
         .WithTags("Products")
         .WithSummary("Get scrape history for a product")
-        .WithDescription("Returns recent scrape attempts for a product URL with timing, success/failure status, extracted price, and error details. Limited to the most recent entries (default 50, max 200). Scrape logs are retained for 30 days.")
+        .WithDescription("Returns recent scrape attempts for a product URL with timing, success/failure status, extracted price, and error details. Limited to the most recent entries (default 20, max 200). Scrape logs are retained for 30 days.")
         .Produces<Response>(200)
         .RequireAuthorization();
     }

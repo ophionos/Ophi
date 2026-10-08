@@ -15,7 +15,16 @@ internal static class ScrapeHelpers
     /// </summary>
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// Bound on <see cref="RegexCache"/>. Patterns are user-authored, so an edited store config would
+    /// otherwise leave its old compiled patterns in memory for the life of the process. Reaching the
+    /// bound clears the cache; live patterns are recompiled on their next use.
+    /// </summary>
+    internal const int MaxCachedRegexes = 1000;
+
     private static readonly ConcurrentDictionary<string, Regex> RegexCache = new();
+
+    internal static int CachedRegexCount => RegexCache.Count;
 
     /// <summary>
     /// Compiles and caches a user-supplied regex pattern with <see cref="RegexTimeout"/> applied.
@@ -23,8 +32,14 @@ internal static class ScrapeHelpers
     /// a timeout and the Playwright one did not, which made the latter's
     /// <see cref="RegexMatchTimeoutException"/> handlers unreachable.
     /// </summary>
-    public static Regex GetOrCreateRegex(string pattern) =>
-        RegexCache.GetOrAdd(pattern, p => new Regex(p, RegexOptions.Compiled, RegexTimeout));
+    public static Regex GetOrCreateRegex(string pattern)
+    {
+        if (RegexCache.TryGetValue(pattern, out var cached))
+            return cached;
+        if (RegexCache.Count >= MaxCachedRegexes)
+            RegexCache.Clear();
+        return RegexCache.GetOrAdd(pattern, p => new Regex(p, RegexOptions.Compiled, RegexTimeout));
+    }
 
     /// <summary>
     /// Parses a selector specification into selector and optional attribute name.
@@ -37,21 +52,13 @@ internal static class ScrapeHelpers
     }
 
     /// <summary>
-    /// Converts relative URLs to absolute URLs.
+    /// Resolves an image <c>src</c> against the page URL the way a browser does, keeping the page's
+    /// scheme and port. A value that cannot be resolved is returned unchanged.
     /// </summary>
-    public static string NormalizeImageUrl(string src, string baseUrl)
-    {
-        if (src.StartsWith("//", StringComparison.Ordinal))
-            return "https:" + src;
-
-        if (src.StartsWith('/'))
-        {
-            var uri = new Uri(baseUrl);
-            return $"{uri.Scheme}://{uri.Host}{src}";
-        }
-
-        return src;
-    }
+    public static string NormalizeImageUrl(string src, string baseUrl) =>
+        Uri.TryCreate(baseUrl, UriKind.Absolute, out var page) && Uri.TryCreate(page, src, out var resolved)
+            ? resolved.AbsoluteUri
+            : src;
 
     /// <summary>
     /// Normalizes a URI host by lowercasing and stripping the "www." prefix.

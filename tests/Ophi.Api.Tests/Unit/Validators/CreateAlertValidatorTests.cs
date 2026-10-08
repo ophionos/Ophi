@@ -143,4 +143,23 @@ public class CreateAlertValidatorTests
     }
 
     #endregion
+
+    [Theory]
+    [InlineData(100)]
+    [InlineData(150)]
+    public void Validate_WithPercentDropOfAtLeast100_ShouldHaveError(decimal percent)
+    {
+        // A price is > 0, so a drop of 100 % or more can never happen and the alert would never fire.
+        var result = _validator.TestValidate(new CreateAlert.Command(Guid.NewGuid(), percent, "percentDrop"));
+
+        result.ShouldHaveValidationErrorFor(x => x.TargetPrice);
+    }
+
+    [Fact]
+    public void Validate_WithBelowTargetOver100_ShouldNotHaveError()
+    {
+        var result = _validator.TestValidate(new CreateAlert.Command(Guid.NewGuid(), 250m, "below"));
+
+        result.ShouldNotHaveValidationErrorFor(x => x.TargetPrice);
+    }
 }

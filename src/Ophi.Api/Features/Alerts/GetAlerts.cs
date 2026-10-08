@@ -95,7 +95,7 @@ public static class GetAlerts
         .WithName("GetAlerts")
         .WithTags("Alerts")
         .WithSummary("List alerts")
-        .WithDescription("Returns all alerts for the current user, optionally filtered by product ID. Includes the alert condition, target price, trigger status, and associated product details.")
+        .WithDescription("Returns all alerts for the current user. Includes the alert condition, target price, trigger status, and associated product details.")
         .Produces<Response>(200)
         .RequireAuthorization();
 }

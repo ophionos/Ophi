@@ -75,7 +75,7 @@ public static class CreateComparisonGroup
         .WithName("CreateComparisonGroup")
         .WithTags("Comparisons")
         .WithSummary("Create a comparison group")
-        .WithDescription("Creates a named group for comparing prices of similar products across different stores. Optionally include product IDs to add to the group at creation time.")
+        .WithDescription("Creates a named group for comparing prices of similar products across different stores. Add products to the group afterwards.")
         .Produces<Response>(201)
         .RequireAuthorization();
 }

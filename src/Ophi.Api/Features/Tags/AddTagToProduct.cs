@@ -20,7 +20,7 @@ public static class AddTagToProduct
         .WithName("AddTagToProduct")
         .WithTags("Tags")
         .WithSummary("Add a tag to a product")
-        .WithDescription("Associates an existing tag with a product. A product can have multiple tags. Adding a tag that is already assigned is a no-op.")
+        .WithDescription("Associates an existing tag with a product. A product can have multiple tags. Adding a tag that is already assigned fails with 409 Conflict.")
         .Produces(204)
         .RequireAuthorization();
     }

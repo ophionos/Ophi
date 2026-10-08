@@ -1,5 +1,4 @@
 using FluentValidation;
-using Json.Path;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
@@ -91,30 +90,6 @@ public static class CreateStore
         string? CustomUserAgent
     );
 
-    public record StoreSelectorDto(
-        string[] PriceSelectors,
-        string[] NameSelectors,
-        string[] ImageSelectors,
-        string[]? PriceRegexPatterns,
-        string[]? ImageRegexPatterns,
-        string[]? PriceJsonPaths = null,
-        string[]? NameJsonPaths = null,
-        string[]? ImageJsonPaths = null
-    )
-    {
-        public StoreSelectorConfig ToConfig() => new()
-        {
-            PriceSelectors = PriceSelectors,
-            NameSelectors = NameSelectors,
-            ImageSelectors = ImageSelectors,
-            PriceRegexPatterns = PriceRegexPatterns,
-            ImageRegexPatterns = ImageRegexPatterns,
-            PriceJsonPaths = PriceJsonPaths,
-            NameJsonPaths = NameJsonPaths,
-            ImageJsonPaths = ImageJsonPaths
-        };
-    }
-
     public class Validator : AbstractValidator<Command>
     {
         private static readonly string[] BuiltInStoreIds = ["amazon", "ebay", "generic"];
@@ -133,63 +108,13 @@ public static class CreateStore
                 .NotEmpty().WithMessage("Name is required")
                 .MaximumLength(100).WithMessage("Name must not exceed 100 characters");
 
-            RuleFor(x => x.DomainPatterns)
-                .NotEmpty().WithMessage("At least one domain pattern is required")
-                .Must(patterns => patterns.All(p => !string.IsNullOrWhiteSpace(p)))
-                .WithMessage("Domain patterns cannot be empty");
+            RuleFor(x => x.DomainPatterns).MustBeValidDomainPatterns();
 
-            RuleFor(x => x.DomainPatterns)
-                .Must(StoreValidationHelper.DomainPatternsFitColumn)
-                .WithMessage(StoreValidationHelper.DomainPatternsTooLongMessage);
+            RuleFor(x => x.PriceLocale).MustFitPriceLocale();
 
-            RuleFor(x => x.Selectors)
-                .Must(s => StoreValidationHelper.SelectorsFitColumn(s.ToConfig()))
-                .When(x => x.Selectors != null)
-                .WithMessage(StoreValidationHelper.SelectorsTooLongMessage);
+            RuleFor(x => x.Selectors).MustBeValidSelectors();
 
-            RuleFor(x => x.PriceLocale)
-                .MaximumLength(StoreConfigurationConfiguration.PriceLocaleMaxLength)
-                .WithMessage(StoreValidationHelper.PriceLocaleTooLongMessage);
-
-            RuleFor(x => x.Selectors)
-                .NotNull().WithMessage("Selectors are required")
-                .DependentRules(() =>
-                {
-                    RuleFor(x => x.Selectors.PriceSelectors)
-                        .NotEmpty().WithMessage("At least one price selector is required")
-                        .Must(s => s.All(v => !string.IsNullOrWhiteSpace(v)))
-                        .WithMessage("Price selectors cannot be empty or whitespace");
-
-                    RuleFor(x => x.Selectors.NameSelectors)
-                        .NotEmpty().WithMessage("At least one name selector is required")
-                        .Must(s => s.All(v => !string.IsNullOrWhiteSpace(v)))
-                        .WithMessage("Name selectors cannot be empty or whitespace");
-
-                    RuleFor(x => x.Selectors.ImageSelectors)
-                        .NotEmpty().WithMessage("At least one image selector is required")
-                        .Must(s => s.All(v => !string.IsNullOrWhiteSpace(v)))
-                        .WithMessage("Image selectors cannot be empty or whitespace");
-
-                    RuleForEach(x => x.Selectors.PriceJsonPaths)
-                        .Must(p => !string.IsNullOrWhiteSpace(p) && JsonPath.TryParse(p, out _))
-                        .WithMessage("Invalid JSONPath expression")
-                        .When(x => x.Selectors.PriceJsonPaths is { Length: > 0 });
-
-                    RuleForEach(x => x.Selectors.NameJsonPaths)
-                        .Must(p => !string.IsNullOrWhiteSpace(p) && JsonPath.TryParse(p, out _))
-                        .WithMessage("Invalid JSONPath expression")
-                        .When(x => x.Selectors.NameJsonPaths is { Length: > 0 });
-
-                    RuleForEach(x => x.Selectors.ImageJsonPaths)
-                        .Must(p => !string.IsNullOrWhiteSpace(p) && JsonPath.TryParse(p, out _))
-                        .WithMessage("Invalid JSONPath expression")
-                        .When(x => x.Selectors.ImageJsonPaths is { Length: > 0 });
-                });
-
-            RuleFor(x => x.CurrencyOverride)
-                .Matches(@"^[A-Z]{3}$")
-                .When(x => x.CurrencyOverride != null)
-                .WithMessage("Currency override must be a 3-letter uppercase ISO 4217 code (e.g., EUR, USD)");
+            RuleFor(x => x.CurrencyOverride).MustBeCurrencyCode();
         }
     }
 

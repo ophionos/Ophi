@@ -57,7 +57,7 @@ public class UpdateStoreHandlerTests : IDisposable
             storeId,
             "New Name",
             ["example.com"],
-            new UpdateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null),
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null),
             "pt-PT",
             true
         )
@@ -106,7 +106,7 @@ public class UpdateStoreHandlerTests : IDisposable
             storeAId,
             "Store A",
             ["a.com", "b.com"],
-            new UpdateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -140,7 +140,7 @@ public class UpdateStoreHandlerTests : IDisposable
             storeId,
             "Updated Name",
             ["example.com", "example.org"],
-            new UpdateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -159,7 +159,7 @@ public class UpdateStoreHandlerTests : IDisposable
             Guid.NewGuid(),
             "Name",
             ["example.com"],
-            new UpdateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -190,7 +190,7 @@ public class UpdateStoreHandlerTests : IDisposable
             storeId,
             "My Store",
             ["example.com"],
-            new UpdateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null),
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null),
             null,
             null,
             "EUR"
@@ -225,7 +225,7 @@ public class UpdateStoreHandlerTests : IDisposable
             storeId,
             "My Store",
             ["example.com"],
-            new UpdateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -256,7 +256,7 @@ public class UpdateStoreHandlerTests : IDisposable
             storeId,
             "My Store",
             ["example.com"],
-            new UpdateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null),
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null),
             null,
             null,
             null,
@@ -295,7 +295,7 @@ public class UpdateStoreHandlerTests : IDisposable
             storeId,
             "My Store",
             ["example.com"],
-            new UpdateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 

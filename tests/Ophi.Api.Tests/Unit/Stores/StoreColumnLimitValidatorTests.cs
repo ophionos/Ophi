@@ -15,7 +15,7 @@ public class StoreColumnLimitValidatorTests
     private static readonly string[] HugeDomains = Enumerable.Range(0, 200).Select(i => $"shop-{i}.example.com").ToArray();
     private const string LongLocale = "ca-ES-valencia"; // a real culture name, longer than the 10-char column
 
-    private static CreateStore.StoreSelectorDto CreateSelectors(string[]? price = null) =>
+    private static StoreSelectorDto CreateSelectors(string[]? price = null) =>
         new(price ?? [".price"], [".name"], [".img"], null, null);
 
     private static CreateStore.Command Create(string[]? domains = null, string[]? price = null, string locale = "en-US") =>
@@ -23,7 +23,7 @@ public class StoreColumnLimitValidatorTests
 
     private static UpdateStore.Command Update(string[]? domains = null, string[]? price = null, string locale = "en-US") =>
         new(Guid.NewGuid(), "Test Store", domains ?? ["example.com"],
-            new UpdateStore.StoreSelectorDto(price ?? [".price"], [".name"], [".img"], null, null), locale);
+            new StoreSelectorDto(price ?? [".price"], [".name"], [".img"], null, null), locale);
 
     private static ImportStore.Command Import(string[]? domains = null, string[]? price = null, string locale = "en-US") =>
         new("test-store", "Test Store", domains ?? ["example.com"], CreateSelectors(price), locale);
