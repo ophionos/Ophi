@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { api, ApiError } from './client';
 
 describe('ApiClient', () => {
@@ -935,6 +935,35 @@ describe('ApiClient', () => {
 				expect.stringContaining('/notifications/read-all'),
 				expect.objectContaining({ method: 'POST' })
 			);
+		});
+	});
+
+	describe('offline', () => {
+		afterEach(() => {
+			Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+		});
+
+		it('should refuse a change without a request when the browser is offline', async () => {
+			Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
+			const error = await api.deleteTag('t1').catch((e: unknown) => e);
+
+			expect(error).toBeInstanceOf(ApiError);
+			expect((error as ApiError).message).toContain('offline');
+			expect(fetch).not.toHaveBeenCalled();
+		});
+
+		it('should still send a read when the browser is offline', async () => {
+			Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+			vi.mocked(fetch).mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				json: () => Promise.resolve({ items: [] })
+			} as Response);
+
+			await api.getTags();
+
+			expect(fetch).toHaveBeenCalled();
 		});
 	});
 });

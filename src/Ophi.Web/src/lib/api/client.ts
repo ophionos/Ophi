@@ -42,6 +42,13 @@ class ApiClient {
 	}
 
 	private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+		const method = (options.method ?? 'GET').toUpperCase();
+		// Offline the app is read-only (saved copies from the service worker). Fail a change at once
+		// with a clear message instead of a generic network error.
+		if (method !== 'GET' && typeof navigator !== 'undefined' && navigator.onLine === false) {
+			throw new ApiError('Offline', 'You are offline. Changes need a connection.');
+		}
+
 		const fetcher = this.fetchImpl ?? fetch;
 		const response = await fetcher(`${API_BASE}${endpoint}`, {
 			...options,
