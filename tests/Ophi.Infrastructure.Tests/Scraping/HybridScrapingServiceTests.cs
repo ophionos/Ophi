@@ -671,4 +671,43 @@ public class HybridScrapingServiceTests
         _playwrightServiceMock.Verify(x => x.ScrapeProductAsync(url, null, null, It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+
+    [Fact]
+    public async Task DoesNotFallBackToPlaywright_WhenHttpDestinationIsBlocked()
+    {
+        // The browser path has weaker SSRF protection; a destination the HTTP path refused must not
+        // get a second try there.
+        const string url = "https://internal.example.com/product";
+        _configProviderMock.Setup(x => x.GetConfigForUrl(url)).Returns((StoreConfig?)null);
+        _httpServiceMock.Setup(x => x.ScrapeProductAsync(url, null, null, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapingResult.Failure("blocked", ScrapeErrorCategory.BlockedDestination));
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.ErrorCategory.Should().Be(ScrapeErrorCategory.BlockedDestination);
+        _playwrightServiceMock.Verify(
+            x => x.ScrapeProductAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DoesNotFallBackToPlaywright_WithConfig_WhenHttpDestinationIsBlocked()
+    {
+        const string url = "https://internal.example.com/product";
+        var config = new StoreConfig
+        {
+            Id = "custom-store",
+            Name = "Custom Store",
+            DomainPatterns = ["internal.example.com"],
+            Selectors = new StoreSelectorConfig { PriceSelectors = [".price"], NameSelectors = ["h1"], ImageSelectors = ["img"] }
+        };
+        _httpServiceMock.Setup(x => x.ScrapeWithConfigAsync(url, config, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapingResult.Failure("blocked", ScrapeErrorCategory.BlockedDestination));
+
+        await _service.ScrapeWithConfigAsync(url, config, TestContext.Current.CancellationToken);
+
+        _playwrightServiceMock.Verify(
+            x => x.ScrapeWithConfigAsync(It.IsAny<string>(), It.IsAny<StoreConfig>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }

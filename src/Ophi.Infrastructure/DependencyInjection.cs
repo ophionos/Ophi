@@ -9,6 +9,8 @@ using Ophi.Infrastructure.Scraping;
 using Ophi.Infrastructure.Scraping.Adapters;
 using Ophi.Infrastructure.Webhooks;
 
+using Ophi.Infrastructure.Net;
+
 namespace Ophi.Infrastructure;
 
 public static class DependencyInjection
@@ -71,7 +73,7 @@ public static class DependencyInjection
         services.AddHttpClient<ScrapingService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
-        });
+        }).UsePublicAddressesOnly();
 
         // Register HTTP scraping service as keyed service
         services.AddKeyedScoped<IScrapingService, ScrapingService>("http",
@@ -168,7 +170,7 @@ public static class DependencyInjection
         services.AddHttpClient<IWebhookDispatchService, WebhookDispatchService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);
-        }).RemoveAllLoggers();
+        }).RemoveAllLoggers().UsePublicAddressesOnly();
 
         return services;
     }

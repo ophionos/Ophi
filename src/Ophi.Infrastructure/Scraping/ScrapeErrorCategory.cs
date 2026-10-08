@@ -15,5 +15,11 @@ public enum ScrapeErrorCategory
     ParseError,
     OutOfStock,
     AntiBot,
-    Unknown
+    Unknown,
+
+    /// <summary>
+    /// The host resolves only to private or reserved addresses (SSRF guard). Permanent, and never
+    /// retried through the Playwright fallback.
+    /// </summary>
+    BlockedDestination
 }

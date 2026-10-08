@@ -121,4 +121,22 @@ public class ScrapingServiceResilienceTests
         result.Should().NotBeNull();
         result.ErrorCategory.Should().BeOneOf(ScrapeErrorCategory.ParseError, ScrapeErrorCategory.None);
     }
+
+    [Fact]
+    public async Task ScrapeProductAsync_HostResolvesToPrivateAddress_ReturnsBlockedDestination()
+    {
+        // A permanent refusal, not a NetworkError: it must not read as a transient failure, and the
+        // message must not reveal the address the name resolved to.
+        var handler = Ophi.Infrastructure.Net.PublicAddressHandler.Create(
+            (_, _) => Task.FromResult(new[] { IPAddress.Parse("10.0.0.7") }),
+            Ophi.Infrastructure.Net.AddressPolicy.IsBlocked);
+        var service = new ScrapingService(
+            new HttpClient(handler), new Mock<ILogger<ScrapingService>>().Object, new CodeStoreConfigProvider());
+
+        var result = await service.ScrapeProductAsync("http://internal.example.com/item", cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCategory.Should().Be(ScrapeErrorCategory.BlockedDestination);
+        result.Error.Should().NotContain("10.0.0.7");
+    }
 }

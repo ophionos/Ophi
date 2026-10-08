@@ -47,7 +47,9 @@ public class HybridScrapingService : IScrapingService
 
             // If HTTP scraping failed, try Playwright as fallback
             // Don't fall back if OOS was detected — the HTTP scrape worked correctly
-            if (!result.Success || (!result.IsOutOfStock && (result.Name == "Unknown Product" || result.Price == null)))
+            // Never after a blocked destination: the browser path has the weaker SSRF guard.
+            if (result.ErrorCategory != ScrapeErrorCategory.BlockedDestination &&
+                (!result.Success || (!result.IsOutOfStock && (result.Name == "Unknown Product" || result.Price == null))))
             {
                 _logger.LogDebug("HTTP scraping incomplete for {Url}, falling back to Playwright", url);
                 var playwrightResult = await _playwrightService.ScrapeWithConfigAsync(url, config, cancellationToken);
@@ -90,7 +92,9 @@ public class HybridScrapingService : IScrapingService
 
             // If HTTP scraping failed to get useful data, try Playwright as fallback
             // Don't fall back if OOS was detected — the HTTP scrape worked correctly
-            if (!result.Success || (!result.IsOutOfStock && (result.Name == "Unknown Product" || result.Price == null)))
+            // Never after a blocked destination: the browser path has the weaker SSRF guard.
+            if (result.ErrorCategory != ScrapeErrorCategory.BlockedDestination &&
+                (!result.Success || (!result.IsOutOfStock && (result.Name == "Unknown Product" || result.Price == null))))
             {
                 _logger.LogDebug("HTTP scraping incomplete for {Url}, falling back to Playwright", url);
                 var playwrightResult = await _playwrightService.ScrapeProductAsync(url, selector, userId, captureHtml, cancellationToken);

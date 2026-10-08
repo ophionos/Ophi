@@ -57,9 +57,17 @@ It allows only HTTP(S) and blocks `localhost`, `*.local`, `*.internal`, loopback
 link-local (incl. `169.254.169.254`), CGNAT, `0.0.0.0/8`, and the private IPv6 ranges. IPv6
 literals with an embedded IPv4 address (mapped or IPv4-compatible) are unwrapped first.
 
-**Known gaps, accepted for a single-user instance:** the check is on the literal host, so a DNS name
-that resolves to a private address passes. The check is also not re-applied after an HTTP redirect.
-Tracked in [#16](https://github.com/ophionos/Ophi/issues/16). An internet-facing instance should close sign-up.
+That check is on the literal host only, for a fast 400. The real control is at connect time: the
+scraper's and the webhook dispatcher's HTTP clients use `PublicAddressHandler`. It resolves the host,
+drops every address `AddressPolicy` blocks (the ranges above, plus multicast, `240.0.0.0/4` and NAT64
+`64:ff9b::/96`), and connects to an address it checked, so DNS rebinding cannot swap the address. It
+follows redirects itself, and every hop goes through the same check. A refused scrape is
+`BlockedDestination`; its message never contains the resolved address. The client ignores
+`HTTP(S)_PROXY`, because with a proxy the check would see the proxy, not the target.
+
+**Browser path (`RequiresJavaScript` stores): open.** Chromium does its own DNS and follows redirects
+without the HTTP client, and any user can create a store with `RequiresJavaScript`. A blocked HTTP
+scrape never falls back to Playwright. Tracked in [#16](https://github.com/ophionos/Ophi/issues/16).
 
 ## Other measures
 
