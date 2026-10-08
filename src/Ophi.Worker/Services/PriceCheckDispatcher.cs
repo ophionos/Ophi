@@ -115,8 +115,8 @@ public class PriceCheckDispatcher(
 
     /// <summary>
     /// Stage 1: build an index-friendly query that returns candidate URLs whose `LastCheckedAt`
-    /// is either null or older than the validator-floor interval. The per-URL cascade
-    /// (CheckIntervalMinutes -> DefaultCheckIntervalMinutes -> 60, plus ScrapeCacheTtlMinutes)
+    /// is either null or older than the validator-floor interval, and whose failure backoff has
+    /// ended. The per-URL cascade (CheckIntervalMinutes -> DefaultCheckIntervalMinutes -> 60, plus ScrapeCacheTtlMinutes)
     /// is *not* applied here because it would defeat the LastCheckedAt index on SQLite.
     /// Apply <see cref="IsDue"/> in memory to materialized candidates.
     /// </summary>
@@ -129,6 +129,10 @@ public class PriceCheckDispatcher(
             .Where(pu => pu.Product.Status == ProductStatus.Active)
             .Where(pu => pu.Status != ProductUrlStatus.Paused)
             .Where(pu => pu.LastCheckedAt == null || pu.LastCheckedAt < staleCutoff)
+            // Backoff must be filtered here, not in IsDue: a backed-off URL is never re-stamped, so it
+            // stays the oldest candidate, and enough of them would fill the over-fetch window and
+            // starve every URL that is really due.
+            .Where(pu => pu.BackoffUntil == null || pu.BackoffUntil <= now)
             .OrderBy(pu => pu.LastCheckedAt)
             .Take(batchSize * CandidateOverFetchMultiplier)
             .Select(pu => new DueProductUrlCandidate(

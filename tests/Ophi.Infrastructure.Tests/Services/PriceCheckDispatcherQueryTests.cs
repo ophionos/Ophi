@@ -178,6 +178,67 @@ public class PriceCheckDispatcherQueryTests : IDisposable
         result.Should().Contain(_productUrlId);
     }
 
+    [Fact]
+    public async Task SelectDueProductUrlIds_WithBackoffInFuture_SkipsUrl()
+    {
+        var url = _dbContext.ProductUrls.First(pu => pu.Id == _productUrlId);
+        url.RecordFailure("HTTP 500", DateTime.UtcNow.AddHours(-1));
+        url.RecordFailure("HTTP 500", DateTime.UtcNow.AddHours(-1)); // backoff until 1h from now
+        url.MarkChecked(DateTime.UtcNow.AddHours(-1));
+        _dbContext.SaveChanges();
+
+        var result = await PriceCheckDispatcher.SelectDueProductUrlIdsAsync(
+            _dbContext.ProductUrls, DateTime.UtcNow, 100, TestContext.Current.CancellationToken);
+
+        result.Should().NotContain(_productUrlId);
+    }
+
+    [Fact]
+    public async Task SelectDueProductUrlIds_WithBackoffElapsed_IncludesUrl()
+    {
+        var url = _dbContext.ProductUrls.First(pu => pu.Id == _productUrlId);
+        url.RecordFailure("HTTP 500", DateTime.UtcNow.AddHours(-3));
+        url.RecordFailure("HTTP 500", DateTime.UtcNow.AddHours(-3)); // backoff ended 1h ago
+        _dbContext.SaveChanges();
+
+        var result = await PriceCheckDispatcher.SelectDueProductUrlIdsAsync(
+            _dbContext.ProductUrls, DateTime.UtcNow, 100, TestContext.Current.CancellationToken);
+
+        result.Should().Contain(_productUrlId);
+    }
+
+    [Fact]
+    public async Task SelectDueProductUrlIds_WithManyOlderBackedOffUrls_StillSelectsDueUrl()
+    {
+        // Stage 1 takes the oldest batchSize * 5 candidates. A backed-off URL is never re-stamped,
+        // so it stays the oldest; filtering backoff only in memory let such URLs fill the window
+        // and starve every URL that was really due.
+        const int batchSize = 2;
+        var now = DateTime.UtcNow;
+        for (var i = 0; i < batchSize * 5 + 3; i++)
+        {
+            var backedOff = new ProductUrl
+            {
+                Id = Guid.NewGuid(),
+                Url = $"https://example.com/blocked/{i}",
+                ProductId = _productId
+            };
+            backedOff.RecordFailure("HTTP 500", now);
+            backedOff.RecordFailure("HTTP 500", now);
+            backedOff.MarkChecked(now.AddDays(-2));
+            _dbContext.ProductUrls.Add(backedOff);
+        }
+
+        var url = _dbContext.ProductUrls.First(pu => pu.Id == _productUrlId);
+        url.MarkChecked(now.AddHours(-2));
+        _dbContext.SaveChanges();
+
+        var result = await PriceCheckDispatcher.SelectDueProductUrlIdsAsync(
+            _dbContext.ProductUrls, now, batchSize, TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.Should().Be(_productUrlId);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();
