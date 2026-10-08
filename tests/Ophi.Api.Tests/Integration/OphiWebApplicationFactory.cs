@@ -16,7 +16,10 @@ namespace Ophi.Api.Tests.Integration;
 
 public class OphiWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private SqliteConnection? _connection;
+    // One temp-file database per factory, and a connection per DbContext. A single shared
+    // SqliteConnection is not thread-safe: a background handler (ForgotPassword's SendResetEmail)
+    // opening a context while a test query runs got SQLITE_BUSY and its message went to the error queue.
+    private readonly string _databasePath = Path.Combine(Path.GetTempPath(), $"ophi-api-tests-{Guid.NewGuid():N}.db");
 
     /// <summary>
     /// Drops and recreates the SQLite schema so callers see an empty database. Use this
@@ -54,14 +57,9 @@ public class OphiWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(descriptor);
             }
 
-            // Create and open a persistent SQLite connection for the test
-            _connection = new SqliteConnection("DataSource=:memory:");
-            _connection.Open();
-
-            // Add DbContext using the in-memory SQLite database
             services.AddDbContext<OphiDbContext>(options =>
             {
-                options.UseSqlite(_connection);
+                options.UseSqlite($"Data Source={_databasePath}");
             });
 
             // Replace scraping service with a mock that always succeeds
@@ -90,11 +88,13 @@ public class OphiWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void Dispose(bool disposing)
     {
+        base.Dispose(disposing);
         if (disposing)
         {
-            _connection?.Dispose();
+            // Pooled connections keep the file open on Windows.
+            SqliteConnection.ClearAllPools();
+            File.Delete(_databasePath);
         }
-        base.Dispose(disposing);
     }
 }
 

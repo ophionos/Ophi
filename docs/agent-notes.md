@@ -314,7 +314,10 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
 - **FluentValidation:** `TestValidate()` + `ShouldHaveValidationErrorFor`; `RuleForEach` inference needs
   the `Expression.Convert(body, typeof(IEnumerable<T>))` workaround.
 - **Replacing the DbContext in `OphiWebApplicationFactory`** must also remove
-  `IDbContextOptionsConfiguration<OphiDbContext>`, or the postgres options lambda still runs.
+  `IDbContextOptionsConfiguration<OphiDbContext>`, or the postgres options lambda still runs. It
+  uses a temp-file SQLite DB with a connection per context. Do not go back to one shared
+  `:memory:` `SqliteConnection`: it is not thread-safe, and a background handler that opens a context
+  while a test queries gets `SQLITE_BUSY` and its message goes to the error queue.
 - **The runner is Microsoft.Testing.Platform** (xunit.v3 4 dropped the VSTest bridge, and the .NET 10
   SDK rejects VSTest). Three pieces must stay in sync: `global.json` `"test": {"runner": ...}` (keep it
   free of an `sdk` section), `UseMicrosoftTestingPlatformRunner` in `Directory.Build.props`, and
