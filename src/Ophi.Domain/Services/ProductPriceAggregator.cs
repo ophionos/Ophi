@@ -19,7 +19,7 @@ public static class ProductPriceAggregator
     /// (including the just-updated one) <em>and</em> is denominated in the product's currency.
     /// On a real change the prior <see cref="Product.CurrentPrice"/> is captured into
     /// <see cref="Product.PreviousPrice"/> and <see cref="Product.Currency"/> follows the chosen
-    /// min-priced URL. When no URL matches the product's currency the product re-anchors onto the
+    /// min-priced URL. A currency change clears <see cref="Product.PreviousPrice"/> instead. When no URL matches the product's currency the product re-anchors onto the
     /// currency its listings actually use — the dominant one — and takes the MIN within that.
     /// </summary>
     /// <param name="product">Product whose aggregate price is being recomputed.</param>
@@ -60,15 +60,36 @@ public static class ProductPriceAggregator
 
         var min = comparable.OrderBy(u => u.Price).First();
 
+        // PreviousPrice has no currency of its own: it is read as being in product.Currency. On a
+        // re-anchor the old price is in another denomination, so no baseline survives — keeping it
+        // turned USD 100 -> EUR 92 into a fake 8% drop on the dashboard and the webhook OldPrice.
+        if (!string.Equals(min.Currency, product.Currency, StringComparison.OrdinalIgnoreCase))
+        {
+            product.PreviousPrice = null;
+        }
         // Only capture into PreviousPrice on a real change. A no-op recheck (new MIN == current)
         // must not overwrite PreviousPrice, or downstream readers (dashboard % change, price-change
         // sort, alert webhook OldPrice) silently zero out after the first quiet scrape.
-        if (product.CurrentPrice.HasValue && product.CurrentPrice.Value != min.Price)
+        else if (product.CurrentPrice.HasValue && product.CurrentPrice.Value != min.Price)
         {
             product.PreviousPrice = product.CurrentPrice;
         }
         product.CurrentPrice = min.Price;
         product.Currency = min.Currency;
+    }
+
+    /// <summary>
+    /// Like <see cref="ApplyAggregate"/>, but for a caller that passes the COMPLETE set of priced
+    /// live URLs after one left it (removed or paused). There an empty set means no live URL has a
+    /// price, so the product price is cleared. <see cref="ApplyAggregate"/> keeps its no-op on an
+    /// empty set so a scrape that found nothing cannot clobber a good price.
+    /// </summary>
+    public static void ApplyLiveAggregate(Product product, IReadOnlyCollection<UrlPrice> livePrices)
+    {
+        if (livePrices.Count == 0)
+            product.CurrentPrice = null;
+        else
+            ApplyAggregate(product, livePrices);
     }
 
     /// <summary>

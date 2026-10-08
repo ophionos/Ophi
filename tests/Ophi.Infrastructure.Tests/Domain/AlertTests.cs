@@ -31,6 +31,20 @@ public class AlertTests
     }
 
     [Fact]
+    public void ClaimFiring_StampsLastTriggeredAtWithoutCounting()
+    {
+        // The checker's claim (xmin race) and the delivered count are two steps: the count moves only
+        // once SendAlertNotificationHandler commits the notification, via Trigger().
+        var alert = new Alert { TargetPrice = 50m, TriggerCount = 2 };
+        var now = new DateTime(2026, 5, 17, 10, 0, 0, DateTimeKind.Utc);
+
+        alert.ClaimFiring(now);
+
+        alert.LastTriggeredAt.Should().Be(now);
+        alert.TriggerCount.Should().Be(2);
+    }
+
+    [Fact]
     public void IsInCooldown_WithNoPriorTrigger_ReturnsFalse()
     {
         var alert = new Alert { TargetPrice = 50m };

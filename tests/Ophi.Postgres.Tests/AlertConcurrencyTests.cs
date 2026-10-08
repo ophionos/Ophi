@@ -38,10 +38,10 @@ public class AlertConcurrencyTests(PostgresFixture fixture)
         var a1 = await ctx1.Alerts.SingleAsync(a => a.Id == alertId, TestContext.Current.CancellationToken);
         var a2 = await ctx2.Alerts.SingleAsync(a => a.Id == alertId, TestContext.Current.CancellationToken);
 
-        a1.TriggerCount += 1;
+        a1.Trigger(DateTime.UtcNow);
         await ctx1.SaveChangesAsync(TestContext.Current.CancellationToken); // wins; bumps xmin
 
-        a2.TriggerCount += 1;
+        a2.Trigger(DateTime.UtcNow);
         var act = async () => await ctx2.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         await act.Should().ThrowAsync<DbUpdateConcurrencyException>(
@@ -68,11 +68,13 @@ public class AlertConcurrencyTests(PostgresFixture fixture)
             .ToListAsync(TestContext.Current.CancellationToken);
 
         // A concurrent worker bumps the alert row, advancing its xmin past what handlerCtx tracks.
+        // Only TriggerCount moves: LastTriggeredAt must stay null for the rollback assertion below.
         await using (var otherCtx = fixture.CreateContext())
         {
-            var other = await otherCtx.Alerts.SingleAsync(a => a.Id == alertId, TestContext.Current.CancellationToken);
-            other.TriggerCount += 1;
-            await otherCtx.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await otherCtx.Alerts
+                .Where(a => a.Id == alertId)
+                .ExecuteUpdateAsync(s => s.SetProperty(a => a.TriggerCount, a => a.TriggerCount + 1),
+                    TestContext.Current.CancellationToken);
         }
 
         // Act — handler runs against its stale-tracked context.

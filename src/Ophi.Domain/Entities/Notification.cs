@@ -32,6 +32,9 @@ public class Notification : BaseEntity
         if (prefix.Length >= TitleMaxLength - 1) return full[..TitleMaxLength];
 
         var keep = TitleMaxLength - prefix.Length - 1; // leave one char for the ellipsis
+        // Do not cut between the two halves of a surrogate pair (an emoji): a lone high
+        // surrogate is invalid UTF-16 and fails to encode.
+        if (char.IsHighSurrogate(name[keep - 1])) keep--;
         return prefix + name[..keep] + "…";
     }
 

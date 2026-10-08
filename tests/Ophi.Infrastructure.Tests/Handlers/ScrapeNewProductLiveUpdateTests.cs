@@ -111,7 +111,7 @@ public class ScrapeNewProductLiveUpdateTests : IDisposable
     {
         var (_, productUrl) = await SeedPendingProductAsync();
         var product = await _dbContext.Products.FirstAsync(TestContext.Current.CancellationToken);
-        product.Status = ProductStatus.Active;
+        product.MarkActive();
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         await InvokeAsync(productUrl.Id);

@@ -55,7 +55,7 @@ public class PriceCheckDispatcherQueryTests : IDisposable
     public async Task BuildDueProductUrlQuery_WithNoCacheTtl_DispatchesDueUrl()
     {
         var url = _dbContext.ProductUrls.First(pu => pu.Id == _productUrlId);
-        url.LastCheckedAt = DateTime.UtcNow.AddMinutes(-120); // 2 hours ago, well past default 60m interval
+        url.MarkChecked(DateTime.UtcNow.AddMinutes(-120)); // 2 hours ago, well past default 60m interval
         _dbContext.SaveChanges();
 
         var now = DateTime.UtcNow;
@@ -88,7 +88,7 @@ public class PriceCheckDispatcherQueryTests : IDisposable
         product.CheckIntervalMinutes = 15; // Due every 15 min
 
         var url = _dbContext.ProductUrls.First(pu => pu.Id == _productUrlId);
-        url.LastCheckedAt = DateTime.UtcNow.AddMinutes(-30); // 30 min ago — past 15m interval, but within 60m cache TTL
+        url.MarkChecked(DateTime.UtcNow.AddMinutes(-30)); // 30 min ago — past 15m interval, but within 60m cache TTL
 
         _dbContext.SaveChanges();
 
@@ -108,7 +108,7 @@ public class PriceCheckDispatcherQueryTests : IDisposable
         product.CheckIntervalMinutes = 15;
 
         var url = _dbContext.ProductUrls.First(pu => pu.Id == _productUrlId);
-        url.LastCheckedAt = DateTime.UtcNow.AddMinutes(-90); // 90 min ago — past both 15m interval and 60m cache TTL
+        url.MarkChecked(DateTime.UtcNow.AddMinutes(-90)); // 90 min ago — past both 15m interval and 60m cache TTL
 
         _dbContext.SaveChanges();
 
@@ -126,7 +126,7 @@ public class PriceCheckDispatcherQueryTests : IDisposable
         product.CheckIntervalMinutes = 15;
 
         var url = _dbContext.ProductUrls.First(pu => pu.Id == _productUrlId);
-        url.LastCheckedAt = DateTime.UtcNow.AddMinutes(-20); // 20 min ago — past 15m interval, no cache TTL
+        url.MarkChecked(DateTime.UtcNow.AddMinutes(-20)); // 20 min ago — past 15m interval, no cache TTL
 
         _dbContext.SaveChanges();
 
@@ -146,7 +146,7 @@ public class PriceCheckDispatcherQueryTests : IDisposable
         product.CheckIntervalMinutes = 240;
 
         var url = _dbContext.ProductUrls.First(pu => pu.Id == _productUrlId);
-        url.LastCheckedAt = DateTime.UtcNow.AddMinutes(-60);
+        url.MarkChecked(DateTime.UtcNow.AddMinutes(-60));
 
         _dbContext.SaveChanges();
 
@@ -168,7 +168,7 @@ public class PriceCheckDispatcherQueryTests : IDisposable
         product.CheckIntervalMinutes = 15;
 
         var url = _dbContext.ProductUrls.First(pu => pu.Id == _productUrlId);
-        url.LastCheckedAt = DateTime.UtcNow.AddMinutes(-30);
+        url.MarkChecked(DateTime.UtcNow.AddMinutes(-30));
 
         _dbContext.SaveChanges();
 

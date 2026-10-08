@@ -132,7 +132,7 @@ public class MockScrapingService : IScrapingService
 
 // Wolverine handler for ScrapeProductUrlCommand in tests.
 // Matches the command that AddProduct, AddProductUrl, RetryScrapeProductUrl, and ImportProducts
-// actually publish (the older ScrapeNewProductCommand is unused). Runs the scrape synchronously
+// actually publish. Runs the scrape synchronously
 // against whatever IScrapingService is wired into the test factory so failure paths can be
 // exercised end-to-end with a different mock.
 public static class TestScrapeProductUrlHandler
@@ -155,12 +155,9 @@ public static class TestScrapeProductUrlHandler
             product.ImageUrl = result.ImageUrl;
             product.CurrentPrice = result.Price.Value;
             product.Currency = result.Currency ?? product.Currency;
-            product.Status = ProductStatus.Active;
+            product.MarkActive();
 
-            productUrl.CurrentPrice = result.Price.Value;
-            productUrl.Currency = result.Currency ?? productUrl.Currency;
-            productUrl.LastCheckedAt = DateTime.UtcNow;
-            productUrl.LastError = null;
+            productUrl.RecordSuccessfulScrape(result.Price.Value, result.Currency, DateTime.UtcNow);
 
             dbContext.PricePoints.Add(new PricePoint
             {
@@ -173,9 +170,8 @@ public static class TestScrapeProductUrlHandler
         }
         else
         {
-            product.Status = ProductStatus.Error;
-            productUrl.LastError = result.Error ?? "Failed to extract price";
-            productUrl.LastCheckedAt = DateTime.UtcNow;
+            product.MarkAsError();
+            productUrl.RecordFailure(result.Error ?? "Failed to extract price", DateTime.UtcNow);
         }
 
         await dbContext.SaveChangesAsync();

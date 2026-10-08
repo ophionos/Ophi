@@ -646,6 +646,92 @@ public class ScrapeNewProductHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task HandleAsync_ForcedRetryOutOfStockInOtherCurrency_KeepsPricedCurrencies()
+    {
+        // Arrange — the manual retry (Force:true) reaches products that already have a price. The
+        // out-of-stock branch keeps the last-known prices, so it must keep their denominations too.
+        var productId = Guid.NewGuid();
+        var productUrlId = Guid.NewGuid();
+        _dbContext.Products.Add(new Product
+        {
+            Id = productId,
+            UserId = _testUserId,
+            Name = "Test Product",
+            Currency = "USD",
+            Status = ProductStatus.Active,
+            CurrentPrice = 50m
+        });
+        _dbContext.ProductUrls.Add(new ProductUrl
+        {
+            Id = productUrlId,
+            ProductId = productId,
+            Url = "https://example.com/product",
+            Currency = "USD",
+            CurrentPrice = 50m
+        });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync("https://example.com/product", null, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ScrapingResult { Success = true, IsOutOfStock = true, Name = "Test Product", Currency = "EUR" });
+
+        // Act
+        await ScrapeNewProductHandler.HandleAsync(
+            new ScrapeProductUrlCommand(productUrlId, Force: true), _dbContext, _scrapingServiceMock.Object,
+            _autoCreateStoreServiceMock.Object, _configProviderMock.Object,
+            TimeProvider.System, Mock.Of<IMessageBus>(), _loggerMock.Object, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updatedProduct = await _dbContext.Products.FindAsync([productId], TestContext.Current.CancellationToken);
+        updatedProduct!.Currency.Should().Be("USD");
+        updatedProduct.CurrentPrice.Should().Be(50m);
+
+        var updatedUrl = await _dbContext.ProductUrls.FindAsync([productUrlId], TestContext.Current.CancellationToken);
+        updatedUrl!.Currency.Should().Be("USD");
+        updatedUrl.IsOutOfStock.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleAsync_InitialScrapeOutOfStockInForeignCurrency_AdoptsTheCurrency()
+    {
+        // Nothing is priced yet, so the scraped currency is the only denomination information there is.
+        var productId = Guid.NewGuid();
+        var productUrlId = Guid.NewGuid();
+        _dbContext.Products.Add(new Product
+        {
+            Id = productId,
+            UserId = _testUserId,
+            Name = "Loading...",
+            Currency = "USD",
+            Status = ProductStatus.Pending
+        });
+        _dbContext.ProductUrls.Add(new ProductUrl
+        {
+            Id = productUrlId,
+            ProductId = productId,
+            Url = "https://example.de/product",
+            Currency = "USD"
+        });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync("https://example.de/product", null, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ScrapingResult { Success = true, IsOutOfStock = true, Name = "Produkt", Currency = "EUR" });
+
+        // Act
+        await ScrapeNewProductHandler.HandleAsync(
+            new ScrapeProductUrlCommand(productUrlId), _dbContext, _scrapingServiceMock.Object,
+            _autoCreateStoreServiceMock.Object, _configProviderMock.Object,
+            TimeProvider.System, Mock.Of<IMessageBus>(), _loggerMock.Object, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updatedProduct = await _dbContext.Products.FindAsync([productId], TestContext.Current.CancellationToken);
+        updatedProduct!.Currency.Should().Be("EUR");
+        var updatedUrl = await _dbContext.ProductUrls.FindAsync([productUrlId], TestContext.Current.CancellationToken);
+        updatedUrl!.Currency.Should().Be("EUR");
+    }
+
+    [Fact]
     public async Task HandleAsync_InitialScrapeInForeignCurrency_ReAnchorsProductCurrency()
     {
         // A brand-new product defaults to Currency "USD"; its only URL scraping in EUR must

@@ -116,7 +116,7 @@ public class CheckProductPriceLiveUpdateTests : IDisposable
     public async Task HandleAsync_WhenProductInactive_DoesNotPublish()
     {
         var (product, productUrl) = await SeedActiveProductAsync();
-        product.Status = ProductStatus.Error;
+        product.MarkAsError();
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         await InvokeAsync(productUrl.Id);
@@ -128,7 +128,7 @@ public class CheckProductPriceLiveUpdateTests : IDisposable
     public async Task HandleAsync_WhenUrlPaused_DoesNotPublish()
     {
         var (product, productUrl) = await SeedActiveProductAsync();
-        productUrl.Status = ProductUrlStatus.Paused;
+        productUrl.Pause();
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         await InvokeAsync(productUrl.Id);

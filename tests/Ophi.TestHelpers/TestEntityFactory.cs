@@ -87,6 +87,7 @@ public static class TestEntityFactory
         private AlertCondition _condition = AlertCondition.Below;
         private bool _isActive = true;
         private DateTime? _lastTriggered;
+        private int _triggerCount;
         private Product? _product;
         private User? _user;
 
@@ -105,6 +106,7 @@ public static class TestEntityFactory
         public AlertBuilder WithProduct(Product product) { _product = product; return this; }
         public AlertBuilder WithUser(User user) { _user = user; return this; }
         public AlertBuilder LastTriggered(DateTime? when) { _lastTriggered = when; return this; }
+        public AlertBuilder WithTriggerCount(int count) { _triggerCount = count; return this; }
 
         public Alert Build() => new()
         {
@@ -117,6 +119,7 @@ public static class TestEntityFactory
             Condition = _condition,
             IsActive = _isActive,
             LastTriggeredAt = _lastTriggered,
+            TriggerCount = _triggerCount,
             Product = _product!,
             User = _user!
         };

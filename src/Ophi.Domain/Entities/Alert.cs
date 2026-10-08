@@ -4,11 +4,18 @@ namespace Ophi.Domain.Entities;
 
 public class Alert : BaseEntity
 {
+    // State changes only through the methods below; the init accessors serve construction (and test
+    // arrange) only. EF Core maps each property through its _camelCase backing field by convention.
+    private decimal _targetPrice;
+    private string _currency = "USD";
+    private bool _isActive = true;
+    private DateTime? _lastTriggeredAt;
+    private int _triggerCount;
+
     /// <summary>
-    /// Settable only so <see cref="Redenominate"/> can replace it — the target is otherwise fixed
-    /// for the life of the alert. Assign it directly at construction and nowhere else.
+    /// Fixed for the life of the alert except through <see cref="Redenominate"/>.
     /// </summary>
-    public decimal TargetPrice { get; set; }
+    public decimal TargetPrice { get => _targetPrice; init => _targetPrice = value; }
 
     public decimal ReferencePrice { get; init; }
 
@@ -19,15 +26,14 @@ public class Alert : BaseEntity
     /// another currency (see <see cref="Services.ProductPriceAggregator"/>), and fires on a
     /// number that never meant what the user asked for.
     /// Carries no meaning for <see cref="AlertCondition.PercentDrop"/>, whose target is a percentage.
-    /// Settable only so <see cref="Redenominate"/> can replace it; see the note on
-    /// <see cref="TargetPrice"/>.
+    /// Changes only through <see cref="Redenominate"/>, together with <see cref="TargetPrice"/>.
     /// </summary>
-    public string Currency { get; set; } = "USD";
+    public string Currency { get => _currency; init => _currency = value; }
 
     public AlertCondition Condition { get; init; }
-    public bool IsActive { get; set; } = true;
-    public DateTime? LastTriggeredAt { get; set; }
-    public int TriggerCount { get; set; }
+    public bool IsActive { get => _isActive; init => _isActive = value; }
+    public DateTime? LastTriggeredAt { get => _lastTriggeredAt; init => _lastTriggeredAt = value; }
+    public int TriggerCount { get => _triggerCount; init => _triggerCount = value; }
 
     // Foreign keys
     public Guid ProductId { get; init; }
@@ -43,20 +49,28 @@ public class Alert : BaseEntity
     /// </summary>
     public void Trigger(DateTime now)
     {
-        LastTriggeredAt = now;
-        TriggerCount++;
+        _lastTriggeredAt = now;
+        _triggerCount++;
     }
+
+    /// <summary>
+    /// The alert checker's claim on a firing: stamps <see cref="LastTriggeredAt"/> only. Saving it is
+    /// the xmin race that decides which worker emits the event (see <c>CheckAlertsHandler</c>);
+    /// <see cref="TriggerCount"/> moves later, through <see cref="Trigger"/>, once the notification
+    /// commits. Caller persists.
+    /// </summary>
+    public void ClaimFiring(DateTime now) => _lastTriggeredAt = now;
 
     /// <summary>
     /// Stops the alert firing without deleting it. Trigger history is kept. Caller persists.
     /// </summary>
-    public void Pause() => IsActive = false;
+    public void Pause() => _isActive = false;
 
     /// <summary>
     /// Lets a paused alert fire again. The per-user active-alert cap is the caller's to enforce —
     /// it needs a count this entity cannot see. Caller persists.
     /// </summary>
-    public void Resume() => IsActive = true;
+    public void Resume() => _isActive = true;
 
     /// <summary>
     /// Returns true when the alert last fired within the cooldown window and should not re-fire.
@@ -103,8 +117,8 @@ public class Alert : BaseEntity
                 $"Alert is not dormant against {productCurrency}; there is nothing to re-denominate.");
         }
 
-        TargetPrice = newTargetPrice;
-        Currency = productCurrency;
+        _targetPrice = newTargetPrice;
+        _currency = productCurrency;
     }
 
     /// <summary>

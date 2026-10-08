@@ -28,6 +28,22 @@ public class NotificationTitleTests
     }
 
     [Fact]
+    public void BuildTitle_WhenCutFallsInsideASurrogatePair_DoesNotSplitIt()
+    {
+        // An emoji is two UTF-16 chars. Cutting between them leaves a lone high surrogate, which
+        // is invalid UTF-16 and cannot be encoded for the DB or for JSON.
+        const string label = "Out of stock";
+        var keep = Notification.TitleMaxLength - $"{label}: ".Length - 1;
+        var name = new string('x', keep - 1) + "😀" + new string('x', 50);
+
+        var title = Notification.BuildTitle(label, name);
+
+        title.Length.Should().BeLessThanOrEqualTo(Notification.TitleMaxLength);
+        title.Should().EndWith("x…");
+        char.IsHighSurrogate(title[^2]).Should().BeFalse();
+    }
+
+    [Fact]
     public void BuildTitle_AtExactLimit_IsNotTruncated()
     {
         const string label = "Out of stock";

@@ -152,11 +152,11 @@ public static class ScrapeNewProductHandler
             {
                 product.Name = result.Name ?? product.Name;
                 product.ImageUrl = result.ImageUrl;
-                product.Currency = result.Currency ?? product.Currency;
+                // The forced retry reaches already-priced products; a kept price keeps its currency.
+                product.AdoptCurrencyWhileUnpriced(result.Currency);
                 product.MarkActive(); // Product exists, just OOS
 
-                productUrl.MarkOutOfStock(now);
-                productUrl.Currency = result.Currency ?? productUrl.Currency;
+                productUrl.MarkOutOfStock(now, result.Currency);
                 productUrl.Selector = result.DetectedSelector ?? productUrl.Selector;
 
                 // Auto-create store config if applicable
