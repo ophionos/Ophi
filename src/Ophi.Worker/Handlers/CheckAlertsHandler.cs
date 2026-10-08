@@ -71,7 +71,7 @@ public static class CheckAlertsHandler
 
             // Stamp LastTriggeredAt here (not TriggerCount — that increments in SendAlertNotificationHandler
             // once the in-app notification commits, so a cooldown race doesn't double-count).
-            alert.LastTriggeredAt = now;
+            alert.ClaimFiring(now);
 
             triggeredEvents.Add(new AlertTriggeredEvent(
                 alert.Id,

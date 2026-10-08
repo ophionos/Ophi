@@ -316,8 +316,7 @@ public class SendAlertNotificationHandlerTests : HandlerTestBase
     public async Task HandleAsync_UpdatesTriggerCountOnAlert()
     {
         var (product, productUrl) = TestEntityFactory.CreateProduct("Widget", TestUserId);
-        var alert = TestEntityFactory.CreateAlert(product.Id, TestUserId, 50m);
-        alert.TriggerCount = 5;
+        var alert = TestEntityFactory.Alert(product.Id, TestUserId).WithTarget(50m).WithTriggerCount(5).Build();
         DbContext.Products.Add(product);
         DbContext.ProductUrls.Add(productUrl);
         DbContext.Alerts.Add(alert);
@@ -336,9 +335,8 @@ public class SendAlertNotificationHandlerTests : HandlerTestBase
     public async Task HandleAsync_UpdatesLastTriggeredAtOnAlert()
     {
         var (product, productUrl) = TestEntityFactory.CreateProduct("Widget", TestUserId);
-        var alert = TestEntityFactory.CreateAlert(product.Id, TestUserId, 50m);
         var originalTime = DateTime.UtcNow.AddHours(-1);
-        alert.LastTriggeredAt = originalTime;
+        var alert = TestEntityFactory.Alert(product.Id, TestUserId).WithTarget(50m).LastTriggered(originalTime).Build();
         DbContext.Products.Add(product);
         DbContext.ProductUrls.Add(productUrl);
         DbContext.Alerts.Add(alert);

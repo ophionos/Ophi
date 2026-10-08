@@ -62,16 +62,7 @@ public static class RemoveProductUrl
 
             product.RecomputePriceAnomaly(excludingUrlId: request.ProductUrlId);
 
-            if (remainingPrices.Count > 0)
-            {
-                ProductPriceAggregator.ApplyAggregate(product, remainingPrices);
-            }
-            else
-            {
-                // ApplyAggregate no-ops on an empty set (so a scrape that found nothing can't clobber
-                // a good price). Here an empty set genuinely means no live URL has a price left.
-                product.CurrentPrice = null;
-            }
+            ProductPriceAggregator.ApplyLiveAggregate(product, remainingPrices);
 
             await dbContext.SaveChangesAsync(cancellationToken);
             logger.LogInformation("URL {ProductUrlId} removed from product {ProductId}", request.ProductUrlId, request.ProductId);

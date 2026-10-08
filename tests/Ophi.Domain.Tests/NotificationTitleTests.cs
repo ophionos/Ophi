@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Ophi.Domain.Entities;
 
-namespace Ophi.Infrastructure.Tests.Domain;
+namespace Ophi.Domain.Tests;
 
 public class NotificationTitleTests
 {
@@ -25,6 +25,22 @@ public class NotificationTitleTests
         title.Length.Should().Be(Notification.TitleMaxLength);
         title.Should().StartWith("Out of stock: x");
         title.Should().EndWith("…");
+    }
+
+    [Fact]
+    public void BuildTitle_WhenCutFallsInsideASurrogatePair_DoesNotSplitIt()
+    {
+        // An emoji is two UTF-16 chars. Cutting between them leaves a lone high surrogate, which
+        // is invalid UTF-16 and cannot be encoded for the DB or for JSON.
+        const string label = "Out of stock";
+        var keep = Notification.TitleMaxLength - $"{label}: ".Length - 1;
+        var name = new string('x', keep - 1) + "😀" + new string('x', 50);
+
+        var title = Notification.BuildTitle(label, name);
+
+        title.Length.Should().BeLessThanOrEqualTo(Notification.TitleMaxLength);
+        title.Should().EndWith("x…");
+        char.IsHighSurrogate(title[^2]).Should().BeFalse();
     }
 
     [Fact]

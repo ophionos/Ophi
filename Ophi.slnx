@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Ophi.Api.Tests/Ophi.Api.Tests.csproj" />
+    <Project Path="tests/Ophi.Domain.Tests/Ophi.Domain.Tests.csproj" />
     <Project Path="tests/Ophi.Infrastructure.Tests/Ophi.Infrastructure.Tests.csproj" />
     <Project Path="tests/Ophi.Postgres.Tests/Ophi.Postgres.Tests.csproj" />
     <Project Path="tests/Ophi.TestHelpers/Ophi.TestHelpers.csproj" />

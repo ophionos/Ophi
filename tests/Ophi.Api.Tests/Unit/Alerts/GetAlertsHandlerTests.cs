@@ -75,9 +75,8 @@ public class GetAlertsHandlerTests : IDisposable
         product.CurrentPrice = 75m;
         _dbContext.Products.Add(product);
 
-        var alert = CreateAlert(product.Id, 50m, AlertCondition.Below);
-        alert.IsActive = true;
-        alert.LastTriggeredAt = new DateTime(2026, 1, 10, 12, 0, 0, DateTimeKind.Utc);
+        var alert = TestEntityFactory.Alert(product.Id, _testUserId).WithTarget(50m).WithCondition(AlertCondition.Below)
+            .LastTriggered(new DateTime(2026, 1, 10, 12, 0, 0, DateTimeKind.Utc)).Build();
         _dbContext.Alerts.Add(alert);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -206,7 +205,7 @@ public class GetAlertsHandlerTests : IDisposable
         _dbContext.Products.Add(product);
 
         var alert = CreateAlert(product.Id, 50m, AlertCondition.Below);
-        alert.IsActive = false;
+        alert.Pause();
         _dbContext.Alerts.Add(alert);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -226,8 +225,7 @@ public class GetAlertsHandlerTests : IDisposable
         var product = CreateProduct("Test Product");
         _dbContext.Products.Add(product);
 
-        var alert = CreateAlert(product.Id, 50m, AlertCondition.Below);
-        alert.LastTriggeredAt = null;
+        var alert = CreateAlert(product.Id, 50m, AlertCondition.Below); // never triggered
         _dbContext.Alerts.Add(alert);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 

@@ -44,7 +44,6 @@ public class GetProductHandlerTests : IDisposable
         product.CurrentPrice = 99.99m;
         product.PreviousPrice = 120.00m;
         product.Currency = "EUR";
-        product.Status = ProductStatus.Active;
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 

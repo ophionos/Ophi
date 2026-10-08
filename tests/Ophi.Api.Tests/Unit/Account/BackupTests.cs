@@ -53,8 +53,7 @@ public class ExportBackupTests : IDisposable
             new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 349m, Currency = "USD", RecordedAt = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc) },
             new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 299m, Currency = "USD", RecordedAt = new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc) });
         var alert = TestEntityFactory.Alert(product.Id, _userId).WithTarget(250m).WithReference(349m)
-            .LastTriggered(new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)).Build();
-        alert.TriggerCount = 3;
+            .LastTriggered(new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)).WithTriggerCount(3).Build();
         _db.Alerts.Add(alert);
 
         _db.ApiKeys.Add(new ApiKey { Id = Guid.NewGuid(), UserId = _userId, Name = "k", KeyHash = "SECRET-API-KEY-HASH" });

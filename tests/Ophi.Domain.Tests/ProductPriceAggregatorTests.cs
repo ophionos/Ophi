@@ -2,7 +2,7 @@ using FluentAssertions;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Services;
 
-namespace Ophi.Infrastructure.Tests.Domain;
+namespace Ophi.Domain.Tests;
 
 public class ProductPriceAggregatorTests
 {
@@ -134,6 +134,43 @@ public class ProductPriceAggregatorTests
     }
 
     [Fact]
+    public void ApplyAggregate_WhenReAnchoring_ClearsPreviousPrice()
+    {
+        // USD 100 -> EUR 92 is not an 8% drop. PreviousPrice has no currency of its own, so a USD
+        // baseline next to a EUR price fed a fake % change to the dashboard and the webhook OldPrice.
+        var product = new Product { Currency = "USD", CurrentPrice = 100m, PreviousPrice = 120m };
+
+        ProductPriceAggregator.ApplyAggregate(product, [At(92m, "EUR")]);
+
+        product.Currency.Should().Be("EUR");
+        product.CurrentPrice.Should().Be(92m);
+        product.PreviousPrice.Should().BeNull();
+    }
+
+    [Fact]
+    public void ApplyAggregate_WhenReAnchoringToTheSameNumber_StillClearsPreviousPrice()
+    {
+        // The no-op-recheck guard compares numbers only; USD 100 -> EUR 100 must not keep the
+        // USD 120 baseline just because the number did not move.
+        var product = new Product { Currency = "USD", CurrentPrice = 100m, PreviousPrice = 120m };
+
+        ProductPriceAggregator.ApplyAggregate(product, [At(100m, "EUR")]);
+
+        product.Currency.Should().Be("EUR");
+        product.PreviousPrice.Should().BeNull();
+    }
+
+    [Fact]
+    public void ApplyAggregate_WhenCurrencyDiffersOnlyInCase_KeepsPreviousPriceCapture()
+    {
+        var product = new Product { Currency = "USD", CurrentPrice = 50m };
+
+        ProductPriceAggregator.ApplyAggregate(product, [At(40m, "usd")]);
+
+        product.PreviousPrice.Should().Be(50m);
+    }
+
+    [Fact]
     public void ApplyAggregate_EmptyCollection_IsNoOp()
     {
         var product = new Product { CurrentPrice = 99m, Currency = "USD" };
@@ -142,5 +179,28 @@ public class ProductPriceAggregatorTests
 
         product.CurrentPrice.Should().Be(99m);
         product.Currency.Should().Be("USD");
+    }
+
+    [Fact]
+    public void ApplyLiveAggregate_EmptyCollection_ClearsCurrentPrice()
+    {
+        // The caller passes every live URL, so an empty set means no live URL has a price.
+        var product = new Product { CurrentPrice = 99m, Currency = "USD" };
+
+        ProductPriceAggregator.ApplyLiveAggregate(product, []);
+
+        product.CurrentPrice.Should().BeNull();
+        product.Currency.Should().Be("USD");
+    }
+
+    [Fact]
+    public void ApplyLiveAggregate_WithPrices_ChoosesMinimum()
+    {
+        var product = new Product { CurrentPrice = 20m, Currency = "USD" };
+
+        ProductPriceAggregator.ApplyLiveAggregate(product, [At(40m), At(25m)]);
+
+        product.CurrentPrice.Should().Be(25m);
+        product.PreviousPrice.Should().Be(20m);
     }
 }

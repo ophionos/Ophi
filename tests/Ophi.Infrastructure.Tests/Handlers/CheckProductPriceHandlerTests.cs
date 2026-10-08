@@ -63,10 +63,10 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WithSuccessfulScrape_UpdatesProductPrice()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            failureCount: 2); // Should reset to 0
         product.CurrentPrice = 100m;
         productUrl.CurrentPrice = 100m;
-        productUrl.FailureCount = 2; // Should reset to 0
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -135,11 +135,10 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WithFailedScrape_ReachesMaxFailures_SetsErrorStatus()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        product.Status = ProductStatus.Active;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productStatus: ProductStatus.Active, failureCount: 0);
         // Start at MaxFailures - 1 so the handler increments exactly to MaxFailures,
         // triggering the == check. Other-URL AllAsync is vacuously true (no other URLs).
-        productUrl.FailureCount = 0;
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -176,8 +175,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WithFailedScrape_BelowMaxFailures_IncrementsCount()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        product.Status = ProductStatus.Active;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productStatus: ProductStatus.Active);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -213,8 +212,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WithNonActiveProduct_ReturnsNull()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        product.Status = ProductStatus.Error;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productStatus: ProductStatus.Error);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -249,10 +248,9 @@ public class CheckProductPriceHandlerTests : IDisposable
     [Fact]
     public async Task HandleAsync_WithFailedScrape_ReachesMaxFailures_CreatesNotification()
     {
-        // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        product.Status = ProductStatus.Active;
-        productUrl.FailureCount = 0; // Start at MaxFailures-1; handler increments to MaxFailures == threshold
+        // Arrange — start at MaxFailures-1; the handler increments to MaxFailures == threshold
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productStatus: ProductStatus.Active, failureCount: 0);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -286,8 +284,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WithFailedScrape_BelowMaxFailures_DoesNotCreateNotification()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        product.Status = ProductStatus.Active;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productStatus: ProductStatus.Active);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -351,8 +349,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WithFailedScrape_CreatesScrapeLog()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        product.Status = ProductStatus.Active;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productStatus: ProductStatus.Active);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -429,11 +427,10 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_AtSuspiciousThreshold_PausesUrlAndDoesNotUpdatePrice()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/products/123");
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/products/123",
+            suspiciousCount: 2, urlStatus: ProductUrlStatus.Suspicious); // Will reach threshold of 3
         product.CurrentPrice = 100m;
         productUrl.CurrentPrice = 100m;
-        productUrl.SuspiciousCount = 2; // Will reach threshold of 3
-        productUrl.Status = ProductUrlStatus.Suspicious;
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -473,15 +470,69 @@ public class CheckProductPriceHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task HandleAsync_AntiBotPauseOfAnomalousUrl_ClearsTheProductFlag()
+    {
+        // Arrange — the URL's last price was an anomaly (warned, but kept). Blocked at the threshold,
+        // the URL is paused; a paused URL no longer counts, and nothing re-scrapes it to clear the flag.
+        var maxFailures = new WorkerSettings().MaxFailuresBeforeError;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productAnomalous: true, urlAnomalous: true, failureCount: maxFailures - 1);
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.Add(productUrl);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync(productUrl.Url, productUrl.Selector, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ScrapingResult { Success = false, ErrorCategory = ScrapeErrorCategory.AntiBot });
+
+        // Act
+        await CheckProductPriceHandler.HandleAsync(
+            new CheckProductUrlPriceCommand(productUrl.Id), _dbContext, _scrapingServiceMock.Object, _workerSettingsMock.Object, _webhookDispatchServiceMock.Object, TimeProvider.System, Mock.Of<IMessageBus>(), _loggerMock.Object, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updatedUrl = await _dbContext.ProductUrls.FindAsync([productUrl.Id], TestContext.Current.CancellationToken);
+        updatedUrl!.Status.Should().Be(ProductUrlStatus.Paused);
+        var updatedProduct = await _dbContext.Products.FindAsync([product.Id], TestContext.Current.CancellationToken);
+        updatedProduct!.HasPriceAnomaly.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task HandleAsync_AtSuspiciousThresholdWithAnomalousPrice_DoesNotFlagProductFromThePausedUrl()
+    {
+        // Arrange — 100 -> 5 is a price anomaly, but the same scrape auto-pauses the URL, and paused
+        // URLs never count toward the product flag (Product.RecomputePriceAnomaly). The flag was
+        // computed before the pause and stayed set until a sibling's next successful scrape.
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/products/123",
+            suspiciousCount: 2, urlStatus: ProductUrlStatus.Suspicious);
+        product.CurrentPrice = 100m;
+        productUrl.CurrentPrice = 100m;
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.Add(productUrl);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync(productUrl.Url, productUrl.Selector, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ScrapingResult { Success = true, Price = 5m, Currency = "USD", FinalUrl = "https://other-domain.com/" });
+
+        // Act
+        await CheckProductPriceHandler.HandleAsync(
+            new CheckProductUrlPriceCommand(productUrl.Id), _dbContext, _scrapingServiceMock.Object, _workerSettingsMock.Object, _webhookDispatchServiceMock.Object, TimeProvider.System, Mock.Of<IMessageBus>(), _loggerMock.Object, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updatedUrl = await _dbContext.ProductUrls.FindAsync([productUrl.Id], TestContext.Current.CancellationToken);
+        updatedUrl!.Status.Should().Be(ProductUrlStatus.Paused);
+        var updatedProduct = await _dbContext.Products.FindAsync([product.Id], TestContext.Current.CancellationToken);
+        updatedProduct!.HasPriceAnomaly.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task HandleAsync_CleanScrapeAfterSuspicious_ResetsSuspiciousState()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/products/123");
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/products/123",
+            suspiciousCount: 2, urlStatus: ProductUrlStatus.Suspicious, suspiciousReason: "Some reason");
         product.CurrentPrice = 100m;
         productUrl.CurrentPrice = 100m;
-        productUrl.SuspiciousCount = 2;
-        productUrl.Status = ProductUrlStatus.Suspicious;
-        productUrl.SuspiciousReason = "Some reason";
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -516,8 +567,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_PausedUrl_SkipsScrape()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/products/123");
-        productUrl.Status = ProductUrlStatus.Paused;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/products/123",
+            urlStatus: ProductUrlStatus.Paused);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -679,6 +730,29 @@ public class CheckProductPriceHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task HandleAsync_WithOutOfStockOnUnpricedUrl_AdoptsTheScrapedCurrency()
+    {
+        // Arrange — a URL added to an existing product has no price yet; without this its first
+        // out-of-stock check left the "USD" default in place for a EUR listing.
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.de/product");
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.Add(productUrl);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync(productUrl.Url, productUrl.Selector, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ScrapingResult { Success = true, IsOutOfStock = true, Price = null, Currency = "EUR", ErrorCategory = ScrapeErrorCategory.OutOfStock });
+
+        // Act
+        await CheckProductPriceHandler.HandleAsync(
+            new CheckProductUrlPriceCommand(productUrl.Id), _dbContext, _scrapingServiceMock.Object, _workerSettingsMock.Object, _webhookDispatchServiceMock.Object, TimeProvider.System, Mock.Of<IMessageBus>(), _loggerMock.Object, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updatedUrl = await _dbContext.ProductUrls.FindAsync([productUrl.Id], TestContext.Current.CancellationToken);
+        updatedUrl!.Currency.Should().Be("EUR");
+    }
+
+    [Fact]
     public async Task HandleAsync_WithOutOfStock_PreservesLastKnownPrice()
     {
         // Arrange
@@ -707,8 +781,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WithOutOfStock_ResetsFailureCount()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.FailureCount = 2;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            failureCount: 2);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -732,8 +806,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_OutOfStockTransition_CreatesNotification()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.IsOutOfStock = false;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            isOutOfStock: false);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -761,8 +835,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_AlreadyOutOfStock_DoesNotDuplicateNotification()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.IsOutOfStock = true;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            isOutOfStock: true);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -786,8 +860,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_BackInStock_ClearsOutOfStockFlag()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.IsOutOfStock = true;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            isOutOfStock: true);
         productUrl.CurrentPrice = 50m;
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
@@ -812,8 +886,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_BackInStock_CreatesBackInStockNotification()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.IsOutOfStock = true;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            isOutOfStock: true);
         productUrl.CurrentPrice = 50m;
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
@@ -842,8 +916,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WithRateLimited_DoesNotIncrementFailureCount()
     {
         // Arrange
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.FailureCount = 0;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            failureCount: 0);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -921,9 +995,9 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WithCleanScrape_ClearsHasPriceAnomaly()
     {
         // Arrange — product had anomaly, now gets a normal price change
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productAnomalous: true);
         product.CurrentPrice = 100m;
-        product.HasPriceAnomaly = true;
         productUrl.CurrentPrice = 100m;
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
@@ -986,9 +1060,9 @@ public class CheckProductPriceHandlerTests : IDisposable
         user!.AutoPauseAfterFailures = 2;
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        product.Status = ProductStatus.Active;
-        productUrl.FailureCount = 1; // One more will reach threshold of 2
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productStatus: ProductStatus.Active, failureCount: 1);
+        // One more will reach threshold of 2
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1020,9 +1094,9 @@ public class CheckProductPriceHandlerTests : IDisposable
         user!.AutoPauseAfterFailures = 10;
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        product.Status = ProductStatus.Active;
-        productUrl.FailureCount = 2; // Would reach global threshold of 3, but user is 10
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productStatus: ProductStatus.Active, failureCount: 2);
+        // Would reach global threshold of 3, but user is 10
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1059,8 +1133,8 @@ public class CheckProductPriceHandlerTests : IDisposable
         user!.AutoPauseAfterFailures = 3;
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.FailureCount = 5;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            failureCount: 5);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1086,9 +1160,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_WhenAlreadyNotifiedForStreak_DoesNotNotifyAgain()
     {
         // Guard against the naive '>=' fix: a permanently-failing URL must not re-notify every cycle.
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.FailureCount = 5;
-        productUrl.FailureNotified = true;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            failureCount: 5, failureNotified: true);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1110,9 +1183,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     public async Task HandleAsync_AfterSuccessfulScrape_ClearsFailureNotifiedLatch()
     {
         // A new streak must be able to notify again.
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.FailureCount = 5;
-        productUrl.FailureNotified = true;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            failureCount: 5, failureNotified: true);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1141,9 +1213,8 @@ public class CheckProductPriceHandlerTests : IDisposable
         user!.AutoPauseAfterFailures = 6;
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        productUrl.FailureCount = 5;
-        productUrl.FailureNotified = true;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            failureCount: 5, failureNotified: true);
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1169,9 +1240,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     {
         // Guard for the hoist above: reconciling status outside the latch must not start erroring
         // products that still have a working URL.
-        var (product, failingUrl) = CreateProduct("Test Product", "https://example.com/failing");
-        failingUrl.FailureCount = 5;
-        failingUrl.FailureNotified = true;
+        var (product, failingUrl) = CreateProduct("Test Product", "https://example.com/failing",
+            failureCount: 5, failureNotified: true);
         var healthyUrl = new ProductUrl
         {
             Id = Guid.NewGuid(),
@@ -1206,8 +1276,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     {
         // Arrange — sibling URL is anomalous; a clean scrape of this URL must not erase the
         // product-level warning while the anomalous URL still contributes to the price.
-        var (product, cleanUrl) = CreateProduct("Test Product", "https://example.com/clean");
-        product.HasPriceAnomaly = true;
+        var (product, cleanUrl) = CreateProduct("Test Product", "https://example.com/clean",
+            productAnomalous: true);
         var anomalousUrl = new ProductUrl
         {
             Id = Guid.NewGuid(),
@@ -1241,9 +1311,8 @@ public class CheckProductPriceHandlerTests : IDisposable
     [Fact]
     public async Task HandleAsync_WithCleanScrapeAndNoOtherAnomaly_ClearsProductAnomalyFlag()
     {
-        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product");
-        product.HasPriceAnomaly = true;
-        productUrl.HasPriceAnomaly = true;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/product",
+            productAnomalous: true, urlAnomalous: true);
         productUrl.CurrentPrice = 100m;
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);
@@ -1336,9 +1405,119 @@ public class CheckProductPriceHandlerTests : IDisposable
         updatedProduct!.CurrentPrice.Should().Be(50m);
     }
 
+    [Fact]
+    public async Task HandleAsync_AtSuspiciousThreshold_DropsThePausedUrlFromProductMinimum()
+    {
+        // Arrange — the URL being paused holds the product MIN (50). Once paused, nothing re-scrapes
+        // it, so the live sibling's 80 must take over now rather than at the sibling's next scrape.
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/suspicious",
+            suspiciousCount: 2, urlStatus: ProductUrlStatus.Suspicious);
+        product.CurrentPrice = 50m;
+        productUrl.CurrentPrice = 50m;
+        var sibling = new ProductUrl
+        {
+            Id = Guid.NewGuid(),
+            ProductId = product.Id,
+            Url = "https://example.com/sibling",
+            Currency = "USD",
+            CurrentPrice = 80m
+        };
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.AddRange(productUrl, sibling);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync(productUrl.Url, productUrl.Selector, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ScrapingResult { Success = true, Price = 5m, Currency = "USD", FinalUrl = "https://other-domain.com/" });
+
+        // Act
+        await CheckProductPriceHandler.HandleAsync(
+            new CheckProductUrlPriceCommand(productUrl.Id), _dbContext, _scrapingServiceMock.Object, _workerSettingsMock.Object, _webhookDispatchServiceMock.Object, TimeProvider.System, Mock.Of<IMessageBus>(), _loggerMock.Object, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updatedProduct = await _dbContext.Products.FindAsync([product.Id], TestContext.Current.CancellationToken);
+        updatedProduct!.CurrentPrice.Should().Be(80m);
+        updatedProduct.PreviousPrice.Should().Be(50m);
+    }
+
+    [Fact]
+    public async Task HandleAsync_AtSuspiciousThresholdOnOnlyUrl_ClearsProductPrice()
+    {
+        // Arrange — with its only URL paused, the product has no live price: the same outcome as
+        // RemoveProductUrl leaving no priced live URL.
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/suspicious",
+            suspiciousCount: 2, urlStatus: ProductUrlStatus.Suspicious);
+        product.CurrentPrice = 100m;
+        productUrl.CurrentPrice = 100m;
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.Add(productUrl);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync(productUrl.Url, productUrl.Selector, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ScrapingResult { Success = true, Price = 5m, Currency = "USD", FinalUrl = "https://other-domain.com/" });
+
+        // Act
+        await CheckProductPriceHandler.HandleAsync(
+            new CheckProductUrlPriceCommand(productUrl.Id), _dbContext, _scrapingServiceMock.Object, _workerSettingsMock.Object, _webhookDispatchServiceMock.Object, TimeProvider.System, Mock.Of<IMessageBus>(), _loggerMock.Object, TestContext.Current.CancellationToken);
+
+        // Assert — the URL keeps its last price; only the product headline price goes
+        var updatedProduct = await _dbContext.Products.FindAsync([product.Id], TestContext.Current.CancellationToken);
+        updatedProduct!.CurrentPrice.Should().BeNull();
+        var updatedUrl = await _dbContext.ProductUrls.FindAsync([productUrl.Id], TestContext.Current.CancellationToken);
+        updatedUrl!.CurrentPrice.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task HandleAsync_AntiBotPause_DropsThePausedUrlFromProductMinimum()
+    {
+        // Arrange
+        var maxFailures = new WorkerSettings().MaxFailuresBeforeError;
+        var (product, productUrl) = CreateProduct("Test Product", "https://example.com/blocked",
+            failureCount: maxFailures - 1);
+        product.CurrentPrice = 50m;
+        productUrl.CurrentPrice = 50m;
+        var sibling = new ProductUrl
+        {
+            Id = Guid.NewGuid(),
+            ProductId = product.Id,
+            Url = "https://example.com/sibling",
+            Currency = "USD",
+            CurrentPrice = 80m
+        };
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.AddRange(productUrl, sibling);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync(productUrl.Url, productUrl.Selector, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ScrapingResult { Success = false, ErrorCategory = ScrapeErrorCategory.AntiBot });
+
+        // Act
+        await CheckProductPriceHandler.HandleAsync(
+            new CheckProductUrlPriceCommand(productUrl.Id), _dbContext, _scrapingServiceMock.Object, _workerSettingsMock.Object, _webhookDispatchServiceMock.Object, TimeProvider.System, Mock.Of<IMessageBus>(), _loggerMock.Object, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updatedUrl = await _dbContext.ProductUrls.FindAsync([productUrl.Id], TestContext.Current.CancellationToken);
+        updatedUrl!.Status.Should().Be(ProductUrlStatus.Paused);
+        var updatedProduct = await _dbContext.Products.FindAsync([product.Id], TestContext.Current.CancellationToken);
+        updatedProduct!.CurrentPrice.Should().Be(80m);
+    }
+
     #endregion
 
-    private (Product product, ProductUrl productUrl) CreateProduct(string name, string url)
+    private (Product product, ProductUrl productUrl) CreateProduct(
+        string name,
+        string url,
+        ProductStatus productStatus = ProductStatus.Active,
+        bool productAnomalous = false,
+        ProductUrlStatus urlStatus = ProductUrlStatus.Active,
+        int failureCount = 0,
+        bool failureNotified = false,
+        int suspiciousCount = 0,
+        string? suspiciousReason = null,
+        bool isOutOfStock = false,
+        bool urlAnomalous = false)
     {
         var product = new Product
         {
@@ -1346,14 +1525,22 @@ public class CheckProductPriceHandlerTests : IDisposable
             UserId = _testUserId,
             Name = name,
             Currency = "USD",
-            Status = ProductStatus.Active
+            Status = productStatus,
+            HasPriceAnomaly = productAnomalous
         };
         var productUrl = new ProductUrl
         {
             Id = Guid.NewGuid(),
             ProductId = product.Id,
             Url = url,
-            Currency = "USD"
+            Currency = "USD",
+            Status = urlStatus,
+            FailureCount = failureCount,
+            FailureNotified = failureNotified,
+            SuspiciousCount = suspiciousCount,
+            SuspiciousReason = suspiciousReason,
+            IsOutOfStock = isOutOfStock,
+            HasPriceAnomaly = urlAnomalous
         };
         return (product, productUrl);
     }

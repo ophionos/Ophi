@@ -389,10 +389,8 @@ public class GetProductsHandlerTests : IDisposable
             "paused" => ProductStatus.Paused,
             _ => throw new ArgumentException($"unhandled filter: {filterStatus}")
         };
-        var matchProduct = CreateProduct(expectedName, "https://example.com/1");
-        matchProduct.Status = matchStatus;
-        var otherProduct = CreateProduct("Other Product", "https://example.com/2");
-        otherProduct.Status = otherStatus;
+        var matchProduct = CreateProduct(expectedName, "https://example.com/1", status: matchStatus);
+        var otherProduct = CreateProduct("Other Product", "https://example.com/2", status: otherStatus);
         _dbContext.Products.AddRange(matchProduct, otherProduct);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -561,12 +559,9 @@ public class GetProductsHandlerTests : IDisposable
     public async Task Handle_WithSearchAndStatusFilter_AppliesBothFilters()
     {
         // Arrange
-        var activeMatch = CreateProduct("Sony Headphones", "https://example.com/1");
-        activeMatch.Status = ProductStatus.Active;
-        var pausedMatch = CreateProduct("Sony TV", "https://example.com/2");
-        pausedMatch.Status = ProductStatus.Paused;
-        var activeNoMatch = CreateProduct("Samsung TV", "https://example.com/3");
-        activeNoMatch.Status = ProductStatus.Active;
+        var activeMatch = CreateProduct("Sony Headphones", "https://example.com/1", status: ProductStatus.Active);
+        var pausedMatch = CreateProduct("Sony TV", "https://example.com/2", status: ProductStatus.Paused);
+        var activeNoMatch = CreateProduct("Samsung TV", "https://example.com/3", status: ProductStatus.Active);
         _dbContext.Products.AddRange(activeMatch, pausedMatch, activeNoMatch);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -608,14 +603,11 @@ public class GetProductsHandlerTests : IDisposable
     public async Task Handle_WithDifferentStatuses_ReturnsCorrectStatusString()
     {
         // Arrange
-        var activeProduct = CreateProduct("Active", "https://example.com/active");
-        activeProduct.Status = ProductStatus.Active;
+        var activeProduct = CreateProduct("Active", "https://example.com/active", status: ProductStatus.Active);
 
-        var errorProduct = CreateProduct("Error", "https://example.com/error");
-        errorProduct.Status = ProductStatus.Error;
+        var errorProduct = CreateProduct("Error", "https://example.com/error", status: ProductStatus.Error);
 
-        var pausedProduct = CreateProduct("Paused", "https://example.com/paused");
-        pausedProduct.Status = ProductStatus.Paused;
+        var pausedProduct = CreateProduct("Paused", "https://example.com/paused", status: ProductStatus.Paused);
 
         _dbContext.Products.AddRange(activeProduct, errorProduct, pausedProduct);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1387,15 +1379,12 @@ public class GetProductsHandlerTests : IDisposable
     public async Task Handle_WithAtLowestTrue_CombinesWithStatusFilter()
     {
         // Arrange — 2 active at lowest, 1 paused at lowest
-        var active1 = CreateProduct("Active 1", "https://example.com/a1");
+        var active1 = CreateProduct("Active 1", "https://example.com/a1", status: ProductStatus.Active);
         active1.CurrentPrice = 50m;
-        active1.Status = ProductStatus.Active;
-        var active2 = CreateProduct("Active 2", "https://example.com/a2");
+        var active2 = CreateProduct("Active 2", "https://example.com/a2", status: ProductStatus.Active);
         active2.CurrentPrice = 30m;
-        active2.Status = ProductStatus.Active;
-        var paused = CreateProduct("Paused", "https://example.com/p1");
+        var paused = CreateProduct("Paused", "https://example.com/p1", status: ProductStatus.Paused);
         paused.CurrentPrice = 20m;
-        paused.Status = ProductStatus.Paused;
         _dbContext.Products.AddRange(active1, active2, paused);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -1450,15 +1439,12 @@ public class GetProductsHandlerTests : IDisposable
     public async Task Handle_AtLowestCount_IsGlobalNotFiltered()
     {
         // Arrange — 2 at lowest (1 active, 1 paused), 1 not lowest — count should ignore status filter
-        var activeAtLowest = CreateProduct("Active At Lowest", "https://example.com/aal");
+        var activeAtLowest = CreateProduct("Active At Lowest", "https://example.com/aal", status: ProductStatus.Active);
         activeAtLowest.CurrentPrice = 50m;
-        activeAtLowest.Status = ProductStatus.Active;
-        var pausedAtLowest = CreateProduct("Paused At Lowest", "https://example.com/pal");
+        var pausedAtLowest = CreateProduct("Paused At Lowest", "https://example.com/pal", status: ProductStatus.Paused);
         pausedAtLowest.CurrentPrice = 30m;
-        pausedAtLowest.Status = ProductStatus.Paused;
-        var notLowest = CreateProduct("Not Lowest", "https://example.com/nl");
+        var notLowest = CreateProduct("Not Lowest", "https://example.com/nl", status: ProductStatus.Active);
         notLowest.CurrentPrice = 90m;
-        notLowest.Status = ProductStatus.Active;
         _dbContext.Products.AddRange(activeAtLowest, pausedAtLowest, notLowest);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 

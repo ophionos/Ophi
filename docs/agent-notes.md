@@ -93,11 +93,21 @@ other kind of fact. Link to owners; don't restate them here.
   beats USD 100 numerically while costing more. When no URL matches, the product re-anchors onto the
   **dominant** currency (most URLs, ties by code) and takes the MIN within it. Any fallback must
   choose a currency before comparing two decimals.
-- **Paused URLs never contribute to the product price** — their price is frozen. Both aggregation
-  sites (`CheckProductPriceHandler`, `RemoveProductUrl`) filter them out.
+  - **A re-anchor clears `PreviousPrice`.** It has no currency of its own, so a USD baseline next to a
+    EUR price showed USD 100 → EUR 92 as an 8 % drop (dashboard, price-drop filter, webhook `OldPrice`).
+    The frontend already renders a null `previousPrice` as "no change".
+- **Only an unpriced product or URL adopts a scraped currency outside the aggregator**
+  (`Product.AdoptCurrencyWhileUnpriced`, `ProductUrl.MarkOutOfStock(now, currency)`). The out-of-stock
+  path keeps the last price, so it must keep that price's currency: the forced retry reaches priced
+  products, and relabelling USD 50 as EUR 50 also flipped every alert's dormancy.
+- **Paused URLs never contribute to the product price** — their price is frozen. Every aggregation
+  site filters them out, and both auto-pauses in `CheckProductPriceHandler` re-aggregate without the
+  paused URL; otherwise its price held the MIN until a sibling's next scrape, or forever on a
+  single-URL product (which now shows no price). No `PriceUpdatedEvent` follows a pause.
 - **`RemoveProductUrl` must go through the aggregator.** Direct assignment left `Currency` pointing at
-  the removed URL and skipped the `PreviousPrice` capture. `ApplyAggregate` no-ops on an empty set, so
-  the caller handles "no live priced URL left" explicitly.
+  the removed URL and skipped the `PreviousPrice` capture. `ApplyAggregate` no-ops on an empty set (a
+  scrape that found nothing must not clobber a price); a caller passing the complete live set after a
+  URL left it uses `ApplyLiveAggregate`, which clears the price on an empty set.
 - **`ProductUrl.FailureNotified` latches the max-failures notification per streak.** The check is
   `FailureCount >= maxFailures && !FailureNotified`; `==` skipped the notification forever once a user
   lowered `AutoPauseAfterFailures` below a URL's count. Cleared by `RecordSuccessfulScrape`,
@@ -105,7 +115,9 @@ other kind of fact. Link to owners; don't restate them here.
   - **`MarkAsError` must NOT be gated on the latch.** Status is idempotent state: reconcile it on every
     at-threshold failing check; notify once.
 - **`HasPriceAnomaly` is per-URL; the `Product` flag is derived** (excluding paused URLs). Assigning
-  the product flag from one scrape erased a sibling URL's anomaly.
+  the product flag from one scrape erased a sibling URL's anomaly. `ProductUrl.ContributesPriceAnomaly`
+  is the rule; recompute after the last status change of the operation, or an auto-pause in the same
+  scrape leaves the flag set.
 
 ## One owner, because duplicates drift
 
@@ -185,6 +197,13 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   `auth` limit stops limiting. `handle.test.ts` and `ForwardedHeadersTests` guard both sides.
 
 ## API & backend patterns
+
+- **Entity state that has a domain method is `init`-only.** `Alert`, `Product.Status`/`HasPriceAnomaly`
+  and the `ProductUrl` scrape-health fields use a private `_camelCase` backing field (EF maps it by
+  convention) with a public `init`, so construction and test arrange still use object initializers but
+  later writes must go through the methods. A new mutation needs a method, not a setter.
+  `has-pending-model-changes` stays clean. The prices stay settable because the static
+  `ProductPriceAggregator` writes them.
 
 - **Settings API:** nullable int fields use sentinel `0` = "clear to null" (a `When` guard + `Must()`).
   Check-interval cascade: `product.CheckIntervalMinutes ?? user.DefaultCheckIntervalMinutes ?? 60`.

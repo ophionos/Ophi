@@ -116,8 +116,7 @@ public class AlertPipelineIntegrationTests : HandlerTestBase
         var product = CreateProduct("Test Product", 40m, 100m);
         DbContext.Products.Add(product);
 
-        var alert = CreateAlert(product, 50m, AlertCondition.Below);
-        alert.LastTriggeredAt = DateTime.UtcNow.AddMinutes(-30); // 30 min ago, within 60-min cooldown
+        var alert = CreateAlert(product, 50m, AlertCondition.Below, lastTriggeredAt: DateTime.UtcNow.AddMinutes(-30)); // 30 min ago, within 60-min cooldown
         DbContext.Alerts.Add(alert);
         await DbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -188,7 +187,8 @@ public class AlertPipelineIntegrationTests : HandlerTestBase
         };
     }
 
-    private Alert CreateAlert(Product product, decimal targetPrice, AlertCondition condition)
+    private Alert CreateAlert(
+        Product product, decimal targetPrice, AlertCondition condition, DateTime? lastTriggeredAt = null)
     {
         return new Alert
         {
@@ -201,7 +201,7 @@ public class AlertPipelineIntegrationTests : HandlerTestBase
             Condition = condition,
             IsActive = true,
             TriggerCount = 0,
-            LastTriggeredAt = null
+            LastTriggeredAt = lastTriggeredAt
         };
     }
 

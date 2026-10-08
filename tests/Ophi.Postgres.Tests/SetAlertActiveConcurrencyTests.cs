@@ -38,7 +38,7 @@ public class SetAlertActiveConcurrencyTests(PostgresFixture fixture)
         await using (var otherCtx = fixture.CreateContext())
         {
             var other = await otherCtx.Alerts.SingleAsync(a => a.Id == alertId, TestContext.Current.CancellationToken);
-            other.LastTriggeredAt = firedAt;
+            other.ClaimFiring(firedAt);
             await otherCtx.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 

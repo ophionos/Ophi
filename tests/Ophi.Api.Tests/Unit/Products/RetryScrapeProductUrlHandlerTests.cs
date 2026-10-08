@@ -42,11 +42,8 @@ public class RetryScrapeProductUrlHandlerTests : IDisposable
     public async Task Handle_WithValidProductUrl_MarksUrlDueAndClearsFailureState()
     {
         // Arrange — a previously-checked URL with a stale failure
-        var (product, productUrl) = CreateProductWithUrl("Test Product", "https://amazon.com/product");
-        productUrl.LastCheckedAt = DateTime.UtcNow.AddMinutes(-5);
-        productUrl.FailureCount = 2;
-        productUrl.LastError = "boom";
-        _dbContext.SaveChanges();
+        var (product, productUrl) = CreateProductWithUrl("Test Product", "https://amazon.com/product",
+            lastCheckedAt: DateTime.UtcNow.AddMinutes(-5), failureCount: 2, lastError: "boom");
 
         var command = new RetryScrapeProductUrl.Command(product.Id, productUrl.Id, _testUserId);
 
@@ -71,11 +68,9 @@ public class RetryScrapeProductUrlHandlerTests : IDisposable
     public async Task Handle_WithErroredProductAndPausedUrl_ReactivatesBothSoDispatcherPicksItUp()
     {
         // Arrange — an errored product whose URL was auto-paused after repeated failures
-        var (product, productUrl) = CreateProductWithUrl("Test Product", "https://amazon.com/product");
-        product.Status = ProductStatus.Error;
-        productUrl.Status = ProductUrlStatus.Paused;
-        productUrl.LastCheckedAt = DateTime.UtcNow.AddMinutes(-5);
-        _dbContext.SaveChanges();
+        var (product, productUrl) = CreateProductWithUrl("Test Product", "https://amazon.com/product",
+            productStatus: ProductStatus.Error, urlStatus: ProductUrlStatus.Paused,
+            lastCheckedAt: DateTime.UtcNow.AddMinutes(-5));
 
         var command = new RetryScrapeProductUrl.Command(product.Id, productUrl.Id, _testUserId);
 
@@ -143,7 +138,10 @@ public class RetryScrapeProductUrlHandlerTests : IDisposable
     }
 
     private (Product product, ProductUrl productUrl) CreateProductWithUrl(
-        string name, string url, Guid? userId = null)
+        string name, string url, Guid? userId = null,
+        ProductStatus productStatus = ProductStatus.Active,
+        ProductUrlStatus urlStatus = ProductUrlStatus.Active,
+        DateTime? lastCheckedAt = null, int failureCount = 0, string? lastError = null)
     {
         var ownerId = userId ?? _testUserId;
         var product = new Product
@@ -152,14 +150,18 @@ public class RetryScrapeProductUrlHandlerTests : IDisposable
             UserId = ownerId,
             Name = name,
             Currency = "USD",
-            Status = ProductStatus.Active
+            Status = productStatus
         };
         var productUrl = new ProductUrl
         {
             Id = Guid.NewGuid(),
             ProductId = product.Id,
             Url = url,
-            Currency = "USD"
+            Currency = "USD",
+            Status = urlStatus,
+            LastCheckedAt = lastCheckedAt,
+            FailureCount = failureCount,
+            LastError = lastError
         };
         _dbContext.Products.Add(product);
         _dbContext.ProductUrls.Add(productUrl);

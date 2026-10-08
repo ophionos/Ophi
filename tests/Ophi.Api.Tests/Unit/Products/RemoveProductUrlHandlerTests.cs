@@ -213,10 +213,9 @@ public class RemoveProductUrlHandlerTests : IDisposable
     public async Task Handle_WithPausedRemainingUrl_ExcludesItFromProductPrice()
     {
         // Arrange — the surviving url is paused, so its price is frozen and must not define the MIN.
-        var (product, url1, url2) = CreateProductWithTwoUrls();
+        var (product, url1, url2) = CreateProductWithTwoUrls(url2Status: ProductUrlStatus.Paused);
         url1.CurrentPrice = 50m;
         url2.CurrentPrice = 30m;
-        url2.Status = ProductUrlStatus.Paused;
         product.CurrentPrice = 30m;
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -233,12 +232,10 @@ public class RemoveProductUrlHandlerTests : IDisposable
     {
         // The product flag is derived from per-URL state; removing the URL that carried the anomaly
         // must recompute it, or it stays stuck until the next successful scrape.
-        var (product, url1, url2) = CreateProductWithTwoUrls();
+        var (product, url1, url2) = CreateProductWithTwoUrls(url1Anomalous: true, productAnomalous: true);
         url1.CurrentPrice = 50m;
-        url1.HasPriceAnomaly = true;
         url2.CurrentPrice = 80m;
         product.CurrentPrice = 50m;
-        product.HasPriceAnomaly = true;
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         await _handler.Handle(new RemoveProductUrl.Command(product.Id, url1.Id, _testUserId), TestContext.Current.CancellationToken);
@@ -250,12 +247,10 @@ public class RemoveProductUrlHandlerTests : IDisposable
     [Fact]
     public async Task Handle_RemovingCleanUrl_KeepsAnomalyFlagFromSurvivingUrl()
     {
-        var (product, url1, url2) = CreateProductWithTwoUrls();
+        var (product, url1, url2) = CreateProductWithTwoUrls(url2Anomalous: true, productAnomalous: true);
         url1.CurrentPrice = 50m;
         url2.CurrentPrice = 80m;
-        url2.HasPriceAnomaly = true;
         product.CurrentPrice = 50m;
-        product.HasPriceAnomaly = true;
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         await _handler.Handle(new RemoveProductUrl.Command(product.Id, url1.Id, _testUserId), TestContext.Current.CancellationToken);
@@ -282,7 +277,9 @@ public class RemoveProductUrlHandlerTests : IDisposable
         updated!.CurrentPrice.Should().BeNull();
     }
 
-    private (Product product, ProductUrl url1, ProductUrl url2) CreateProductWithTwoUrls()
+    private (Product product, ProductUrl url1, ProductUrl url2) CreateProductWithTwoUrls(
+        ProductUrlStatus url2Status = ProductUrlStatus.Active,
+        bool url1Anomalous = false, bool url2Anomalous = false, bool productAnomalous = false)
     {
         var product = new Product
         {
@@ -290,7 +287,8 @@ public class RemoveProductUrlHandlerTests : IDisposable
             UserId = _testUserId,
             Name = "Test Product",
             Currency = "USD",
-            Status = ProductStatus.Active
+            Status = ProductStatus.Active,
+            HasPriceAnomaly = productAnomalous
         };
         _dbContext.Products.Add(product);
 
@@ -299,14 +297,17 @@ public class RemoveProductUrlHandlerTests : IDisposable
             Id = Guid.NewGuid(),
             ProductId = product.Id,
             Url = "https://amazon.com/product",
-            Currency = "USD"
+            Currency = "USD",
+            HasPriceAnomaly = url1Anomalous
         };
         var url2 = new ProductUrl
         {
             Id = Guid.NewGuid(),
             ProductId = product.Id,
             Url = "https://walmart.com/product",
-            Currency = "USD"
+            Currency = "USD",
+            Status = url2Status,
+            HasPriceAnomaly = url2Anomalous
         };
         _dbContext.ProductUrls.AddRange(url1, url2);
         _dbContext.SaveChanges();

@@ -2,7 +2,7 @@ using FluentAssertions;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
 
-namespace Ophi.Infrastructure.Tests.Domain;
+namespace Ophi.Domain.Tests;
 
 public class ProductUrlTests
 {
@@ -115,6 +115,42 @@ public class ProductUrlTests
         var wasInStock = url.MarkOutOfStock(Now);
 
         wasInStock.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MarkOutOfStock_WithoutAPrice_AdoptsTheScrapedCurrency()
+    {
+        var url = new ProductUrl { Currency = "USD", CurrentPrice = null };
+
+        url.MarkOutOfStock(Now, "EUR");
+
+        url.Currency.Should().Be("EUR");
+    }
+
+    [Fact]
+    public void MarkOutOfStock_WithAPrice_KeepsTheCurrencyOfThatPrice()
+    {
+        // The last-known price is preserved, so its denomination must be too: relabelling USD 25
+        // as EUR 25 would feed a wrong amount into the next aggregate.
+        var url = new ProductUrl { Currency = "USD", CurrentPrice = 25m };
+
+        url.MarkOutOfStock(Now, "EUR");
+
+        url.Currency.Should().Be("USD");
+        url.CurrentPrice.Should().Be(25m);
+    }
+
+    [Fact]
+    public void MarkSuspicious_OnPausedUrl_StaysPaused()
+    {
+        // Mirrors ClearSuspicious: only Resume() leaves Paused. A suspicious scrape of a paused URL
+        // must not un-pause it by flipping Status to Suspicious.
+        var url = new ProductUrl { Status = ProductUrlStatus.Paused, SuspiciousCount = 3 };
+
+        url.MarkSuspicious("redirected");
+
+        url.Status.Should().Be(ProductUrlStatus.Paused);
+        url.SuspiciousCount.Should().Be(4);
     }
 
     [Fact]

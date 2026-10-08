@@ -147,14 +147,10 @@ public static class CheckProductPriceHandler
         // anomaly still present on a sibling that is also feeding the product's price.
         var priceAnomaly = ScrapeHealthAnalyzer.AnalyzePriceAnomaly(
             productUrl.CurrentPrice, result.Price!.Value, anomalyThreshold);
-        productUrl.HasPriceAnomaly = priceAnomaly.IsSuspicious;
+        productUrl.RecordPriceAnomaly(priceAnomaly.IsSuspicious);
 
-        var siblingAnomaly = await dbContext.ProductUrls
-            .AnyAsync(pu => pu.ProductId == product.Id
-                && pu.Id != productUrl.Id
-                && pu.Status != ProductUrlStatus.Paused
-                && pu.HasPriceAnomaly, cancellationToken);
-        product.HasPriceAnomaly = priceAnomaly.IsSuspicious || siblingAnomaly;
+        var siblingAnomaly = await AnyLiveSiblingHasAnomalyAsync(dbContext, productUrl, cancellationToken);
+        product.RecomputePriceAnomaly(productUrl, siblingAnomaly);
 
         if (analysis.IsSuspicious)
         {
@@ -167,7 +163,11 @@ public static class CheckProductPriceHandler
             {
                 // Auto-pause: do NOT update price to avoid corruption
                 productUrl.Pause();
-                productUrl.LastCheckedAt = now;
+                productUrl.MarkChecked(now);
+                // The pause takes this URL's anomaly out of the product flag set above, and its
+                // price out of the product MIN.
+                product.RecomputePriceAnomaly(productUrl, siblingAnomaly);
+                await ReaggregateWithoutAsync(dbContext, product, productUrl, cancellationToken);
 
                 dbContext.Notifications.Add(new Notification
                 {
@@ -287,7 +287,7 @@ public static class CheckProductPriceHandler
         ILogger logger,
         CancellationToken cancellationToken)
     {
-        var wasInStock = productUrl.MarkOutOfStock(timeProvider.GetUtcNow().UtcDateTime);
+        var wasInStock = productUrl.MarkOutOfStock(timeProvider.GetUtcNow().UtcDateTime, result.Currency);
 
         // Do NOT update CurrentPrice — preserve last known price
 
@@ -314,6 +314,36 @@ public static class CheckProductPriceHandler
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return null; // No PriceUpdatedEvent for OOS
+    }
+
+    /// <summary>SQL restatement of <see cref="ProductUrl.ContributesPriceAnomaly"/> for the other URLs.</summary>
+    private static Task<bool> AnyLiveSiblingHasAnomalyAsync(
+        OphiDbContext dbContext, ProductUrl productUrl, CancellationToken cancellationToken) =>
+        dbContext.ProductUrls.AnyAsync(pu => pu.ProductId == productUrl.ProductId
+            && pu.Id != productUrl.Id
+            && pu.Status != ProductUrlStatus.Paused
+            && pu.HasPriceAnomaly, cancellationToken);
+
+    /// <summary>
+    /// Recomputes the product MIN from the live URLs other than <paramref name="pausedUrl"/>, for
+    /// the auto-pause paths. A paused URL's price is frozen (the dispatcher skips it), so left in
+    /// place it would hold the product price until a sibling's next scrape, or forever on a
+    /// single-URL product. No <see cref="PriceUpdatedEvent"/> follows: the paused URL's price was
+    /// not scraped now, and on the suspicious path it is not trusted.
+    /// </summary>
+    private static async Task ReaggregateWithoutAsync(
+        OphiDbContext dbContext, Product product, ProductUrl pausedUrl, CancellationToken cancellationToken)
+    {
+        var livePrices = await dbContext.ProductUrls
+            .Where(pu => pu.ProductId == product.Id
+                && pu.Id != pausedUrl.Id
+                && pu.Status != ProductUrlStatus.Paused
+                && pu.CurrentPrice != null)
+            .Select(pu => new { Price = pu.CurrentPrice!.Value, pu.Currency })
+            .ToListAsync(cancellationToken);
+
+        ProductPriceAggregator.ApplyLiveAggregate(
+            product, livePrices.Select(u => new ProductPriceAggregator.UrlPrice(u.Price, u.Currency)).ToList());
     }
 
     private static async Task HandleFailure(
@@ -399,6 +429,11 @@ public static class CheckProductPriceHandler
         {
             productUrl.Pause();
             productUrl.MarkFailureNotified();
+            // The pause takes this URL's anomaly (from an earlier scrape) out of the product flag,
+            // and its price out of the product MIN.
+            product.RecomputePriceAnomaly(
+                productUrl, await AnyLiveSiblingHasAnomalyAsync(dbContext, productUrl, cancellationToken));
+            await ReaggregateWithoutAsync(dbContext, product, productUrl, cancellationToken);
 
             logger.LogWarning(
                 "ProductUrl {ProductUrlId} paused after {Count} anti-bot blocks from this host",

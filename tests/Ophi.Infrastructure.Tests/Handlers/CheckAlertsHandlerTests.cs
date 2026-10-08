@@ -192,8 +192,7 @@ public class CheckAlertsHandlerTests : HandlerTestBase
         var product = CreateProduct("Test Product", 40m, 100m);
         DbContext.Products.Add(product);
 
-        var alert = CreateAlert(product, 50m, AlertCondition.Below);
-        alert.LastTriggeredAt = DateTime.UtcNow.AddMinutes(-30); // 30 min ago, still in cooldown
+        var alert = CreateAlert(product, 50m, AlertCondition.Below, lastTriggeredAt: DateTime.UtcNow.AddMinutes(-30)); // 30 min ago, still in cooldown
         DbContext.Alerts.Add(alert);
         await DbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -214,8 +213,7 @@ public class CheckAlertsHandlerTests : HandlerTestBase
         var product = CreateProduct("Test Product", 40m, 100m);
         DbContext.Products.Add(product);
 
-        var alert = CreateAlert(product, 50m, AlertCondition.Below);
-        alert.LastTriggeredAt = DateTime.UtcNow.AddMinutes(-61); // 61 min ago, past cooldown
+        var alert = CreateAlert(product, 50m, AlertCondition.Below, lastTriggeredAt: DateTime.UtcNow.AddMinutes(-61)); // 61 min ago, past cooldown
         DbContext.Alerts.Add(alert);
         await DbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -241,7 +239,7 @@ public class CheckAlertsHandlerTests : HandlerTestBase
         DbContext.Products.Add(product);
 
         var alert = CreateAlert(product, 50m, AlertCondition.Below);
-        alert.IsActive = false;
+        alert.Pause();
         DbContext.Alerts.Add(alert);
         await DbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -312,8 +310,7 @@ public class CheckAlertsHandlerTests : HandlerTestBase
         var product = CreateProduct("Test Product", 40m, 100m);
         DbContext.Products.Add(product);
 
-        var alert1 = CreateAlert(product, 50m, AlertCondition.Below);
-        alert1.LastTriggeredAt = DateTime.UtcNow.AddMinutes(-30); // In cooldown
+        var alert1 = CreateAlert(product, 50m, AlertCondition.Below, lastTriggeredAt: DateTime.UtcNow.AddMinutes(-30)); // In cooldown
 
         var alert2 = CreateAlert(product, 60m, AlertCondition.Below);
         // No previous trigger — can fire
@@ -570,8 +567,7 @@ public class CheckAlertsHandlerTests : HandlerTestBase
         var product = CreateProduct("Test Product", 40m, 100m);
         DbContext.Products.Add(product);
 
-        var alert = CreateAlert(product, 50m, AlertCondition.Below);
-        alert.LastTriggeredAt = DateTime.UtcNow.AddHours(-2);
+        var alert = CreateAlert(product, 50m, AlertCondition.Below, lastTriggeredAt: DateTime.UtcNow.AddHours(-2));
         DbContext.Alerts.Add(alert);
         await DbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -717,7 +713,8 @@ public class CheckAlertsHandlerTests : HandlerTestBase
     }
 
     private Alert CreateAlert(
-        Product product, decimal targetPrice, AlertCondition condition, string currency = "USD")
+        Product product, decimal targetPrice, AlertCondition condition, string currency = "USD",
+        DateTime? lastTriggeredAt = null)
     {
         return new Alert
         {
@@ -731,7 +728,7 @@ public class CheckAlertsHandlerTests : HandlerTestBase
             Condition = condition,
             IsActive = true,
             TriggerCount = 0,
-            LastTriggeredAt = null
+            LastTriggeredAt = lastTriggeredAt
         };
     }
 

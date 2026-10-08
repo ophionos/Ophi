@@ -225,7 +225,7 @@ public class DeleteAlertHandlerTests : IDisposable
         _dbContext.Products.Add(product);
 
         var alert = CreateAlert(product.Id, 50m);
-        alert.IsActive = false;
+        alert.Pause();
         _dbContext.Alerts.Add(alert);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 

@@ -24,6 +24,7 @@ src/
 
 tests/
 ├── Ophi.Api.Tests/             # SQLite in-memory
+├── Ophi.Domain.Tests/          # Entity and domain-service rules; references Ophi.Domain only
 ├── Ophi.Infrastructure.Tests/  # SQLite in-memory; also covers Worker handlers
 ├── Ophi.Postgres.Tests/        # Provider-sensitive tier on a real Postgres
 └── Ophi.TestHelpers/           # TestDbContextFactory, TestEntityFactory

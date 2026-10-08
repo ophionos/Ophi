@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Ophi.Domain.Entities;
 
-namespace Ophi.Infrastructure.Tests.Domain;
+namespace Ophi.Domain.Tests;
 
 public class UserTests
 {
