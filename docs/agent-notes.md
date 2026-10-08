@@ -158,6 +158,12 @@ other kind of fact. Link to owners; don't restate them here.
   cycle. Strictly category-gated — `RateLimited`/`NetworkError`/`ServerError` can clear on their own.
   The pause consumes the failure latch so the user gets the pause notification, and `Resume()` is
   the way back.
+- **A failing URL backs off: `ProductUrl.BackoffUntil`** (2h from the second failure in a row,
+  doubling, capped at 24h). `ConsecutiveFailures` drives it, not `FailureCount`, because 429s never
+  spend the auto-pause budget and were otherwise retried at the normal interval forever. The
+  dispatcher filters it **in the stage-1 SQL, never in `IsDue`**: a backed-off URL is not re-stamped,
+  stays the oldest candidate, and would fill the over-fetch window. Every streak end clears it
+  (success, out-of-stock, `Resume()`, so also the manual retry).
 - **JSON-LD matches must be scalars.** Stringifying `"price": [10,20]` produced `10,20`, which the
   European-comma heuristic read as 10.20. `JsonPathExtractor.MatchesInBlock` skips non-`JsonValue`
   matches.
@@ -250,7 +256,8 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   `ProductPriceAggregator` writes them.
 
 - **Settings API:** nullable int fields use sentinel `0` = "clear to null" (a `When` guard + `Must()`).
-  Check-interval cascade: `product.CheckIntervalMinutes ?? user.DefaultCheckIntervalMinutes ?? 60`.
+  Check-interval cascade: `product.CheckIntervalMinutes ?? user.DefaultCheckIntervalMinutes ?? 60`,
+  overridden while a failure backoff runs.
 - **Metric cardinality:** price gauges carry only `product_id` + `store`; names live on
   `ophi_product_info{product_id, product_name}`, joined in Grafana with
   `* on(product_id) group_left(product_name) ophi_product_info`. Never add `product_name` to the gauges.

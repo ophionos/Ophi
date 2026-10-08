@@ -16,6 +16,11 @@ public class ProductUrl : BaseEntity
     private bool _isOutOfStock;
     private bool _failureNotified;
     private bool _hasPriceAnomaly;
+    private int _consecutiveFailures;
+    private DateTime? _backoffUntil;
+
+    /// <summary>The longest wait <see cref="BackoffUntil"/> imposes between checks.</summary>
+    public static readonly TimeSpan MaxBackoff = TimeSpan.FromHours(24);
 
     public string Url { get; init; } = string.Empty;
     public string? StoreId { get; init; }
@@ -49,6 +54,19 @@ public class ProductUrl : BaseEntity
     public bool HasPriceAnomaly { get => _hasPriceAnomaly; init => _hasPriceAnomaly = value; }
 
     /// <summary>
+    /// Failed checks in a row, of any category. Unlike <see cref="FailureCount"/> (the auto-pause
+    /// budget), it also counts rate-limited checks, so a URL that only ever gets 429s still backs off.
+    /// </summary>
+    public int ConsecutiveFailures { get => _consecutiveFailures; init => _consecutiveFailures = value; }
+
+    /// <summary>
+    /// The dispatcher does not check this URL before this time, whatever its check interval.
+    /// Set from the second consecutive failure on: 2h, then doubling, capped at <see cref="MaxBackoff"/>.
+    /// Cleared whenever the failure streak ends.
+    /// </summary>
+    public DateTime? BackoffUntil { get => _backoffUntil; init => _backoffUntil = value; }
+
+    /// <summary>
     /// Whether this URL feeds <see cref="Product.HasPriceAnomaly"/>: paused URLs are excluded, as
     /// they are from price aggregation. Not translatable to SQL — a query must restate it.
     /// </summary>
@@ -80,6 +98,7 @@ public class ProductUrl : BaseEntity
         _failureCount = 0;
         _failureNotified = false; // Streak over — a future streak must be able to notify again.
         _isOutOfStock = false;
+        ClearBackoff();
     }
 
     /// <summary>
@@ -93,6 +112,7 @@ public class ProductUrl : BaseEntity
         _failureCount++;
         _lastError = error;
         _lastCheckedAt = now;
+        ExtendBackoff(now);
     }
 
     /// <summary>
@@ -114,6 +134,23 @@ public class ProductUrl : BaseEntity
     {
         _lastError = error;
         _lastCheckedAt = now;
+        ExtendBackoff(now);
+    }
+
+    private void ExtendBackoff(DateTime now)
+    {
+        _consecutiveFailures++;
+        if (_consecutiveFailures < 2)
+            return;
+
+        var hours = Math.Pow(2, Math.Min(_consecutiveFailures - 1, 5));
+        _backoffUntil = now + TimeSpan.FromHours(Math.Min(hours, MaxBackoff.TotalHours));
+    }
+
+    private void ClearBackoff()
+    {
+        _consecutiveFailures = 0;
+        _backoffUntil = null;
     }
 
     /// <summary>
@@ -134,6 +171,7 @@ public class ProductUrl : BaseEntity
         _failureCount = 0; // The scrape worked, just OOS — don't budget against failures.
         _failureNotified = false;
         _lastCheckedAt = now;
+        ClearBackoff();
         return wasInStock;
     }
 
@@ -203,5 +241,6 @@ public class ProductUrl : BaseEntity
         _failureNotified = false;
         _hasPriceAnomaly = false;
         _lastError = null;
+        ClearBackoff();
     }
 }

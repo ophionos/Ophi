@@ -277,4 +277,71 @@ public class ProductUrlTests
         url.FailureCount.Should().Be(0);
         url.LastError.Should().BeNull();
     }
+
+    [Fact]
+    public void RecordFailure_FirstFailure_SetsNoBackoff()
+    {
+        // One failure can be a blip; the normal check interval handles the next attempt.
+        var url = new ProductUrl();
+
+        url.RecordFailure("HTTP 500", Now);
+
+        url.ConsecutiveFailures.Should().Be(1);
+        url.BackoffUntil.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(2, 2)]
+    [InlineData(3, 4)]
+    [InlineData(4, 8)]
+    [InlineData(5, 16)]
+    [InlineData(6, 24)]
+    [InlineData(20, 24)]
+    public void RecordFailure_RepeatedFailures_DoublesBackoffUpToADay(int failures, int expectedHours)
+    {
+        var url = new ProductUrl();
+
+        for (var i = 0; i < failures; i++)
+            url.RecordFailure("HTTP 500", Now);
+
+        url.BackoffUntil.Should().Be(Now.AddHours(expectedHours));
+    }
+
+    [Fact]
+    public void RecordTransientFailure_RepeatedRateLimits_BacksOffWithoutSpendingFailureBudget()
+    {
+        // A 429 never counts toward auto-pause, so without its own backoff a rate-limited URL was
+        // retried at the normal interval forever.
+        var url = new ProductUrl();
+
+        url.RecordTransientFailure("Rate limited", Now);
+        url.RecordTransientFailure("Rate limited", Now);
+        url.RecordTransientFailure("Rate limited", Now);
+
+        url.FailureCount.Should().Be(0);
+        url.ConsecutiveFailures.Should().Be(3);
+        url.BackoffUntil.Should().Be(Now.AddHours(4));
+    }
+
+    public static TheoryData<string> StreakEnders => new() { "success", "outOfStock", "resume", "rescrape" };
+
+    [Theory]
+    [MemberData(nameof(StreakEnders))]
+    public void EndingTheFailureStreak_ClearsBackoff(string streakEnder)
+    {
+        var url = new ProductUrl();
+        url.RecordFailure("HTTP 500", Now);
+        url.RecordFailure("HTTP 500", Now);
+
+        switch (streakEnder)
+        {
+            case "success": url.RecordSuccessfulScrape(10m, "USD", Now); break;
+            case "outOfStock": url.MarkOutOfStock(Now); break;
+            case "resume": url.Resume(); break;
+            case "rescrape": url.RequestImmediateRescrape(); break;
+        }
+
+        url.ConsecutiveFailures.Should().Be(0);
+        url.BackoffUntil.Should().BeNull();
+    }
 }
