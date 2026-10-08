@@ -80,4 +80,19 @@ describe('toast store', () => {
 		vi.advanceTimersByTime(1000); // 3500ms from second
 		expect(toast.items).toHaveLength(0);
 	});
+
+	// crypto.randomUUID only exists in secure contexts (HTTPS or localhost);
+	// over plain HTTP on a LAN address it is undefined.
+	it('should add toasts with unique ids when crypto.randomUUID is unavailable', () => {
+		vi.stubGlobal('crypto', {});
+		try {
+			toast.success('First');
+			toast.success('Second');
+		} finally {
+			vi.unstubAllGlobals();
+		}
+
+		expect(toast.items).toHaveLength(2);
+		expect(toast.items[0].id).not.toBe(toast.items[1].id);
+	});
 });

@@ -19,6 +19,7 @@
 	let saving = $state(false);
 	let error = $state('');
 	let copied = $state(false);
+	let copyFailed = $state(false);
 
 	const title = $derived(createdKey ? 'API Key Created' : 'Create API Key');
 
@@ -30,6 +31,7 @@
 		saving = false;
 		error = '';
 		copied = false;
+		copyFailed = false;
 	}
 
 	function handleClose() {
@@ -74,7 +76,14 @@
 
 	async function handleCopyKey() {
 		if (!createdKey) return;
-		await navigator.clipboard.writeText(createdKey);
+		// navigator.clipboard is undefined outside a secure context (plain HTTP on a LAN address).
+		try {
+			await navigator.clipboard.writeText(createdKey);
+		} catch {
+			copyFailed = true;
+			return;
+		}
+		copyFailed = false;
 		copied = true;
 		setTimeout(() => (copied = false), 2000);
 	}
@@ -108,6 +117,11 @@
 					{/if}
 				</button>
 			</div>
+			{#if copyFailed}
+				<p class="mt-2 text-xs text-red-600 dark:text-red-400" role="status">
+					Could not access the clipboard. Select the key and copy it manually.
+				</p>
+			{/if}
 			<div class="mt-4 flex justify-end">
 				<button
 					type="button"

@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import ApiKeyCreateModal from './ApiKeyCreateModal.svelte';
 
 describe('ApiKeyCreateModal', () => {
@@ -74,5 +74,49 @@ describe('ApiKeyCreateModal', () => {
 		await fireEvent.click(screen.getByText('Done'));
 
 		expect(onClose).toHaveBeenCalled();
+	});
+
+	describe('copy to clipboard', () => {
+		afterEach(() => {
+			vi.unstubAllGlobals();
+		});
+
+		it('should copy the key when the copy button is clicked', async () => {
+			const writeText = vi.fn().mockResolvedValue(undefined);
+			vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+			render(ApiKeyCreateModal, {
+				props: { ...defaultProps, createdKey: 'ophi_test_key_abc123' }
+			});
+
+			await fireEvent.click(screen.getByTitle('Copy to clipboard'));
+
+			expect(writeText).toHaveBeenCalledWith('ophi_test_key_abc123');
+			expect(screen.queryByText(/copy it manually/)).not.toBeInTheDocument();
+		});
+
+		// navigator.clipboard only exists in secure contexts (HTTPS or localhost);
+		// over plain HTTP on a LAN address it is undefined.
+		it('should show a manual-copy hint when the clipboard is unavailable', async () => {
+			vi.stubGlobal('navigator', { ...navigator, clipboard: undefined });
+			render(ApiKeyCreateModal, {
+				props: { ...defaultProps, createdKey: 'ophi_test_key_abc123' }
+			});
+
+			await fireEvent.click(screen.getByTitle('Copy to clipboard'));
+
+			expect(await screen.findByText(/copy it manually/)).toBeInTheDocument();
+		});
+
+		it('should show a manual-copy hint when the clipboard write is rejected', async () => {
+			const writeText = vi.fn().mockRejectedValue(new Error('NotAllowedError'));
+			vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+			render(ApiKeyCreateModal, {
+				props: { ...defaultProps, createdKey: 'ophi_test_key_abc123' }
+			});
+
+			await fireEvent.click(screen.getByTitle('Copy to clipboard'));
+
+			expect(await screen.findByText(/copy it manually/)).toBeInTheDocument();
+		});
 	});
 });
