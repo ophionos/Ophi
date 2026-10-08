@@ -46,7 +46,7 @@ public class ImportStoreHandlerTests : IDisposable
             "imported-store",
             "Imported Store",
             ["imported.com"],
-            new CreateStore.StoreSelectorDto(
+            new StoreSelectorDto(
                 [".price"],
                 [".name"],
                 [".img"],
@@ -88,7 +88,7 @@ public class ImportStoreHandlerTests : IDisposable
             "existing-store",
             "Another Store",
             ["another.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -119,7 +119,7 @@ public class ImportStoreHandlerTests : IDisposable
             "new-store",
             "New Store",
             ["overlap.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -150,7 +150,7 @@ public class ImportStoreHandlerTests : IDisposable
             "new-store",
             "New Store",
             ["OVERLAP.COM"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -202,7 +202,7 @@ public class ImportStoreHandlerTests : IDisposable
             exported.StoreId,
             exported.Name,
             exported.DomainPatterns,
-            new CreateStore.StoreSelectorDto(
+            new StoreSelectorDto(
                 exported.Selectors.PriceSelectors,
                 exported.Selectors.NameSelectors,
                 exported.Selectors.ImageSelectors,

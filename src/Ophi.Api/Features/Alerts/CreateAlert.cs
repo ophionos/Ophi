@@ -58,6 +58,12 @@ public static class CreateAlert
             RuleFor(x => x.TargetPrice)
                 .GreaterThan(0);
 
+            // A price is > 0, so a drop of 100 % or more can never happen.
+            RuleFor(x => x.TargetPrice)
+                .LessThan(100)
+                .When(x => x.Condition == "percentDrop")
+                .WithMessage("A percentage drop must be less than 100");
+
             RuleFor(x => x.Condition)
                 .NotEmpty()
                 .Must(c => c is "below" or "above" or "percentDrop")
@@ -144,7 +150,7 @@ public static class CreateAlert
         .WithName("CreateAlert")
         .WithTags("Alerts")
         .WithSummary("Create an alert")
-        .WithDescription("Creates a price alert for a product. Conditions: 'below' (price drops below target), 'above' (price rises above target), or 'percentDrop' (price drops by a percentage). Maximum 10 alerts per product. Notifications are sent via email with a cooldown to prevent spam.")
+        .WithDescription("Creates a price alert for a product. Conditions: 'below' (price drops below target), 'above' (price rises above target), or 'percentDrop' (price drops by a percentage). Each user can have at most Alerts:MaxAlertsPerUser active alerts (default 100); over the cap the request fails with 422. Notifications go to the user's enabled channels, with a cooldown to prevent spam.")
         .Produces<Response>(201)
         .RequireAuthorization()
         .RequireRateLimiting(Common.RateLimitPolicies.AlertCreation);

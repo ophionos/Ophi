@@ -44,7 +44,7 @@ public static class GetComparisonGroups
         .WithName("GetComparisonGroups")
         .WithTags("Comparisons")
         .WithSummary("List comparison groups")
-        .WithDescription("Returns all comparison groups for the current user with product counts and best price information for each group.")
+        .WithDescription("Returns all comparison groups for the current user with the product count of each group. Get a single group for its prices.")
         .Produces<Response>(200)
         .RequireAuthorization();
 }

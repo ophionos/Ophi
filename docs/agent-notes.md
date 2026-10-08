@@ -135,7 +135,14 @@ other kind of fact. Link to owners; don't restate them here.
 - **`ScrapeHelpers` owns logic both scraping services need.** Duplicated regex caches diverged (only
   one had the 5 s match timeout), so a backtracking user regex could pin a worker thread on
   JS-required stores. `ScrapeHealthAnalyzer` in `Ophi.Worker` reaches `ScrapeHelpers` through
-  `InternalsVisibleTo` rather than keep its own copy.
+  `InternalsVisibleTo` rather than keep its own copy. The cache is bounded (`MaxCachedRegexes`, then
+  cleared), because every edited store config would otherwise keep its old compiled patterns.
+  `NormalizeImageUrl` resolves with `Uri(base, src)`; the hand-built version dropped the port and
+  forced `https` on protocol-relative images.
+- **`Features/Stores/StoreSelectorDto.cs` owns the store-config rules** for CreateStore, UpdateStore
+  and ImportStore (`StoreSelectorDtoValidator`, `StoreRuleExtensions`). The three copies had drifted:
+  ImportStore never checked `CurrencyOverride`. Child errors keep the `Selectors.*` paths the
+  frontend keys on.
 - **`ScrapeHelpers.NormalizeHost` is the only host comparison.** A raw `Uri.Host` comparison read an
   apex ↔ `www.` redirect as a domain change, climbed `SuspiciousCount`, and auto-paused healthy URLs.
 - **`AntiBotSignals` is the only definition of a challenge page.** Challenges arrive as HTTP 200, so

@@ -42,7 +42,9 @@ public static class UpdateTag
     {
         public Validator()
         {
+            // Null leaves the name alone; a blank one is refused, as in CreateTag.
             RuleFor(x => x.Name)
+                .NotEmpty()
                 .MaximumLength(50)
                 .When(x => x.Name != null);
 

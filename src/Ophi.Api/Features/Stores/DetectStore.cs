@@ -18,7 +18,7 @@ public static class DetectStore
         .WithName("DetectStore")
         .WithTags("Stores")
         .WithSummary("Detect store for a URL")
-        .WithDescription("Checks if a matching store configuration exists for the given URL based on domain patterns. Returns the matched store or indicates no match was found. Checks both user-defined and built-in store configurations.")
+        .WithDescription("Fetches the page at the given URL and analyzes its HTML to suggest a store name, domain, and selectors for a new store configuration. Returns success=false with an error when the page cannot be fetched or no selectors are found. Nothing is saved.")
         .Produces<Response>(200)
         .RequireAuthorization();
     }

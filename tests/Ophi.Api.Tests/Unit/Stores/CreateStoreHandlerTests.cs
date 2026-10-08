@@ -46,7 +46,7 @@ public class CreateStoreHandlerTests : IDisposable
             "test-store",
             "Test Store",
             ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -81,7 +81,7 @@ public class CreateStoreHandlerTests : IDisposable
             "my-store",
             "Duplicate",
             ["other.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -112,7 +112,7 @@ public class CreateStoreHandlerTests : IDisposable
             "new-store",
             "New Store",
             ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -145,7 +145,7 @@ public class CreateStoreHandlerTests : IDisposable
             "new-store",
             "New Store",
             ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -175,7 +175,7 @@ public class CreateStoreHandlerTests : IDisposable
             "new-store",
             "New Store",
             ["different.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -213,7 +213,7 @@ public class CreateStoreHandlerTests : IDisposable
             "my-store",
             "My Store",
             ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -232,7 +232,7 @@ public class CreateStoreHandlerTests : IDisposable
             "test-store",
             "Test Store",
             ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null),
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null),
             "en-US",
             false,
             "EUR"
@@ -254,7 +254,7 @@ public class CreateStoreHandlerTests : IDisposable
             "test-store",
             "Test Store",
             ["example.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -273,7 +273,7 @@ public class CreateStoreHandlerTests : IDisposable
             "affiliate-store",
             "Affiliate Store",
             ["affiliate.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null),
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null),
             "en-US",
             false,
             null,
@@ -298,7 +298,7 @@ public class CreateStoreHandlerTests : IDisposable
             "no-affiliate-store",
             "No Affiliate Store",
             ["noaffiliate.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
@@ -319,7 +319,7 @@ public class CreateStoreHandlerTests : IDisposable
             "custom-ua-store",
             "Custom UA Store",
             ["custom-ua.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null),
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null),
             CustomUserAgent: customUa
         )
         { UserId = _testUserId };
@@ -343,7 +343,7 @@ public class CreateStoreHandlerTests : IDisposable
             "no-ua-store",
             "No UA Store",
             ["no-ua.com"],
-            new CreateStore.StoreSelectorDto([".price"], [".name"], [".img"], null, null)
+            new StoreSelectorDto([".price"], [".name"], [".img"], null, null)
         )
         { UserId = _testUserId };
 
