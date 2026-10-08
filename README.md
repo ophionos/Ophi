@@ -72,6 +72,23 @@ Compose reads these variables from the environment or from `docker/.env`:
 
 Discord alerts need no server setting: each user saves their own webhook URL.
 
+### Database backup and restore
+
+`scripts/db-backup.sh` dumps the whole database to `backups/ophi-<UTC timestamp>.dump` while the
+stack runs, and checks that the dump reads back in full. Copy the files off the host; for a daily
+backup, call the script from cron with an absolute output path.
+
+`scripts/db-restore.sh --check <file>` restores a dump into a scratch database, prints the row count
+of every table, and drops it again. Run it now and then: a backup you never restored is not proven.
+`scripts/db-restore.sh <file>` replaces the live database. It restores into the scratch database
+first, then stops `api` and `worker`, swaps the databases by rename, and starts them again. The old
+database stays as `ophi_before_restore_<timestamp>` until you drop it. `api` and `worker` apply
+migrations at startup, so a dump from an older version upgrades when they start.
+
+Run both scripts from the host that runs compose (with `sudo` if your user cannot reach Docker).
+`OPHI_COMPOSE` overrides the compose command, e.g. to add `--env-file`. The dump does not hold the
+Data Protection keys in the `ophi-data` volume; without them, everyone signs in again.
+
 ## Development
 
 Requirements: .NET 10 SDK, [Bun](https://bun.sh) (the version in `src/Ophi.Web/package.json`
