@@ -28,6 +28,7 @@ dotnet test --list-tests                                # prints "Discovered N t
 bun run test:run                      # Unit/component tests (single run) — always use this in an agent session
 bun run test                          # Watch mode — human use only; blocks a turn forever
 bun run check                         # Type-check (svelte-check) — `bun run build` does NOT type-check
+bun run lint -- --max-warnings 0      # ESLint exactly as CI runs it — svelte-check does not catch no-undef
 
 # Migrations (must run from Ophi.Infrastructure, NOT Ophi.Api)
 dotnet ef migrations add <Name> --project src/Ophi.Infrastructure --startup-project src/Ophi.Infrastructure
@@ -74,7 +75,7 @@ it('should display product name when loaded')
 ## Testing Conventions
 
 - This project uses **Moq** for mocking, NOT NSubstitute. Always check existing test files for mocking patterns before writing new tests.
-- **Green-before-commit — this bullet is the one owner of the rule.** After implementation work: `dotnet test`, plus from `src/Ophi.Web/` `bun run test:run` **and** `bun run check`. DB-behavior changes additionally need the real Postgres tier (see Known Gotchas); route/loader changes additionally need `bun run build` with `VITE_API_URL=/api/v1` (the illegal-export class — `docs/agent-notes.md` § CI gates). `/verify` and the `gate-runner` agent point here instead of restating it — don't add another copy, and don't stack extra self-verification passes on top of it.
+- **Green-before-commit — this bullet is the one owner of the rule.** After implementation work: `dotnet test`, plus from `src/Ophi.Web/` `bun run test:run`, `bun run check` **and** `bun run lint -- --max-warnings 0`. DB-behavior changes additionally need the real Postgres tier (see Known Gotchas); route/loader changes additionally need `bun run build` with `VITE_API_URL=/api/v1` (the illegal-export class — `docs/agent-notes.md` § CI gates). `/verify` and the `gate-runner` agent point here instead of restating it — don't add another copy, and don't stack extra self-verification passes on top of it.
 - **`bun run build` does NOT type-check.** Run `bun run check` (svelte-check) before considering frontend work done — TypeScript errors such as calling a non-existent API-client method (e.g. `getApiKeys` instead of `listApiKeys`) compile fine and only surface as a runtime 500. Enforced in CI (frontend "Type check" step) and locally by a Stop hook (`.claude/hooks/svelte-check.ps1`) that runs while `src/Ophi.Web/` has uncommitted changes, skipping when those exact changes already passed this session. Its sibling `dotnet-build.ps1` does the same for backend code.
 
 ## Scraping
