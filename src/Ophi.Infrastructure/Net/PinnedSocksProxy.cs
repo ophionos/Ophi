@@ -12,7 +12,8 @@ namespace Ophi.Infrastructure.Net;
 /// connection the browser opens (navigation, each redirect hop, sub-resources, WebSockets) passes here,
 /// and the checked address is the connected address (no DNS-rebinding window). TLS runs end-to-end
 /// through the tunnel, so the browser's fingerprint does not change. WebRTC UDP ignores SOCKS proxies;
-/// <see cref="Scraping.PlaywrightBrowserManager"/> turns it off with a launch flag.
+/// <see cref="Scraping.PlaywrightBrowserManager"/> turns it off with a launch flag. A host that the
+/// operator's <see cref="UpstreamProxy"/> routes is tunneled through it to the checked address.
 /// </summary>
 public sealed class PinnedSocksProxy : IAsyncDisposable
 {
@@ -35,14 +36,17 @@ public sealed class PinnedSocksProxy : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private readonly Func<string, CancellationToken, Task<IPAddress[]>> _resolve;
     private readonly Func<IPAddress, bool> _isBlocked;
+    private readonly UpstreamProxy? _upstream;
     private Task? _acceptLoop;
 
     private PinnedSocksProxy(
         Func<string, CancellationToken, Task<IPAddress[]>> resolve,
-        Func<IPAddress, bool> isBlocked)
+        Func<IPAddress, bool> isBlocked,
+        UpstreamProxy? upstream)
     {
         _resolve = resolve;
         _isBlocked = isBlocked;
+        _upstream = upstream;
     }
 
     public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
@@ -53,9 +57,10 @@ public sealed class PinnedSocksProxy : IAsyncDisposable
     /// <summary>Starts listening on an ephemeral loopback port.</summary>
     public static PinnedSocksProxy Start(
         Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null,
-        Func<IPAddress, bool>? isBlocked = null)
+        Func<IPAddress, bool>? isBlocked = null,
+        UpstreamProxy? upstream = null)
     {
-        var proxy = new PinnedSocksProxy(resolve ?? Dns.GetHostAddressesAsync, isBlocked ?? AddressPolicy.IsBlocked);
+        var proxy = new PinnedSocksProxy(resolve ?? Dns.GetHostAddressesAsync, isBlocked ?? AddressPolicy.IsBlocked, upstream);
         proxy._listener.Start();
         proxy._acceptLoop = proxy.AcceptLoopAsync();
         return proxy;
@@ -159,11 +164,16 @@ public sealed class PinnedSocksProxy : IAsyncDisposable
         Socket upstream;
         try
         {
-            upstream = await PinnedConnector.ConnectAsync(host, port, _resolve, _isBlocked, ct);
+            upstream = await PinnedConnector.ConnectAsync(host, port, _resolve, _isBlocked, ct, _upstream);
         }
         catch (BlockedDestinationException)
         {
             await ReplyAsync(client, ReplyNotAllowed, ct);
+            return null;
+        }
+        catch (UpstreamProxyException)
+        {
+            await ReplyAsync(client, ReplyGeneralFailure, ct);
             return null;
         }
         catch (SocketException ex)

@@ -22,7 +22,7 @@ public class PinnedSocksProxyBrowserTests
 
     private static PlaywrightBrowserManager BrowserBlocking(params IPAddress[] blocked) => new(
         NullLogger<PlaywrightBrowserManager>.Instance,
-        () => PinnedSocksProxy.Start(isBlocked: blocked.Contains));
+        startProxy: () => PinnedSocksProxy.Start(isBlocked: blocked.Contains));
 
     private static string Redirect(int port) =>
         $"HTTP/1.1 302 Found\r\nLocation: http://[::1]:{port}/\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
@@ -55,6 +55,26 @@ public class PinnedSocksProxyBrowserTests
 
         response!.Status.Should().Be(200);
         target.Connections.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Navigation_ListedDomain_TunnelsThroughTheUpstreamToTheCheckedAddress()
+    {
+        // Chromium sends the hostname to the pinning proxy; the upstream must get only the checked IP.
+        await using var upstream = FakeUpstreamProxy.Start(FakeUpstreamProxy.Mode.Http);
+        var route = UpstreamProxy.FromConfiguration($"http://127.0.0.1:{upstream.Port}", "shop.test");
+        await using var manager = new PlaywrightBrowserManager(
+            NullLogger<PlaywrightBrowserManager>.Instance,
+            startProxy: () => PinnedSocksProxy.Start(
+                resolve: (_, _) => Task.FromResult(new[] { IPAddress.Parse("203.0.113.7") }),
+                isBlocked: _ => false,
+                upstream: route));
+        var page = await manager.NewPageAsync();
+
+        var response = await page.GotoAsync("http://shop.test/item");
+
+        response!.Status.Should().Be(200);
+        upstream.LastConnectHead.Should().StartWith("CONNECT 203.0.113.7:80 HTTP/1.1\r\n");
     }
 
     [Fact]

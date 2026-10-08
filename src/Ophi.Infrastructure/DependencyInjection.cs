@@ -69,11 +69,16 @@ public static class DependencyInjection
         services.AddMemoryCache();
 
         // Scraping services
+        // Optional upstream proxy for operator-listed store domains (both scrape paths). Never for
+        // webhooks or ntfy: those reach the user's own endpoints.
+        services.AddSingleton(UpstreamProxy.FromConfiguration(
+            configuration[UpstreamProxy.UrlKey], configuration[UpstreamProxy.DomainsKey]));
+
         // HTTP-based scraping service (fast, works for most sites)
         services.AddHttpClient<ScrapingService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
-        }).UsePublicAddressesOnly();
+        }).UsePublicAddressesWithUpstreamProxy();
 
         // Register HTTP scraping service as keyed service
         services.AddKeyedScoped<IScrapingService, ScrapingService>("http",

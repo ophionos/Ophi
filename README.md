@@ -69,6 +69,8 @@ Compose reads these variables from the environment or from `docker/.env`:
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `PUSHOVER_APP_TOKEN` | no | One operator bot/app; each user saves only their own chat id / user key. |
 | `MetricsToken` | no | Enables Prometheus `/metrics` behind this bearer token (e.g. `openssl rand -hex 32`). Unset, the endpoint is off. |
 | `WEBHOOK_ALLOWED_NETWORKS` | no | Private networks outbound webhooks may reach, e.g. `192.168.1.0/24,100.64.0.0/10` for a LAN or tailnet ntfy/Gotify ([docs/security.md](docs/security.md)). |
+| `SCRAPE_PROXY_URL` | no | `http://` or `socks5://` proxy (optional `user:password@`) for scrapes of the domains in `SCRAPE_PROXY_DOMAINS`, for stores that refuse your network ([docs/security.md](docs/security.md)). |
+| `SCRAPE_PROXY_DOMAINS` | with `SCRAPE_PROXY_URL` | Comma-separated store domains, e.g. `shop.example,cdn.shop.example`. Each covers its subdomains. |
 | `FORWARDED_HEADERS_KNOWN_NETWORKS` | behind your own reverse proxy | Which proxies to trust for client IPs (per-IP rate limits; [docs/security.md](docs/security.md)). |
 
 Discord alerts need no server setting: each user saves their own webhook URL.

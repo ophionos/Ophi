@@ -43,6 +43,9 @@ services:
       - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN:-}
       # Private networks webhooks may reach (a LAN or tailnet ntfy/Gotify); see docs/security.md.
       - Webhooks__AllowedNetworks=${WEBHOOK_ALLOWED_NETWORKS:-}
+      # Upstream proxy for scrapes of the listed store domains only; see docs/security.md.
+      - Scraping__UpstreamProxy__Url=${SCRAPE_PROXY_URL:-}
+      - Scraping__UpstreamProxy__Domains=${SCRAPE_PROXY_DOMAINS:-}
     # Persist Data Protection keys (AuthSetup writes them to /app/data/dp-keys) so an
     # `api` container recreate doesn't rotate the keys and log every user out.
     volumes:
@@ -76,6 +79,8 @@ services:
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-}
       - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN:-}
       - Webhooks__AllowedNetworks=${WEBHOOK_ALLOWED_NETWORKS:-}
+      - Scraping__UpstreamProxy__Url=${SCRAPE_PROXY_URL:-}
+      - Scraping__UpstreamProxy__Domains=${SCRAPE_PROXY_DOMAINS:-}
     depends_on:
       db:
         condition: service_healthy

@@ -11,9 +11,10 @@ namespace Ophi.Infrastructure.Scraping;
 /// </summary>
 public sealed class PlaywrightBrowserManager(
     ILogger<PlaywrightBrowserManager> logger,
+    UpstreamProxy? upstream = null,
     Func<PinnedSocksProxy>? startProxy = null) : IPlaywrightBrowserManager
 {
-    private readonly Func<PinnedSocksProxy> _startProxy = startProxy ?? (() => PinnedSocksProxy.Start());
+    private readonly Func<PinnedSocksProxy> _startProxy = startProxy ?? (() => PinnedSocksProxy.Start(upstream: upstream));
 
     private IPlaywright? _playwright;
     private PinnedSocksProxy? _proxy;

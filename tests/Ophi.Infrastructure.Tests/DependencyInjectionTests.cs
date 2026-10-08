@@ -194,6 +194,36 @@ public class DependencyInjectionTests
         act.Should().Throw<InvalidOperationException>().WithMessage("*169.254.0.0/16*");
     }
 
+    [Fact]
+    public void UpstreamProxy_InvalidConfiguration_StopsStartup()
+    {
+        var services = new ServiceCollection();
+
+        var act = () => services.AddInfrastructure(BuildConfig(new Dictionary<string, string?>
+        {
+            [UpstreamProxy.UrlKey] = "http://proxy.test:8080"
+        }));
+
+        act.Should().Throw<InvalidOperationException>().WithMessage($"*{UpstreamProxy.DomainsKey}*");
+    }
+
+    [Fact]
+    public void UpstreamProxy_IsRegisteredFromConfiguration()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(TimeProvider.System);
+        services.AddInfrastructure(BuildConfig(new Dictionary<string, string?>
+        {
+            ["POSTGRES_CONNECTION"] = "Host=unused",
+            [UpstreamProxy.UrlKey] = "socks5://proxy.test:1080",
+            [UpstreamProxy.DomainsKey] = "shop.test"
+        }));
+        using var provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<UpstreamProxy>().Routes("www.shop.test").Should().BeTrue();
+    }
+
     private static (ServiceProvider Provider, ConcurrentQueue<string> Logs) BuildProviderCapturingLogs()
     {
         var logs = new ConcurrentQueue<string>();
