@@ -307,6 +307,10 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
 - **`liveRefresh()`** (`$lib/utils/liveRefresh.ts`) is THE pattern for SSE + poll-fallback surfaces.
   The SSE URL is `${API_BASE}/events` — `API_BASE` already contains `/api/v1` (`liveUpdates.test.ts`
   guards the doubled prefix).
+- **The service worker's account caches** (`ophi-pages`, `ophi-api`; rules in
+  `$lib/offline/cache-policy.ts`) hold one account's data. They survive app updates, so they must be
+  cleared at every session boundary (`endsSession`) and on a 401. A new API read the offline pages need
+  goes in `OFFLINE_API`; anything else is never saved.
 - **CommandPalette must keep its `if (!isOpen) return` keydown guard**, or Enter/arrows are hijacked app-wide.
 - **No unguarded secure-context-only APIs** (`crypto.randomUUID`, `crypto.subtle`, `navigator.clipboard`).
   Self-hosted instances are often opened over plain HTTP on a LAN address, where these are `undefined`;

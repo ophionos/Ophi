@@ -48,3 +48,12 @@ adapter-node's 512K default reach the API.
 
 The operator backs up the whole database with `scripts/db-backup.sh` and `scripts/db-restore.sh`
 (README § Database backup and restore).
+
+## Offline
+
+The app is a PWA. Offline it is read-only: the dashboard, product pages you opened, and their price
+history come from saved copies, and a banner shows "Prices from <time>". A change fails at once with
+"You are offline". Saved copies older than 7 days are not used. Login, logout, registration, account
+deletion and any 401 delete them, so a shared device never shows the previous account's data.
+Service workers need a secure context (HTTPS or `localhost`); over plain HTTP on a LAN address the
+offline view does not exist.

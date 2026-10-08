@@ -20,6 +20,7 @@
 	import { comparisons } from '$lib/stores/comparisons.svelte';
 	import { stores } from '$lib/stores/stores.svelte';
 	import SkipLink from '$lib/components/shared/SkipLink.svelte';
+	import OfflineBanner from '$lib/components/shared/OfflineBanner.svelte';
 	import { menuKeyNav } from '$lib/actions/menuKeyNav';
 	import InstallPrompt from '$lib/components/shared/InstallPrompt.svelte';
 	import NavigationProgress from '$lib/components/shared/NavigationProgress.svelte';
@@ -430,6 +431,10 @@
 		<!-- Signed-in only: asking a first-time visitor to install the app before they have an
 		     account put the banner over the marketing page, register and login. -->
 		<InstallPrompt />
+	{/if}
+
+	{#if data.user}
+		<OfflineBanner />
 	{/if}
 
 	{#if checkingAuth}
