@@ -9,6 +9,20 @@ namespace Ophi.Infrastructure.Net;
 /// </summary>
 public static class AddressPolicy
 {
+    /// <summary>
+    /// The blocked ranges an operator may re-open for webhooks (<see cref="WebhookAddressPolicy"/>):
+    /// private LAN space, CGNAT (also where Tailscale addresses live) and IPv6 unique-local. Loopback,
+    /// link-local (cloud metadata) and the other reserved ranges can never be re-opened.
+    /// </summary>
+    public static readonly IReadOnlyList<IPNetwork> ReopenableNetworks =
+    [
+        IPNetwork.Parse("10.0.0.0/8"),
+        IPNetwork.Parse("172.16.0.0/12"),
+        IPNetwork.Parse("192.168.0.0/16"),
+        IPNetwork.Parse("100.64.0.0/10"),
+        IPNetwork.Parse("fc00::/7")
+    ];
+
     public static bool IsBlocked(IPAddress address)
     {
         if (IPAddress.IsLoopback(address))
@@ -51,7 +65,7 @@ public static class AddressPolicy
     /// (<c>64:ff9b::/96</c>). <c>::</c> and <c>::1</c> unwrap to <c>0.0.0.x</c>, which
     /// <c>0.0.0.0/8</c> blocks anyway.
     /// </summary>
-    private static IPAddress? TryUnwrapIPv4(IPAddress address)
+    internal static IPAddress? TryUnwrapIPv4(IPAddress address)
     {
         if (address.AddressFamily != AddressFamily.InterNetworkV6)
             return null;

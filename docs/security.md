@@ -34,6 +34,21 @@ nothing about existing accounts. Sign-up stays open while the instance has **no*
 deployment can create its owner — create yours before you expose the URL. `GET /auth/registration`
 reports the state so the UI can hide the form. The default is open.
 
+## Webhooks to your own network
+
+Outbound webhooks refuse private and reserved addresses, like the scraper, so by default they cannot
+reach a Gotify, ntfy, Apprise or Home Assistant on the LAN or a tailnet. `Webhooks:AllowedNetworks`
+(compose: `WEBHOOK_ALLOWED_NETWORKS`, comma-separated CIDRs such as `192.168.1.0/24,100.64.0.0/10`)
+re-opens those networks for webhooks only. The scraper still refuses them.
+
+- Only networks inside 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 and fc00::/7 are
+  accepted. Any other entry, or one with host bits set, stops the API and the worker at startup.
+  Loopback, link-local (cloud metadata) and the other reserved ranges stay closed.
+- The check still runs on the resolved address of every connection and redirect hop.
+- With any network listed, webhook URLs may also use `.local` / `.internal` names.
+- **Every account on the instance can send webhooks to the listed networks.** Use it on a
+  single-operator instance, or with sign-up closed, and list the narrowest networks that work.
+
 ## Rate limits and the client IP
 
 A per-IP guard (600/min) runs before authentication, so a flood of made-up API keys cannot reach the
