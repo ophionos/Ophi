@@ -49,7 +49,9 @@ const settings = {
 	telegramNotificationsEnabled: false,
 	pushoverAvailable: false,
 	pushoverConfigured: false,
-	pushoverNotificationsEnabled: false
+	pushoverNotificationsEnabled: false,
+	ntfyConfigured: false,
+	ntfyNotificationsEnabled: false
 };
 
 beforeEach(() => {
@@ -264,6 +266,11 @@ describe('Settings — Notifications page', () => {
 		renderPage();
 		expect(screen.queryByTestId('telegram-card')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('pushover-card')).not.toBeInTheDocument();
+	});
+
+	it('should always show the ntfy card, since it needs no server setup', () => {
+		renderPage();
+		expect(screen.getByTestId('ntfy-card')).toBeInTheDocument();
 	});
 
 	it('should show available push channels and link the operator bot', () => {

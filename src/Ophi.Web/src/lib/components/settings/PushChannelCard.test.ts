@@ -50,6 +50,19 @@ describe('PushChannelCard', () => {
 		});
 	});
 
+	it('should save an ntfy topic URL under ntfyTopicUrl and toggle ntfy by name', async () => {
+		render(PushChannelCard, {
+			props: { ...base, channel: 'ntfy', recipientLabel: 'ntfy topic URL', configured: true }
+		});
+		await fireEvent.change(screen.getByLabelText('ntfy topic URL'), {
+			target: { value: 'https://ntfy.sh/ophi-alerts' }
+		});
+		expect(api.updateSettings).toHaveBeenCalledWith({ ntfyTopicUrl: 'https://ntfy.sh/ophi-alerts' });
+
+		await fireEvent.click(screen.getByRole('switch', { name: 'Toggle ntfy notifications' }));
+		expect(api.updateSettings).toHaveBeenCalledWith({ ntfyNotificationsEnabled: true });
+	});
+
 	it('should say a recipient is saved without showing it', () => {
 		render(PushChannelCard, { props: { ...base, configured: true } });
 		expect(screen.getByLabelText('Telegram chat id')).toHaveAttribute(

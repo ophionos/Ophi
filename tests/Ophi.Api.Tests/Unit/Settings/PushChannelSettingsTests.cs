@@ -13,7 +13,7 @@ using Ophi.TestHelpers;
 
 namespace Ophi.Api.Tests.Unit.Settings;
 
-/// <summary>Telegram / Pushover across GetSettings, UpdateSettings and the test-send slice (B-2).</summary>
+/// <summary>Telegram / Pushover / ntfy across GetSettings, UpdateSettings and the test-send slice (B-2).</summary>
 public class PushChannelSettingsTests : IDisposable
 {
     private const string ValidUserKey = "uQiRzpo4DXghDmr9QzzfQu27cmVRsG";
@@ -22,6 +22,7 @@ public class PushChannelSettingsTests : IDisposable
     private readonly OphiDbContext _dbContext;
     private readonly Mock<ITelegramService> _telegram = new();
     private readonly Mock<IPushoverService> _pushover = new();
+    private readonly Mock<INtfyService> _ntfy = new();
     private readonly Guid _userId = Guid.NewGuid();
 
     public PushChannelSettingsTests()
@@ -65,9 +66,10 @@ public class PushChannelSettingsTests : IDisposable
         result.TelegramConfigured.Should().BeTrue();
         result.TelegramNotificationsEnabled.Should().BeTrue();
         result.PushoverConfigured.Should().BeFalse();
-        // The chat id / user key are never echoed — the response has no field that carries them.
+        result.NtfyConfigured.Should().BeFalse();
+        // The chat id / user key / topic URL are never echoed — the response has no field that carries them.
         typeof(GetSettings.Response).GetProperties().Select(p => p.Name)
-            .Should().NotContain(["TelegramChatId", "PushoverUserKey"]);
+            .Should().NotContain(["TelegramChatId", "PushoverUserKey", "NtfyTopicUrl"]);
     }
 
     #endregion
@@ -75,9 +77,50 @@ public class PushChannelSettingsTests : IDisposable
     #region UpdateSettings
 
     private static UpdateSettings.Command Cmd(
-        string? chatId = null, bool? telegramOn = null, string? userKey = null, bool? pushoverOn = null) =>
+        string? chatId = null, bool? telegramOn = null, string? userKey = null, bool? pushoverOn = null,
+        string? ntfyUrl = null, bool? ntfyOn = null) =>
         new(null, null, TelegramChatId: chatId, TelegramNotificationsEnabled: telegramOn,
-            PushoverUserKey: userKey, PushoverNotificationsEnabled: pushoverOn);
+            PushoverUserKey: userKey, PushoverNotificationsEnabled: pushoverOn,
+            NtfyTopicUrl: ntfyUrl, NtfyNotificationsEnabled: ntfyOn);
+
+    [Fact]
+    public async Task Update_SetsAndClearsTheNtfyTopicUrl()
+    {
+        var handler = new UpdateSettings.Handler(_dbContext, NullLogger<UpdateSettings.Handler>.Instance);
+
+        var set = await handler.Handle(Cmd(ntfyUrl: " https://ntfy.sh/ophi-alerts ", ntfyOn: true) with { UserId = _userId },
+            TestContext.Current.CancellationToken);
+        set.NtfyConfigured.Should().BeTrue();
+        set.NtfyNotificationsEnabled.Should().BeTrue();
+        User().NtfyTopicUrl.Should().Be("https://ntfy.sh/ophi-alerts");
+
+        var cleared = await handler.Handle(Cmd(ntfyUrl: "") with { UserId = _userId }, TestContext.Current.CancellationToken);
+        cleared.NtfyConfigured.Should().BeFalse();
+        User().NtfyTopicUrl.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("https://ntfy.sh/ophi-alerts")]
+    [InlineData("")]
+    public void Validator_AcceptsNtfyTopicUrls(string url) =>
+        new UpdateSettings.Validator().TestValidate(Cmd(ntfyUrl: url)).ShouldNotHaveAnyValidationErrors();
+
+    [Theory]
+    [InlineData("https://ntfy.sh/")]
+    [InlineData("https://ntfy.sh/ophi-alerts?auth=x")]
+    [InlineData("http://192.168.1.10/ophi-alerts")] // private, and no allowlist
+    [InlineData("http://localhost/ophi-alerts")]
+    public void Validator_RejectsBadNtfyTopicUrls(string url) =>
+        new UpdateSettings.Validator().TestValidate(Cmd(ntfyUrl: url)).ShouldHaveValidationErrorFor(x => x.NtfyTopicUrl);
+
+    [Fact]
+    public void Validator_AcceptsAnNtfyServerOnAnAllowedNetwork()
+    {
+        // A self-hosted ntfy on the LAN is reachable through the webhook allowlist, like a webhook.
+        var validator = new UpdateSettings.Validator(Ophi.Infrastructure.Net.WebhookAddressPolicy.FromConfiguration("192.168.1.0/24"));
+
+        validator.TestValidate(Cmd(ntfyUrl: "http://192.168.1.10/ophi-alerts")).ShouldNotHaveAnyValidationErrors();
+    }
 
     [Fact]
     public async Task Update_SetsAndClearsRecipients()
@@ -130,7 +173,30 @@ public class PushChannelSettingsTests : IDisposable
     #region TestPushChannel
 
     private TestPushChannel.Handler TestHandler() => new(
-        _dbContext, _telegram.Object, _pushover.Object, NullLogger<TestPushChannel.Handler>.Instance);
+        _dbContext, _telegram.Object, _pushover.Object, _ntfy.Object, NullLogger<TestPushChannel.Handler>.Instance);
+
+    [Fact]
+    public async Task Test_Ntfy_SendsToTheStoredTopicUrl_WithNoOperatorSetup()
+    {
+        User().NtfyTopicUrl = "https://ntfy.sh/ophi-alerts";
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await TestHandler().Handle(
+            new TestPushChannel.Command(PushChannel.Ntfy) { UserId = _userId }, TestContext.Current.CancellationToken);
+
+        result.Success.Should().BeTrue();
+        _ntfy.Verify(n => n.SendPriceAlertAsync(It.IsAny<PushPriceAlert>(), "https://ntfy.sh/ophi-alerts", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Test_Ntfy_WithoutTopicUrl_ExplainsWhatIsMissing()
+    {
+        var result = await TestHandler().Handle(
+            new TestPushChannel.Command(PushChannel.Ntfy) { UserId = _userId }, TestContext.Current.CancellationToken);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Contain("topic URL");
+    }
 
     [Fact]
     public async Task Test_WithoutRecipient_ExplainsWhatIsMissing()

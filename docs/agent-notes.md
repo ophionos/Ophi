@@ -47,7 +47,7 @@ other kind of fact. Link to owners; don't restate them here.
     (`SetAlertActiveConcurrencyTests`).
 - **Alert delivery cascade:** `SendAlertNotificationHandler` persists the in-app notification and
   alert state, then returns one message per channel: email (if the user's email switch is on),
-  Discord / Telegram / Pushover (switch on **and** recipient set), webhook (always), plus a
+  Discord / Telegram / Pushover / ntfy (switch on **and** recipient set), webhook (always), plus a
   `LiveUpdate` for the bell. Channel handlers retry independently. `AlertCascadePipelineTests` guards it.
 - **The durable Postgres transport is gated on connection-string PRESENCE, not `DB_PROVIDER`**
   (`WolverineConfig`). `DB_PROVIDER` defaults to postgres, so gating on it would wire the transport
@@ -213,7 +213,7 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   policy to any new credential-management endpoint. (`ChangePassword` and `DeleteAccount` are safe for
   a key: both re-verify the current password.)
 - **Scraped text is attacker-controlled.** The merchant page sets the product name; HTML-encode it in
-  any HTML output (`EmailService.Html`). Discord, Telegram, and Pushover send it as plain text.
+  any HTML output (`EmailService.Html`). Discord, Telegram, Pushover, and ntfy (JSON body, not headers) send it as plain text.
 - **SecurityStamp rules for new endpoints:** any credential/identity mutation re-issues the cookie via
   `SignInUserAsync(id, email, name, stamp)` in the same request; after rotating call
   `stampGuard.Refresh(id, newStamp)`; after deleting a user call `stampGuard.Evict(id)`. Response records
@@ -265,10 +265,10 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
 - **CSV import:** CsvHelper with trim+lowercase header matching and silenced
   `HeaderValidated`/`MissingFieldFound`/`BadDataFound`, so optional columns are forgiving.
 - **A client that fetches a user-chosen URL uses `.UsePublicAddressesOnly()`** (`PublicAddressHandler`):
-  today the scraper and the webhook dispatcher. Fixed-host clients (Telegram, Pushover, ECB, Discord's
+  today the scraper, the webhook dispatcher, and ntfy. Fixed-host clients (Telegram, Pushover, ECB, Discord's
   prefix-validated URL) do not need it. `DependencyInjectionTests.UserUrlClient_UsesThePublicAddressHandler`
   lists the guarded clients — add a new one there. Do not put back a proxy or a dual-mode socket.
-  The webhook client uses `.UseWebhookAddressPolicy()` instead: the same handler with
+  The webhook and ntfy clients use `.UseWebhookAddressPolicy()` instead: the same handler with
   `WebhookAddressPolicy.IsBlocked`, which re-opens only the operator's `Webhooks:AllowedNetworks`
   (limited to `AddressPolicy.ReopenableNetworks`). Never pass that policy to the scraper.
 - **`BlockedDestination` never falls back to Playwright** (`HybridScrapingService`): the browser would be

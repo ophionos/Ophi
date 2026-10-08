@@ -26,6 +26,13 @@ public class User : BaseEntity
     public bool PushoverNotificationsEnabled { get; set; }
 
     /// <summary>
+    /// The user's own ntfy topic URL (ntfy.sh or self-hosted). Anyone who knows a public topic can read
+    /// it, so it is treated like the Discord URL: never returned by the API or put in a backup.
+    /// </summary>
+    public string? NtfyTopicUrl { get; set; }
+    public bool NtfyNotificationsEnabled { get; set; }
+
+    /// <summary>
     /// Optional ISO 4217 code to show converted prices in, beside the native price. Display only —
     /// null means off. Also the signal that makes the worker fetch exchange rates at all.
     /// </summary>

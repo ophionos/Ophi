@@ -333,6 +333,23 @@
 		</PushChannelCard>
 	{/if}
 
+	{#if pageData.settings}
+		<PushChannelCard
+			channel="ntfy"
+			title="ntfy Notifications"
+			description="Send price alerts to an ntfy topic, on ntfy.sh or your own server"
+			recipientLabel="ntfy topic URL"
+			placeholder="https://ntfy.sh/your-topic"
+			configured={pageData.settings.ntfyConfigured}
+			enabled={pageData.settings.ntfyNotificationsEnabled}
+		>
+			{#snippet help()}
+				Subscribe to the same topic in the ntfy app. Anyone who knows a topic on a public server can
+				read it, so pick a name that is hard to guess.
+			{/snippet}
+		</PushChannelCard>
+	{/if}
+
 	<WebhookList
 		webhooks={webhookTargets}
 		testingId={webhookTestingId}
