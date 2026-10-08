@@ -25,18 +25,36 @@ public static class ForgotPassword
         }
     }
 
-    public class Handler(OphiDbContext dbContext, IEmailService emailService, TimeProvider timeProvider, ILogger<Handler> logger)
+    /// <summary>
+    /// Background message carrying the normalized email. The lookup, token write and send happen in
+    /// <see cref="SendResetEmailHandler"/>, off the request path.
+    /// </summary>
+    public record SendResetEmail(string Email);
+
+    // Does the same work for every email — no lookup, no token write, no send — so the response time
+    // cannot reveal whether an account exists. Handled in the API process (the Worker does not discover
+    // this assembly, and the link needs APP_URL).
+    public class Handler(IMessageBus bus)
     {
-        public async Task<Response> Handle(Command request, CancellationToken cancellationToken)
+        public async Task<Response> Handle(Command request)
         {
-            var email = request.Email.ToLowerInvariant();
+            await bus.PublishAsync(new SendResetEmail(request.Email.ToLowerInvariant()));
+            return new Response();
+        }
+    }
+
+    public class SendResetEmailHandler(OphiDbContext dbContext, IEmailService emailService, TimeProvider timeProvider, ILogger<SendResetEmailHandler> logger)
+    {
+        public async Task Handle(SendResetEmail message, CancellationToken cancellationToken)
+        {
+            var email = message.Email.ToLowerInvariant();
             var user = await dbContext.Users
                 .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
 
             if (user == null)
             {
                 logger.LogDebug("Password reset requested for unknown email");
-                return new Response();
+                return;
             }
 
             var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
@@ -49,7 +67,6 @@ public static class ForgotPassword
             await emailService.SendPasswordResetAsync(user.Email, rawToken, cancellationToken);
 
             logger.LogInformation("Password reset token generated for user {UserId}", user.Id);
-            return new Response();
         }
     }
 

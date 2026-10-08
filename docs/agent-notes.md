@@ -218,7 +218,12 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   NOT skipped in Testing.
 - **Cookie `Secure` policy is gated on `IsProduction()`**, not `!IsDevelopment()`, which would break Testing.
 - **`Login` verifies a decoy hash for an unknown email** so response time doesn't reveal accounts. The
-  decoy comes from the injected `IPasswordHasher<User>` so it tracks tuned iteration counts.
+  decoy comes from the injected `IPasswordHasher<User>` so it tracks tuned iteration counts. On
+  `SuccessRehashNeeded` it stores the new hash with `User.UpgradePasswordHash`, never `ChangePassword`
+  (that rotates the stamp and signs out every other session).
+- **`ForgotPassword` does no lookup on the request path.** It publishes `SendResetEmail`, handled in
+  the API process, so known and unknown emails cost the same. Keep new account-existence-dependent
+  work in that handler.
 - **CSRF:** a 403 "Missing required request header" from curl means no `X-Requested-With`.
 - **Rate limits** are effectively unlimited in Development (e2e registers many users from one IP).
   Testing skips `UseRateLimiter`, so `ForwardedHeadersTests` rebuild the forwarded-headers + rate-limit

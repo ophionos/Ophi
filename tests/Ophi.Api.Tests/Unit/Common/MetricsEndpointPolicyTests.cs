@@ -39,4 +39,15 @@ public class MetricsEndpointPolicyTests
 
         MetricsEndpointPolicy.IsEnabled(env.Object, null).Should().BeTrue();
     }
+
+    [Theory]
+    [InlineData("Bearer secret-value", true)]
+    [InlineData("Bearer secret-valuE", false)]
+    [InlineData("Bearer secret", false)]
+    [InlineData("secret-value", false)]
+    [InlineData("", false)]
+    public void IsAuthorized_ComparesTheBearerToken(string authorizationHeader, bool expected)
+    {
+        MetricsEndpointPolicy.IsAuthorized(authorizationHeader, "secret-value").Should().Be(expected);
+    }
 }

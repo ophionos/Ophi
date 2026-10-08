@@ -78,6 +78,14 @@ public static class Login
                 throw new UnauthorizedException("Invalid email or password");
             }
 
+            if (result == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                // Upgrades a hash made under older PBKDF2 parameters. Not ChangePassword: that rotates
+                // the security stamp and would sign the user out of every other session.
+                user.UpgradePasswordHash(passwordHasher.HashPassword(user, request.Password));
+                logger.LogInformation("Upgraded password hash for user {UserId}", user.Id);
+            }
+
             user.LastLoginAt = timeProvider.GetUtcNow().UtcDateTime;
             await dbContext.SaveChangesAsync(cancellationToken);
 

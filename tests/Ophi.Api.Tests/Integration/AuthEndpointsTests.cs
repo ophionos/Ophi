@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Ophi.Api.Features.Auth;
+using Ophi.Infrastructure.Persistence;
 
 namespace Ophi.Api.Tests.Integration;
 
@@ -14,6 +17,36 @@ public class AuthEndpointsTests(OphiWebApplicationFactory factory) : IsolatedInt
         _client.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    #region Forgot Password Endpoint Tests
+
+    [Fact]
+    public async Task ForgotPassword_WithKnownEmail_StoresResetTokenInTheBackground()
+    {
+        // The request returns before the lookup; this proves the background message is handled in
+        // the API host (not dropped, not routed to a Worker that is not there).
+        var ct = TestContext.Current.CancellationToken;
+        var email = $"forgot-{Guid.NewGuid()}@example.com";
+        (await _client.PostAsJsonAsync("/api/v1/auth/register",
+            new { Email = email, Password = "Password123!", Name = "Test User" }, ct)).EnsureSuccessStatusCode();
+
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/forgot-password", new { Email = email }, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        string? tokenHash = null;
+        for (var attempt = 0; attempt < 50 && tokenHash == null; attempt++)
+        {
+            await Task.Delay(100, ct);
+            using var scope = Factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<OphiDbContext>();
+            tokenHash = await db.Users.AsNoTracking()
+                .Where(u => u.Email == email).Select(u => u.PasswordResetTokenHash).SingleAsync(ct);
+        }
+
+        tokenHash.Should().NotBeNullOrEmpty();
+    }
+
+    #endregion
 
     #region Register Endpoint Tests
 
