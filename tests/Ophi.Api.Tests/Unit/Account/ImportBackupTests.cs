@@ -130,6 +130,20 @@ public class ImportBackupTests : IDisposable
     }
 
     [Fact]
+    public async Task Import_SkipsAProductWhoseUrlMatchesATrackedOneByKey()
+    {
+        var tracked = TestEntityFactory.Product(_userId).Named("Already here").Build();
+        _db.Products.Add(tracked);
+        _db.ProductUrls.Add(TestEntityFactory.ProductUrl(tracked.Id).WithUrl("https://shop.test/xm5").Build());
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await ImportAsync(Bundle(Product("Sony XM5", "https://www.shop.test/xm5?utm_source=mail")));
+
+        result.ProductsAdded.Should().Be(0);
+        result.ProductsSkipped.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Import_IntoAnAccountWithProducts_LeavesItsSettingsAlone()
     {
         // Merge-only covers settings too: restoring one deleted product must not, say, turn email

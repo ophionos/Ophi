@@ -52,6 +52,29 @@ public class ImportProductsHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithRowsDifferingOnlyByTrackingParams_ImportsOneAndSkipsTheRest()
+    {
+        var result = await Import(
+            Row(2, "https://shop.example.com/item"),
+            Row(3, "https://shop.example.com/item?utm_source=sheet"),
+            Row(4, "https://www.shop.example.com/item#specs"));
+
+        result.Added.Should().Be(1);
+        result.Skipped.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_WithRowMatchingATrackedUrlByKey_SkipsIt()
+    {
+        await Import(Row(2, "https://shop.example.com/item"));
+
+        var result = await Import(Row(2, "https://shop.example.com/item?fbclid=abc"));
+
+        result.Added.Should().Be(0);
+        result.Skipped.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Handle_WithUrlLongerThanColumn_ReportsLineError()
     {
         var result = await Import(Row(2, "https://shop.example.com/" + new string('u', 2048)));

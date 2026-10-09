@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
 using Ophi.Api.Features.Products;
 
@@ -111,6 +112,59 @@ public class ProductEndpointsTests : IsolatedIntegrationTest, IClassFixture<Ophi
 
         // Assert
         secondResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task AddProduct_WithDuplicateUrlByKey_ReturnsConflictWithTheExistingProductId()
+    {
+        // Arrange
+        var client = await CreateAuthenticatedClientAsync();
+        var url = $"https://shop.example/p/{Guid.NewGuid():N}";
+        var first = await client.PostAsJsonAsync("/api/v1/products", new { Url = url }, cancellationToken: TestContext.Current.CancellationToken);
+        var created = await first.Content.ReadFromJsonAsync<AddProduct.Response>(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Act
+        var second = await client.PostAsJsonAsync("/api/v1/products", new { Url = url + "?utm_source=extension" }, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var body = await second.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
+        body.GetProperty("error").GetString().Should().Be("Conflict");
+        body.GetProperty("productId").GetGuid().Should().Be(created!.Id);
+        body.TryGetProperty("productUrlId", out _).Should().BeTrue();
+        // details stays the field → messages map the frontend reads; the IDs must not leak into it.
+        body.TryGetProperty("details", out var details).Should().BeTrue();
+        details.ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task LookupProduct_WithTrackedUrl_ReturnsTheProduct()
+    {
+        // Arrange
+        var client = await CreateAuthenticatedClientAsync();
+        var url = $"https://shop.example/p/{Guid.NewGuid():N}";
+        var first = await client.PostAsJsonAsync("/api/v1/products", new { Url = url }, cancellationToken: TestContext.Current.CancellationToken);
+        var created = await first.Content.ReadFromJsonAsync<AddProduct.Response>(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Act
+        var response = await client.GetAsync(
+            $"/api/v1/products/lookup?url={Uri.EscapeDataString(url + "?fbclid=abc")}", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<LookupProduct.Response>(cancellationToken: TestContext.Current.CancellationToken);
+        result!.ProductId.Should().Be(created!.Id);
+    }
+
+    [Fact]
+    public async Task LookupProduct_WithUntrackedUrl_ReturnsNotFound()
+    {
+        var client = await CreateAuthenticatedClientAsync();
+
+        var response = await client.GetAsync(
+            $"/api/v1/products/lookup?url={Uri.EscapeDataString("https://shop.example/p/never-added")}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     #endregion

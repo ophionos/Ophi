@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
+using Ophi.Api.Common.Helpers;
 using Ophi.Api.Common.Validators;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
@@ -73,13 +74,12 @@ public static class AddProductUrl
                 .FirstOrDefaultAsync(p => p.Id == request.ProductId && p.UserId == request.UserId, cancellationToken)
                 ?? throw new NotFoundException("Product not found");
 
-            // Check for duplicate URL across all products for this user
-            var duplicateUrl = await dbContext.ProductUrls
-                .AnyAsync(pu => pu.Product.UserId == request.UserId && pu.Url == request.Url, cancellationToken);
-
-            if (duplicateUrl)
+            // Duplicate check by ProductUrlKey, across all the user's products — so the 409 names the
+            // product that holds the URL, which need not be this one.
+            var tracked = await TrackedUrlIndex.LoadAsync(dbContext, request.UserId, cancellationToken);
+            if (tracked.Find(request.Url) is { } existing)
             {
-                throw new ApiException("This URL is already tracked", 409, "Conflict");
+                throw new ConflictException("This URL is already tracked", existing.ProductId, existing.ProductUrlId);
             }
 
             var productUrl = new ProductUrl
@@ -98,7 +98,7 @@ public static class AddProductUrl
             }
             catch (DbUpdateException)
             {
-                throw new ApiException("This URL is already tracked", 409, "Conflict");
+                throw new ConflictException("This URL is already tracked");
             }
 
             // Queue for scraping

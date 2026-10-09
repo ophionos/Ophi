@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
+using Ophi.Api.Common.Helpers;
 using Ophi.Api.Common.Validators;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
@@ -69,14 +70,12 @@ public static class AddProduct
     {
         public async Task<Response> Handle(Command request, CancellationToken cancellationToken)
         {
-            // Check for duplicate URL for this user across ProductUrls
-            var existingUrl = await dbContext.ProductUrls
-                .AnyAsync(pu => pu.Product.UserId == request.UserId && pu.Url == request.Url, cancellationToken);
-
-            if (existingUrl)
+            // Duplicate check by ProductUrlKey, across all the user's products
+            var tracked = await TrackedUrlIndex.LoadAsync(dbContext, request.UserId, cancellationToken);
+            if (tracked.Find(request.Url) is { } existing)
             {
                 logger.LogWarning("Duplicate product URL for user {UserId}: {Url}", request.UserId, request.Url);
-                throw new ApiException("You are already tracking this product", 409, "Conflict");
+                throw new ConflictException("You are already tracking this product", existing.ProductId, existing.ProductUrlId);
             }
 
             var product = new Product
@@ -107,7 +106,7 @@ public static class AddProduct
             }
             catch (DbUpdateException)
             {
-                throw new ApiException("You are already tracking this product", 409, "Conflict");
+                throw new ConflictException("You are already tracking this product");
             }
 
             // Instant trigger: publish the scrape request. In split mode this routes durably over the

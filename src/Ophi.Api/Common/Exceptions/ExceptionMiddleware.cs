@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentValidation;
 
 namespace Ophi.Api.Common.Exceptions;
@@ -59,6 +60,15 @@ public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddlewa
                         .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray())
                 };
                 break;
+            case ConflictException conflictEx:
+                response = new ErrorResponse
+                {
+                    Error = conflictEx.ErrorCode,
+                    Message = conflictEx.Message,
+                    ProductId = conflictEx.ProductId,
+                    ProductUrlId = conflictEx.ProductUrlId
+                };
+                break;
             case ApiException apiEx:
                 response = new ErrorResponse
                 {
@@ -100,4 +110,12 @@ public class ErrorResponse
     public string Message { get; init; } = string.Empty;
     public object? Details { get; init; }
     public string? TraceId { get; init; }
+
+    // Set only by ConflictException: the product already tracking the URL. Kept out of Details,
+    // which the frontend reads as a field → messages map. Omitted from every other error body.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? ProductId { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? ProductUrlId { get; init; }
 }

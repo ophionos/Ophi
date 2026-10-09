@@ -45,6 +45,7 @@ internal static class EndpointRouting
         app.MapAddProductEndpoint();
         app.MapGetProductsEndpoint();
         app.MapGetProductEndpoint();
+        app.MapLookupProductEndpoint();
         app.MapGetPriceHistoryEndpoint();
         app.MapDeleteProductEndpoint();
         app.MapUpdateProductEndpoint();
