@@ -155,6 +155,26 @@ public class AddProductUrlHandlerTests : IDisposable
         urls.Should().Contain(pu => pu.Url == "https://walmart.com/product");
     }
 
+    [Fact]
+    public async Task Handle_WithUrlTrackedOnAnotherProduct_ThrowsConflictNamingThatProduct()
+    {
+        // Arrange — the duplicate check spans all the user's products, so the 409 must name the
+        // product that holds the URL, not the product in the route.
+        var holder = CreateProductWithUrl("Holder", "https://amazon.com/dp/B000123");
+        var target = CreateProductWithUrl("Target", "https://walmart.com/product");
+        var holderUrlId = _dbContext.ProductUrls.Single(pu => pu.ProductId == holder.Id).Id;
+        var command = new AddProductUrl.Command(target.Id, "https://www.amazon.com/dp/B000123/ref=sr_1_1?qid=9") { UserId = _testUserId };
+
+        // Act
+        var act = async () => await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        var thrown = await act.Should().ThrowAsync<ConflictException>();
+        thrown.Which.Message.Should().Be("This URL is already tracked");
+        thrown.Which.ProductId.Should().Be(holder.Id);
+        thrown.Which.ProductUrlId.Should().Be(holderUrlId);
+    }
+
     private Product CreateProductWithUrl(string name, string url)
     {
         var product = new Product

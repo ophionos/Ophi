@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
+using Ophi.Api.Common.Helpers;
 using Ophi.Api.Features.Settings;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
@@ -152,8 +153,7 @@ public static class ImportBackup
             }
 
             // --- Products ---
-            var trackedUrls = await dbContext.ProductUrls.Where(u => u.Product.UserId == userId)
-                .Select(u => u.Url).ToHashSetAsync(cancellationToken);
+            var trackedUrls = await TrackedUrlIndex.LoadAsync(dbContext, userId, cancellationToken);
             var activeAlerts = await dbContext.Alerts.CountAsync(a => a.UserId == userId && a.IsActive, cancellationToken);
             var maxAlerts = alertSettings.Value.MaxAlertsPerUser;
             int productsAdded = 0, productsSkipped = 0, pricePointsAdded = 0, alertsAdded = 0, alertsPaused = 0;
@@ -195,7 +195,7 @@ public static class ImportBackup
                 {
                     var urlId = Guid.NewGuid();
                     urlIds[u.Ref] = urlId;
-                    trackedUrls.Add(u.Url);
+                    trackedUrls.Add(u.Url, product.Id, urlId);
                     dbContext.ProductUrls.Add(new ProductUrl
                     {
                         Id = urlId,

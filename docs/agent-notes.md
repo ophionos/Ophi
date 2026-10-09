@@ -143,6 +143,14 @@ other kind of fact. Link to owners; don't restate them here.
   and ImportStore (`StoreSelectorDtoValidator`, `StoreRuleExtensions`). The three copies had drifted:
   ImportStore never checked `CurrencyOverride`. Child errors keep the `Selectors.*` paths the
   frontend keys on.
+- **`ProductUrlKey` decides "same product URL"; `TrackedUrlIndex` is the only duplicate check.**
+  AddProduct, AddProductUrl, both imports and `GET /products/lookup` go through it. The key is
+  computed in memory and never stored: the stored URL stays as given, because scraping and the
+  redirect check in `ScrapeHealthAnalyzer` compare that string, and existing rows match with no
+  backfill. Strip only parameters **known** to be tracking (Amazon-only keys only on Amazon hosts):
+  stores pick the variant or SKU by query parameter (`variant`, Amazon `th`/`psc`/`smid`), and
+  dropping one tracks another price. The `(ProductId, Url)` unique index stays exact-string; it only
+  backs the race.
 - **`ScrapeHelpers.NormalizeHost` is the only host comparison.** A raw `Uri.Host` comparison read an
   apex ↔ `www.` redirect as a domain change, climbed `SuspiciousCount`, and auto-paused healthy URLs.
 - **`AntiBotSignals` is the only definition of a challenge page.** Challenges arrive as HTTP 200, so

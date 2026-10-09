@@ -22,6 +22,7 @@ JSON `{error, message}`:
 |---|---|---|
 | 400 | `ValidationError` | `details`: property → messages |
 | 400/401/403/404/409/422 | the `ApiException` code (`NotFound`, `AlertNotDormant`, `RegistrationDisabled`, …) | — |
+| 409 | `Conflict` from adding a URL the user already tracks | `productId`, `productUrlId` of the holder (absent when the collision was a unique-index race) |
 | 403 | `ForbiddenRequest` (no `X-Requested-With`) or `InsufficientScope` (key lacks `write`) | — |
 | 429 | `TooManyRequests` | — |
 | 500 | `InternalError` | `traceId`, matching the server log line |

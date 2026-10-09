@@ -4,6 +4,7 @@ using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ophi.Api.Common.Extensions;
+using Ophi.Api.Common.Helpers;
 using static Ophi.Api.Common.Validators.ProductValidationRules;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
@@ -137,10 +138,7 @@ public static class ImportProducts
     {
         public async Task<ImportResponse> Handle(Command command, CancellationToken cancellationToken)
         {
-            var existingUrls = await dbContext.ProductUrls
-                .Where(pu => pu.Product.UserId == command.UserId)
-                .Select(pu => pu.Url)
-                .ToHashSetAsync(cancellationToken);
+            var existingUrls = await TrackedUrlIndex.LoadAsync(dbContext, command.UserId, cancellationToken);
 
             var existingTags = await dbContext.Tags
                 .Where(t => t.UserId == command.UserId)
@@ -259,7 +257,7 @@ public static class ImportProducts
                     });
                 }
 
-                existingUrls.Add(row.Url);
+                existingUrls.Add(row.Url, product.Id, productUrl.Id);
                 added++;
 
                 scrapeQueue.Add(productUrl.Id);

@@ -221,6 +221,84 @@ public class AddProductHandlerTests : IDisposable
             .WithMessage("You are already tracking this product");
     }
 
+    [Fact]
+    public async Task Handle_WithUrlDifferingOnlyByTrackingParams_ThrowsConflictNamingTheExistingProduct()
+    {
+        // Arrange
+        var existingProduct = new Product
+        {
+            Id = Guid.NewGuid(),
+            UserId = _testUserId,
+            Name = "Existing Product",
+            Currency = "USD",
+            Status = ProductStatus.Active
+        };
+        var existingUrl = new ProductUrl
+        {
+            Id = Guid.NewGuid(),
+            ProductId = existingProduct.Id,
+            Url = "https://example.com/product",
+            Currency = "USD"
+        };
+        _dbContext.Products.Add(existingProduct);
+        _dbContext.ProductUrls.Add(existingUrl);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var command = new AddProduct.Command("https://www.example.com/product?utm_source=newsletter#top") { UserId = _testUserId };
+
+        // Act
+        var act = async () => await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        var thrown = await act.Should().ThrowAsync<ConflictException>();
+        thrown.Which.StatusCode.Should().Be(409);
+        thrown.Which.ProductId.Should().Be(existingProduct.Id);
+        thrown.Which.ProductUrlId.Should().Be(existingUrl.Id);
+    }
+
+    [Fact]
+    public async Task Handle_WithUrlDifferingByVariantParam_AddsANewProduct()
+    {
+        // Arrange
+        var existingProduct = new Product
+        {
+            Id = Guid.NewGuid(),
+            UserId = _testUserId,
+            Name = "Existing Product",
+            Currency = "USD",
+            Status = ProductStatus.Active
+        };
+        _dbContext.Products.Add(existingProduct);
+        _dbContext.ProductUrls.Add(new ProductUrl
+        {
+            Id = Guid.NewGuid(),
+            ProductId = existingProduct.Id,
+            Url = "https://example.com/product?variant=1",
+            Currency = "USD"
+        });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var command = new AddProduct.Command("https://example.com/product?variant=2") { UserId = _testUserId };
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Id.Should().NotBe(existingProduct.Id);
+    }
+
+    [Fact]
+    public async Task Handle_WithTrackingParams_StoresTheUrlAsGiven()
+    {
+        // The key is for comparison only; scraping and the redirect check use the stored string.
+        var command = new AddProduct.Command("https://example.com/product?utm_source=x") { UserId = _testUserId };
+
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        var savedUrl = await _dbContext.ProductUrls.FirstAsync(pu => pu.ProductId == result.Id, TestContext.Current.CancellationToken);
+        savedUrl.Url.Should().Be(command.Url);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();
