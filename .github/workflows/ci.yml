@@ -150,6 +150,13 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      - name: Audit
+        # Mirrors the NuGet audit on the backend. adapter-node bundles SvelteKit and its
+        # server deps (devalue, cookie) into build/, so dev-scope advisories still ship.
+        # High and critical only; fix within ranges first (`bun update`), and use
+        # `--ignore=<GHSA>` with a reason only when no fixed version exists.
+        run: bun audit --audit-level=high
+
       - name: Type check
         # `bun run build` does not type-check, so type errors (e.g. calling a
         # non-existent API-client method) can ship and only 500 at runtime.
