@@ -391,6 +391,7 @@ its gate for those paths.
 | `docker` matrix (Dockerfile, root build-config or `.csproj` changes) | Container-only breaks: root build-config files (`Directory.*.props`, `.editorconfig`, `global.json`, `nuget.config`) must be `COPY`d before `dotnet restore` in every `docker/Dockerfile.*`, and `.editorconfig` globs must be prefix-independent (`**/…`) because the container flattens `src/`. |
 | Backend tests (`--filter-not-trait "Category=Integration"`, Postgres service) | Provider-sensitive behavior (above), and **Windows-dev vs Linux-prod divergence**: `Uri.TryCreate("/blocked", UriKind.Absolute, …)` is false on Windows but true on Linux (`file:///blocked`). A backend test that fails only in CI is this class before it is a flake. |
 | Backend vulnerable-package scan | Known-CVE NuGet packages, transitive included. |
+| Frontend `bun audit --audit-level=high` | High/critical npm advisories. The lockfile had reached 31 high, some in code adapter-node bundles into `build/` (`devalue`), because nothing failed on them. Lows and moderates do not gate. |
 | Nightly e2e (`e2e.yml`; skips when `main` has no commits in 25 h) | Runtime-only route breakage the unit and build gates can't see. |
 
 Coverage targets are advisory, not CI-enforced.
