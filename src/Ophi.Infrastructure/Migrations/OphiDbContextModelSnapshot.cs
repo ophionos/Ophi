@@ -374,6 +374,9 @@ namespace Ophi.Infrastructure.Migrations
                     b.Property<bool>("HasPriceAnomaly")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("InitialScrapeClaimedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsOutOfStock")
                         .HasColumnType("boolean");
 

@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
@@ -811,6 +812,86 @@ public class ScrapeNewProductHandlerTests : IDisposable
         updatedProduct!.CurrentPrice.Should().Be(42m);
         updatedProduct.Currency.Should().Be("EUR");
     }
+
+    [Fact]
+    public async Task HandleAsync_WithLiveInitialScrapeClaim_SkipsWithoutScraping()
+    {
+        var now = DateTime.UtcNow;
+        var productUrlId = await SeedPendingUrlAsync(claimedAt: now.AddMinutes(-1));
+
+        var result = await HandleAsync(new ScrapeProductUrlCommand(productUrlId), now);
+
+        result.Should().BeNull();
+        _scrapingServiceMock.Verify(x => x.ScrapeProductAsync(It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithExpiredInitialScrapeClaim_ScrapesAndReclaims()
+    {
+        var now = DateTime.UtcNow;
+        var productUrlId = await SeedPendingUrlAsync(
+            claimedAt: now - ScrapeNewProductHandler.InitialScrapeLease - TimeSpan.FromMinutes(1));
+        SetupSuccessfulScrape();
+
+        var result = await HandleAsync(new ScrapeProductUrlCommand(productUrlId), now);
+
+        result.Should().NotBeNull();
+        var claimedAt = await _dbContext.ProductUrls.AsNoTracking()
+            .Where(pu => pu.Id == productUrlId)
+            .Select(pu => pu.InitialScrapeClaimedAt)
+            .SingleAsync(TestContext.Current.CancellationToken);
+        claimedAt.Should().BeCloseTo(now, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task HandleAsync_ForcedWithLiveInitialScrapeClaim_Scrapes()
+    {
+        var now = DateTime.UtcNow;
+        var productUrlId = await SeedPendingUrlAsync(claimedAt: now.AddMinutes(-1));
+        SetupSuccessfulScrape();
+
+        var result = await HandleAsync(new ScrapeProductUrlCommand(productUrlId, Force: true), now);
+
+        result.Should().NotBeNull();
+    }
+
+    private async Task<Guid> SeedPendingUrlAsync(DateTime? claimedAt)
+    {
+        var productId = Guid.NewGuid();
+        var productUrlId = Guid.NewGuid();
+        _dbContext.Products.Add(new Product
+        {
+            Id = productId,
+            UserId = _testUserId,
+            Name = "Loading...",
+            Currency = "USD",
+            Status = ProductStatus.Pending
+        });
+        _dbContext.ProductUrls.Add(new ProductUrl
+        {
+            Id = productUrlId,
+            ProductId = productId,
+            Url = "https://example.com/product",
+            Currency = "USD",
+            InitialScrapeClaimedAt = claimedAt
+        });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return productUrlId;
+    }
+
+    private void SetupSuccessfulScrape() =>
+        _scrapingServiceMock
+            .Setup(x => x.ScrapeProductAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<Guid?>(),
+                It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ScrapingResult { Success = true, Name = "Test Product", Price = 10m, Currency = "USD", StoreId = "test" });
+
+    private Task<Ophi.Domain.Messages.Events.PriceUpdatedEvent?> HandleAsync(ScrapeProductUrlCommand command, DateTime now) =>
+        ScrapeNewProductHandler.HandleAsync(
+            command, _dbContext, _scrapingServiceMock.Object,
+            _autoCreateStoreServiceMock.Object, _configProviderMock.Object,
+            new FakeTimeProvider(new DateTimeOffset(now, TimeSpan.Zero)), Mock.Of<IMessageBus>(), _loggerMock.Object,
+            TestContext.Current.CancellationToken);
 
     public void Dispose()
     {

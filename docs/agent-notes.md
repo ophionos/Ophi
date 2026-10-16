@@ -53,6 +53,12 @@ other kind of fact. Link to owners; don't restate them here.
   (`WolverineConfig`). `DB_PROVIDER` defaults to postgres, so gating on it would wire the transport
   into the Testing env. Reliability is `Status=Pending` + the `DispatchPendingProductsAsync` poll, not a
   transactional outbox (a deliberate non-goal).
+  - **The poll races the API publish while a first scrape is in flight**: `Status` leaves
+    `Pending` only on commit, so both deliveries passed the Pending guard and scraped twice. The guard
+    is the atomic `ProductUrl.InitialScrapeClaimedAt` conditional UPDATE in `ScrapeNewProductHandler`,
+    with a lease (`InitialScrapeLease`) so a scrape that died mid-flight is re-run. A grace period
+    fails under a queued import backlog; Wolverine dedup fails because the two publishes take
+    different routes. `Ophi.Postgres.Tests/InitialScrapeClaimTests` is the proof.
 - **SSE is the live-update transport; the polls stay as the `!connected` fallback.** The
   `scrape-notifications` hop is competing-consumer, which is only correct with one API replica.
   Scaling the API horizontally needs Postgres LISTEN/NOTIFY there (`WolverineConfig.ScrapeNotificationQueue`).

@@ -67,6 +67,14 @@ public class ProductUrl : BaseEntity
     public DateTime? BackoffUntil { get => _backoffUntil; init => _backoffUntil = value; }
 
     /// <summary>
+    /// When a first-time scrape claimed this URL. Written only by the worker's atomic conditional
+    /// UPDATE (never through the entity), so that of two deliveries for a still-Pending product only
+    /// one scrapes. The claim lapses after a lease, so a crashed scrape is retried. Never cleared:
+    /// the product leaving Pending ends the race.
+    /// </summary>
+    public DateTime? InitialScrapeClaimedAt { get; init; }
+
+    /// <summary>
     /// Whether this URL feeds <see cref="Product.HasPriceAnomaly"/>: paused URLs are excluded, as
     /// they are from price aggregation. Not translatable to SQL — a query must restate it.
     /// </summary>

@@ -19,6 +19,13 @@ namespace Ophi.Worker.Handlers;
 [LocalQueue("scraping")]
 public static class ScrapeNewProductHandler
 {
+    /// <summary>
+    /// How long an initial-scrape claim blocks other deliveries. It must outlast the slowest scrape
+    /// (page-fetch delay, HTTP, then Playwright's 60 s + 15 s + 20 s + 15 s waits); after it, the
+    /// dispatcher's reconciliation can re-run a scrape whose worker died mid-flight.
+    /// </summary>
+    internal static readonly TimeSpan InitialScrapeLease = TimeSpan.FromMinutes(10);
+
     public static async Task<PriceUpdatedEvent?> HandleAsync(
         ScrapeProductUrlCommand command,
         OphiDbContext dbContext,
@@ -51,6 +58,26 @@ public static class ScrapeNewProductHandler
             logger.LogDebug("Product {ProductId} is not pending (status: {Status}), skipping",
                 product.Id, product.Status);
             return null;
+        }
+
+        // The Pending check alone is not enough: Status leaves Pending only when the scrape commits,
+        // so the API publish and a dispatcher reconciliation tick can both pass it while the first
+        // scrape is in flight. The conditional UPDATE is atomic, so exactly one delivery wins. A forced
+        // retry skips the claim — the user asked for a new scrape.
+        if (!command.Force)
+        {
+            var leaseCutoff = now - InitialScrapeLease;
+            var claimed = await dbContext.ProductUrls
+                .Where(pu => pu.Id == productUrl.Id
+                    && (pu.InitialScrapeClaimedAt == null || pu.InitialScrapeClaimedAt < leaseCutoff))
+                .ExecuteUpdateAsync(s => s.SetProperty(pu => pu.InitialScrapeClaimedAt, now), cancellationToken);
+
+            if (claimed == 0)
+            {
+                logger.LogDebug("Initial scrape of product URL {ProductUrlId} is already in flight, skipping",
+                    productUrl.Id);
+                return null;
+            }
         }
 
         var storeDomain = AppMetrics.ExtractStore(productUrl.Url);
