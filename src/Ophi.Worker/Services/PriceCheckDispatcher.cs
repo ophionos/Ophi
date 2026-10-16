@@ -4,6 +4,7 @@ using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
 using Ophi.Domain.Messages.Commands;
 using Ophi.Infrastructure.Persistence;
+using Ophi.Worker.Handlers;
 using Ophi.Worker.Settings;
 using Wolverine;
 
@@ -72,9 +73,11 @@ public class PriceCheckDispatcher(
     // Reconciliation backstop. Since Phase 2, the instant trigger for a new product's first scrape is
     // the API's PublishAsync(ScrapeProductUrlCommand) — delivered durably over the Postgres transport
     // (split) or handled in-process (embedded). This poll is the defense-in-depth net: it re-publishes
-    // for any product still Pending (e.g. a publish lost to a crash between commit and send). The
-    // handler's "!Force && Status != Pending" guard makes a duplicate delivery a no-op, so running the
-    // poll alongside the transport is idempotent. Note: the command it publishes routes to the LOCAL
+    // for any product still Pending (e.g. a publish lost to a crash between commit and send). A
+    // duplicate delivery is a no-op: the handler's Pending guard covers one that arrives after the
+    // first scrape committed, and its atomic InitialScrapeClaimedAt claim covers one that arrives while
+    // the first scrape is still in flight (#51). The filter below only saves publishes; it is not
+    // atomic, so the handler's claim is the real guard. Note: the command it publishes routes to the LOCAL
     // [LocalQueue("scraping")] handler in this worker process — only the SplitApi config routes
     // ScrapeProductUrlCommand back out to the Postgres queue, so there is no send-back-out loop here.
     private async Task DispatchPendingProductsAsync(CancellationToken cancellationToken)
@@ -83,9 +86,11 @@ public class PriceCheckDispatcher(
         var dbContext = scope.ServiceProvider.GetRequiredService<OphiDbContext>();
         var messageBus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
 
-        // Dispatch per-ProductUrl for pending products
+        // Dispatch per-ProductUrl for pending products, except those whose first scrape is in flight
+        var leaseCutoff = timeProvider.GetUtcNow().UtcDateTime - ScrapeNewProductHandler.InitialScrapeLease;
         var pendingProductUrls = await dbContext.ProductUrls
             .Where(pu => pu.Product.Status == ProductStatus.Pending)
+            .Where(pu => pu.InitialScrapeClaimedAt == null || pu.InitialScrapeClaimedAt < leaseCutoff)
             .OrderBy(pu => pu.CreatedAt)
             .Take(_settings.BatchSize)
             .Select(pu => pu.Id)
