@@ -31,9 +31,9 @@
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.51.0" />
     <PackageVersion Include="WolverineFx.FluentValidation" Version="6.51.0" />
     <PackageVersion Include="WolverineFx.Postgresql" Version="6.51.0" />
-    <!-- Wolverine 6 moved the Roslyn runtime compiler into this package. We keep
-         dynamic codegen (rather than static TypeLoadMode) because the API registers
-         handlers conditionally on enableWorker, which static codegen can't capture. -->
+    <!-- Wolverine 6 moved the Roslyn runtime compiler into this package. Only the API
+         references it, for Embedded mode (ENABLE_WORKER), which compiles handlers at
+         runtime. The split hosts load checked-in generated code (TypeLoadMode.Static). -->
     <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.51.0" />
 
     <!-- Scraping & infrastructure -->

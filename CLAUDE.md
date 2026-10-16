@@ -30,6 +30,9 @@ bun run test                          # Watch mode — human use only; blocks a 
 bun run check                         # Type-check (svelte-check) — `bun run build` does NOT type-check
 bun run lint -- --max-warnings 0      # ESLint exactly as CI runs it — svelte-check does not catch no-undef
 
+# Wolverine handler code — regenerate after changing a handler, its validator, or what it injects; commit the output
+scripts/wolverine-codegen.sh          # CI fails when src/Ophi.{Api,Worker}/Internal/Generated is stale
+
 # Migrations (must run from Ophi.Infrastructure, NOT Ophi.Api)
 dotnet ef migrations add <Name> --project src/Ophi.Infrastructure --startup-project src/Ophi.Infrastructure
 ```

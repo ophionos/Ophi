@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using FluentAssertions;
+using JasperFx.CodeGeneration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -135,6 +136,8 @@ public class SseCrossProcessDeliveryTests(PostgresFixture fixture)
         builder.Services.AddWolverine(opts =>
         {
             WolverineConfig.Configure(opts, WolverineMode.SplitApi, conn);
+            // The entry assembly is the test project, which has no generated handler code.
+            opts.CodeGeneration.TypeLoadMode = TypeLoadMode.Dynamic;
             // The real API discovers PushLiveUpdateHandler via its entry-assembly scan; here the entry
             // assembly is the test project, so include the handler explicitly.
             opts.Discovery.IncludeType(typeof(PushLiveUpdateHandler));
@@ -149,7 +152,12 @@ public class SseCrossProcessDeliveryTests(PostgresFixture fixture)
         builder.Services.RemoveAll<IScrapingService>();
         builder.Services.AddScoped<IScrapingService>(_ => new NoOpScrapingService());
 
-        builder.Services.AddWolverine(opts => WolverineConfig.Configure(opts, WolverineMode.SplitWorker, conn));
+        builder.Services.AddWolverine(opts =>
+        {
+            WolverineConfig.Configure(opts, WolverineMode.SplitWorker, conn);
+            // The entry assembly is the test project, which has no generated handler code.
+            opts.CodeGeneration.TypeLoadMode = TypeLoadMode.Dynamic;
+        });
         return builder.Build();
     }
 

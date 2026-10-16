@@ -1,3 +1,5 @@
+using JasperFx;
+using JasperFx.CodeGeneration;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Infrastructure;
 using Ophi.Infrastructure.Persistence;
@@ -36,11 +38,19 @@ builder.Services.AddHostedService<PriceCheckDispatcher>();
 
 var host = builder.Build();
 
-// Ensure database is created
-using (var scope = host.Services.CreateScope())
+// Ensure database is created (not under `codegen`, which only builds the host to generate handler code)
+if (!DynamicCodeBuilder.WithinCodegenCommand)
 {
+    using var scope = host.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<OphiDbContext>();
     dbContext.Database.Migrate();
 }
 
+// `codegen write` (scripts/wolverine-codegen.sh) goes through JasperFx; JasperFx parses every argument as a command.
+if (DynamicCodeBuilder.WithinCodegenCommand)
+{
+    return await host.RunJasperFxCommands(args);
+}
+
 host.Run();
+return 0;

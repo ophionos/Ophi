@@ -1,4 +1,6 @@
 using FluentValidation;
+using JasperFx;
+using JasperFx.CodeGeneration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -109,8 +111,10 @@ builder.Services.AddOphiRateLimiting(builder.Environment);
 
 var app = builder.Build();
 
-// Ensure database is created and migrated (skip in testing environment)
-if (!app.Environment.EnvironmentName.Equals("Testing", StringComparison.OrdinalIgnoreCase))
+// Ensure database is created and migrated (skip in testing environment, and under `codegen`, which
+// only builds the host to generate handler code and must not need a reachable database)
+if (!app.Environment.EnvironmentName.Equals("Testing", StringComparison.OrdinalIgnoreCase)
+    && !DynamicCodeBuilder.WithinCodegenCommand)
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<OphiDbContext>();
@@ -157,7 +161,15 @@ app.UseMiddleware<ApiKeyScopeMiddleware>();
 app.MapOphiEndpoints();
 app.MapHealthAndMetrics();
 
+// `codegen write` (scripts/wolverine-codegen.sh) goes through JasperFx. Nothing else does: JasperFx parses
+// every argument as a command, and WebApplicationFactory passes settings as arguments.
+if (DynamicCodeBuilder.WithinCodegenCommand)
+{
+    return await app.RunJasperFxCommands(args);
+}
+
 app.Run();
+return 0;
 
 // Expose Program class for integration tests
 public partial class Program;

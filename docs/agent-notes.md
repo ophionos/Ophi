@@ -62,14 +62,22 @@ other kind of fact. Link to owners; don't restate them here.
 - **SSE is the live-update transport; the polls stay as the `!connected` fallback.** The
   `scrape-notifications` hop is competing-consumer, which is only correct with one API replica.
   Scaling the API horizontally needs Postgres LISTEN/NOTIFY there (`WolverineConfig.ScrapeNotificationQueue`).
-- **Wolverine 6 codegen:** both hosts need `WolverineFx.RuntimeCompilation`; static codegen is off
-  because the API registers handlers conditionally on `enableWorker`. `ServiceLocationPolicy.AlwaysAllowed`
+- **Wolverine 6 codegen: the split hosts run checked-in generated code (`TypeLoadMode.Static`).**
+  Runtime Roslyn compilation cost each process several hundred MiB of native memory (#52). After
+  changing a handler, its validator, or a dependency it injects, run `scripts/wolverine-codegen.sh` and
+  commit `src/Ophi.{Api,Worker}/Internal/Generated`. Stale code still compiles and every test still
+  passes (test hosts run `Dynamic`; generated code inlines DI construction and the validator step), so
+  CI regenerates and fails on a diff. Embedded (`ENABLE_WORKER`) also discovers the worker assembly,
+  so its handler set differs from SplitApi's; it stays `Dynamic`, which is why the API keeps
+  `WolverineFx.RuntimeCompilation` and the worker does not. Each host has its own `GeneratedNamespace`:
+  the API references `Ophi.Worker`, and the default namespace would clash. `ServiceLocationPolicy.AlwaysAllowed`
   is required on both hosts because EF Core's scoped `DbContextOptions<OphiDbContext>` lambda can't be
   inlined. Narrow opt-ins (`AlwaysUseServiceLocationFor<...>`) do NOT clear it; the only real escape is
   `IDbContextFactory` everywhere (not worth it).
-  - **`WorkerHostBootTests` is the guard.** It boots `SplitWorker` and calls `FindInvoker` per message,
-    which forces codegen (bootstrapping alone doesn't). Unit tests can never catch this class: handlers
-    are static methods that tests call directly.
+  - **`WorkerHostBootTests` and `ApiHostBootTests` are the guards.** They boot the split hosts in
+    `Static` mode with the production `ApplicationAssembly` and call `FindInvoker` per handler, which
+    attaches the generated executor (bootstrapping alone doesn't). Unit tests can never catch this
+    class: handlers are static methods that tests call directly.
   - `FindInvoker` returns a `NoHandlerExecutor` sentinel, not null, for an unhandled message. Assert
     against the sentinel; "not null" is vacuous.
 - **Cancellation deliberately escapes the scrape handlers into the catch-all retry rule — do not give
