@@ -44,7 +44,7 @@ jobs:
           hit() { if echo "$files" | grep -qE "$1"; then echo true; else echo false; fi; }
           wf='|^\.github/workflows/ci\.yml$'
           {
-            echo "backend=$(hit "^(src/Ophi\.(Api|Domain|Infrastructure|Worker)/|tests/|Directory\.|global\.json|Ophi\.slnx|\.editorconfig)$wf")"
+            echo "backend=$(hit "^(src/Ophi\.(Api|Domain|Infrastructure|Worker)/|tests/|Directory\.|global\.json|Ophi\.slnx|\.editorconfig|scripts/wolverine-codegen\.sh)$wf")"
             echo "frontend=$(hit "^src/Ophi\.Web/$wf")"
             # Only what can break an image build but not a plain build: the Dockerfiles, the root
             # build-config files they copy, and project files (a new reference the images don't copy).
@@ -87,6 +87,19 @@ jobs:
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
+
+      - name: Wolverine generated code is current
+        # The split hosts run TypeLoadMode.Static, so a handler change without regenerated code
+        # still compiles and every test (Dynamic hosts) still passes, but production runs the old
+        # handler pipeline. Regenerate and fail on any difference, including new or deleted files.
+        run: |
+          scripts/wolverine-codegen.sh Release
+          if [ -n "$(git status --porcelain -- src/Ophi.Api/Internal src/Ophi.Worker/Internal)" ]; then
+            git status --short -- src/Ophi.Api/Internal src/Ophi.Worker/Internal
+            git --no-pager diff --stat -- src/Ophi.Api/Internal src/Ophi.Worker/Internal
+            echo "::error::Wolverine generated code is stale. Run scripts/wolverine-codegen.sh and commit the result."
+            exit 1
+          fi
 
       - name: Test
         # Runs on Microsoft.Testing.Platform, not VSTest (global.json `test.runner`), so the flags

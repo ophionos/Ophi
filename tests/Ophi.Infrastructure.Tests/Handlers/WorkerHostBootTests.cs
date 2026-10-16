@@ -16,8 +16,8 @@ using Wolverine.Runtime;
 namespace Ophi.Infrastructure.Tests.Handlers;
 
 /// <summary>
-/// Boots the worker's Wolverine host and forces every discovered handler to generate and compile its
-/// executor.
+/// Boots the worker's Wolverine host and forces every handler to attach its executor from the
+/// pre-generated code in <c>Ophi.Worker/Internal/Generated</c> (<c>TypeLoadMode.Static</c>, as in production).
 ///
 /// <para>
 /// This closes the gap recorded in docs/agent-notes.md § Messaging &amp; alerts: the worker host was
@@ -158,7 +158,12 @@ public class WorkerHostBootTests : IDisposable
 
         // No connection string: durable transport is skipped, handler discovery and codegen are not.
         builder.Services.AddWolverine(opts =>
-            WolverineConfig.Configure(opts, WolverineMode.SplitWorker, postgresConnectionString: null));
+        {
+            WolverineConfig.Configure(opts, WolverineMode.SplitWorker, postgresConnectionString: null);
+            // Production's entry assembly. The test project's would have no generated code, and Static
+            // mode would throw ExpectedTypeMissingException instead of testing the checked-in handlers.
+            opts.ApplicationAssembly = typeof(WolverineConfig).Assembly;
+        });
 
         return builder.Build();
     }

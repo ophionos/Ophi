@@ -1,3 +1,4 @@
+using JasperFx.CodeGeneration;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -104,6 +105,10 @@ public class WolverineOptionsConfigurator : Microsoft.Extensions.Options.IConfig
     public void Configure(WolverineOptions options)
     {
         options.Discovery.IncludeAssembly(typeof(OphiWebApplicationFactory).Assembly);
+        // The split API runs pre-generated handler code (TypeLoadMode.Static). Tests compile at runtime
+        // instead: they add handlers from this assembly and swap DI registrations that generated code
+        // would have inlined. ApiHostBootTests covers the generated code.
+        options.CodeGeneration.TypeLoadMode = TypeLoadMode.Dynamic;
     }
 }
 

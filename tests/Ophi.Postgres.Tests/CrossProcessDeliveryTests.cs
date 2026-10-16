@@ -1,4 +1,5 @@
 using FluentAssertions;
+using JasperFx.CodeGeneration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -209,7 +210,12 @@ public class CrossProcessDeliveryTests(PostgresFixture fixture)
             builder.Services.AddScoped<IScrapingService>(_ => scrapingOverride);
         }
 
-        builder.Services.AddWolverine(opts => WolverineConfig.Configure(opts, mode, conn));
+        builder.Services.AddWolverine(opts =>
+        {
+            WolverineConfig.Configure(opts, mode, conn);
+            // The entry assembly is the test project, which has no generated handler code.
+            opts.CodeGeneration.TypeLoadMode = TypeLoadMode.Dynamic;
+        });
         return builder.Build();
     }
 
