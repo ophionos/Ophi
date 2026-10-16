@@ -9,6 +9,7 @@ using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Api.Features.Auth;
 using Ophi.Domain.Entities;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Email;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
@@ -17,10 +18,15 @@ namespace Ophi.Api.Features.Account;
 
 public static class UpdateProfile
 {
-    public record Request(string Name, string Email, string? CurrentPassword);
-
-    public record Command(string Name, string Email, string? CurrentPassword)
+    public record Request(string Name, string Email, [property: Sensitive] string? CurrentPassword)
     {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
+
+    public record Command(string Name, string Email, [property: Sensitive] string? CurrentPassword)
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+
         public Guid UserId { get; init; }
     }
 

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
@@ -5,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Domain.Entities;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Persistence;
 using Ophi.Infrastructure.Settings;
 using Wolverine;
@@ -13,7 +15,10 @@ namespace Ophi.Api.Features.Auth;
 
 public static class Register
 {
-    public record Command(string Email, string Password, string Name);
+    public record Command(string Email, [property: Sensitive] string Password, string Name)
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
 
     // SecurityStamp is endpoint-internal (feeds the session cookie) and never serialized.
     public record Response(Guid Id, string Email, string Name, [property: JsonIgnore] string SecurityStamp);

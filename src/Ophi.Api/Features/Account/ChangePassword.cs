@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
@@ -7,6 +8,7 @@ using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Api.Features.Auth;
 using Ophi.Domain.Entities;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
 
@@ -14,10 +16,15 @@ namespace Ophi.Api.Features.Account;
 
 public static class ChangePassword
 {
-    public record Request(string CurrentPassword, string NewPassword);
-
-    public record Command(string CurrentPassword, string NewPassword)
+    public record Request([property: Sensitive] string CurrentPassword, [property: Sensitive] string NewPassword)
     {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
+
+    public record Command([property: Sensitive] string CurrentPassword, [property: Sensitive] string NewPassword)
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+
         public Guid UserId { get; init; }
     }
 

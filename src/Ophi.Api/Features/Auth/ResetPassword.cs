@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Auth;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Domain.Entities;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
 
@@ -13,7 +14,10 @@ namespace Ophi.Api.Features.Auth;
 
 public static class ResetPassword
 {
-    public record Command(string Token, string NewPassword);
+    public record Command([property: Sensitive] string Token, [property: Sensitive] string NewPassword)
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
 
     public record Response;
 

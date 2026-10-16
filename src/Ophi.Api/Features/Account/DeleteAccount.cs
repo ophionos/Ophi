@@ -1,3 +1,4 @@
+using System.Text;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -8,6 +9,7 @@ using Ophi.Api.Common.Auth;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Domain.Entities;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
 
@@ -15,10 +17,15 @@ namespace Ophi.Api.Features.Account;
 
 public static class DeleteAccount
 {
-    public record Request(string Password);
-
-    public record Command(string Password)
+    public record Request([property: Sensitive] string Password)
     {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
+
+    public record Command([property: Sensitive] string Password)
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+
         public Guid UserId { get; init; }
     }
 

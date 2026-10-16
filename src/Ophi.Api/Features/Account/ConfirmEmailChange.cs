@@ -6,6 +6,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Features.Auth;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
 
@@ -13,7 +14,10 @@ namespace Ophi.Api.Features.Account;
 
 public static class ConfirmEmailChange
 {
-    public record Command(string Token);
+    public record Command([property: Sensitive] string Token)
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
 
     // SecurityStamp is endpoint-internal (feeds the re-issued session cookie) and never serialized.
     public record Response(Guid Id, string Email, string Name, [property: JsonIgnore] string SecurityStamp);

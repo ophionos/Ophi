@@ -1,6 +1,8 @@
+using System.Text;
 using FluentValidation;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Scraping;
 using Wolverine;
 
@@ -28,10 +30,15 @@ public static class SendChallengeInput
             .DisableRateLimiting();
     }
 
-    public record Request(string Kind, double? X, double? Y, string? Text, string? Key);
-
-    public record Command(string Kind, double? X, double? Y, string? Text, string? Key)
+    public record Request(string Kind, double? X, double? Y, [property: Sensitive] string? Text, [property: Sensitive] string? Key)
     {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
+
+    public record Command(string Kind, double? X, double? Y, [property: Sensitive] string? Text, [property: Sensitive] string? Key)
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+
         public Guid UserId { get; init; }
     }
 

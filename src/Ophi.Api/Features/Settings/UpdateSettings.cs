@@ -1,8 +1,10 @@
+using System.Text;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Api.Common.Validators;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Net;
 using Ophi.Infrastructure.Persistence;
 using Ophi.Infrastructure.Push;
@@ -53,39 +55,44 @@ public static class UpdateSettings
         int? DefaultCheckIntervalMinutes = null,
         int? PageFetchDelaySeconds = null,
         int? ScrapeCacheTtlMinutes = null,
-        string? DiscordWebhookUrl = null,
+        [property: Sensitive] string? DiscordWebhookUrl = null,
         bool? DiscordNotificationsEnabled = null,
         int? AnomalyThresholdPercent = null,
         int? AutoPauseAfterFailures = null,
         bool? EmailNotificationsEnabled = null,
         string? TelegramChatId = null,
         bool? TelegramNotificationsEnabled = null,
-        string? PushoverUserKey = null,
+        [property: Sensitive] string? PushoverUserKey = null,
         bool? PushoverNotificationsEnabled = null,
         string? DisplayCurrency = null,
-        string? NtfyTopicUrl = null,
+        [property: Sensitive] string? NtfyTopicUrl = null,
         bool? NtfyNotificationsEnabled = null
-    );
+    )
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
 
     public record Command(
         bool? AffiliatesEnabled,
         int? DefaultCheckIntervalMinutes,
         int? PageFetchDelaySeconds = null,
         int? ScrapeCacheTtlMinutes = null,
-        string? DiscordWebhookUrl = null,
+        [property: Sensitive] string? DiscordWebhookUrl = null,
         bool? DiscordNotificationsEnabled = null,
         int? AnomalyThresholdPercent = null,
         int? AutoPauseAfterFailures = null,
         bool? EmailNotificationsEnabled = null,
         string? TelegramChatId = null,
         bool? TelegramNotificationsEnabled = null,
-        string? PushoverUserKey = null,
+        [property: Sensitive] string? PushoverUserKey = null,
         bool? PushoverNotificationsEnabled = null,
         string? DisplayCurrency = null,
-        string? NtfyTopicUrl = null,
+        [property: Sensitive] string? NtfyTopicUrl = null,
         bool? NtfyNotificationsEnabled = null
     )
     {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+
         public Guid UserId { get; init; }
     }
 
