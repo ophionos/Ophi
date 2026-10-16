@@ -181,7 +181,10 @@ test.describe('Authentication', () => {
 			// Refresh the page. No networkidle here — signed-in pages hold the SSE
 			// connection open, so the network never idles. waitForDashboardLoaded
 			// below is the deterministic signal that the auth check completed.
+			// The title is server-rendered, so it shows before hydration; wait for
+			// hydration too, or the user-menu click lands on an inert button.
 			await page.reload();
+			await dashboardPage.waitForPageLoad();
 			await dashboardPage.waitForDashboardLoaded();
 
 			// Should still be logged in
