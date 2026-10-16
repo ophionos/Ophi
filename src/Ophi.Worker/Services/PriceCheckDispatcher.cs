@@ -76,7 +76,7 @@ public class PriceCheckDispatcher(
     // for any product still Pending (e.g. a publish lost to a crash between commit and send). A
     // duplicate delivery is a no-op: the handler's Pending guard covers one that arrives after the
     // first scrape committed, and its atomic InitialScrapeClaimedAt claim covers one that arrives while
-    // the first scrape is still in flight (#51). The filter below only saves publishes; it is not
+    // the first scrape is still in flight. The filter below only saves publishes; it is not
     // atomic, so the handler's claim is the real guard. Note: the command it publishes routes to the LOCAL
     // [LocalQueue("scraping")] handler in this worker process — only the SplitApi config routes
     // ScrapeProductUrlCommand back out to the Postgres queue, so there is no send-back-out loop here.
