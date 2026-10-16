@@ -1,9 +1,11 @@
 using System.Security.Cryptography;
+using System.Text;
 using FluentValidation;
 using Microsoft.AspNetCore.WebUtilities;
 using Ophi.Api.Common.Auth;
 using Ophi.Api.Common.Extensions;
 using Ophi.Domain.Entities;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
 
@@ -37,7 +39,10 @@ public static class CreateApiKey
         public Guid UserId { get; init; }
     }
 
-    public record Response(Guid Id, string Name, List<string> Scopes, string Key, DateTime? ExpiresAt, DateTime CreatedAt);
+    public record Response(Guid Id, string Name, List<string> Scopes, [property: Sensitive] string Key, DateTime? ExpiresAt, DateTime CreatedAt)
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
 
     public class Validator : AbstractValidator<Command>
     {

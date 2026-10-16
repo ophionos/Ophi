@@ -222,6 +222,13 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   `DependencyInjection`. **Register the interface as the typed client** (`AddHttpClient<IFoo, Foo>`): a
   separate `AddScoped<IFoo, Foo>` resolves the default `HttpClient`, which silently drops the timeout
   and `RemoveAllLoggers`. `DependencyInjectionTests` resolve each interface and assert no URL is logged.
+- **A record that carries a credential masks it in `ToString()`.** Wolverine logs a failing message as
+  "Invocation of {Message} failed!" and FluentValidation's exception repeats it, so a record's synthesized
+  `ToString()` put attempted passwords in the logs. Mark the property `[property: Sensitive]` and override
+  `PrintMembers` with `SensitivePrinter.PrintMembers(this, builder)` (`Ophi.Domain/Logging`). Do not set
+  Wolverine's `FailureLogLevel` to `None` instead: that hides real handler failures. `SensitiveRecordTests`
+  fails on an unmarked credential-named property (`Password|Token|Secret|WebhookUrl|TopicUrl|Key$`) or an
+  unmasked one; generic names that hold a credential (an outbound webhook's `Url`) need the attribute by hand.
 - **API keys cannot manage API keys.** Create and delete use `AuthPolicies.SessionOnly`; otherwise a
   leaked write key mints a non-expiring key that outlives its own expiry and revocation. Apply the
   policy to any new credential-management endpoint. (`ChangePassword` and `DeleteAccount` are safe for

@@ -1,7 +1,9 @@
+using System.Text;
 using FluentValidation;
 using Ophi.Api.Common.Extensions;
 using Ophi.Api.Common.Validators;
 using Ophi.Domain.Entities;
+using Ophi.Domain.Logging;
 using Ophi.Infrastructure.Net;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
@@ -30,10 +32,15 @@ public static class CreateWebhookTarget
         .RequireRateLimiting(Common.RateLimitPolicies.WebhookCreation);
     }
 
-    public record Request(string Name, string Url, List<string> Events, bool IsEnabled = true);
-
-    public record Command(string Name, string Url, List<string> Events, bool IsEnabled)
+    public record Request(string Name, [property: Sensitive] string Url, List<string> Events, bool IsEnabled = true)
     {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+    }
+
+    public record Command(string Name, [property: Sensitive] string Url, List<string> Events, bool IsEnabled)
+    {
+        protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
+
         public Guid UserId { get; init; }
     }
 
