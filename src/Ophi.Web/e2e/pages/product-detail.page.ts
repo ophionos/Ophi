@@ -77,7 +77,8 @@ export class ProductDetailPage extends BasePage {
 			has: page.getByRole('heading', { name: 'Price Alerts' })
 		}).first();
 		this.createAlertButton = this.alertsSection.getByRole('button', { name: /Create Alert/i });
-		this.alertItems = this.alertsSection.locator('.bg-surface-2.rounded-lg');
+		// The row's test id, not its classes: a restyle once broke this locator silently.
+		this.alertItems = this.alertsSection.getByTestId('alert-row');
 
 		// Comparison - use heading to uniquely identify the section
 		this.comparisonSection = page.locator('div').filter({
@@ -147,6 +148,8 @@ export class ProductDetailPage extends BasePage {
 	async deleteAlertByIndex(index: number) {
 		const alertItem = this.alertItems.nth(index);
 		await alertItem.getByRole('button', { name: 'Delete alert' }).click();
+		// The row asks for confirmation before it deletes.
+		await this.page.getByRole('dialog', { name: 'Delete alert' }).getByRole('button', { name: 'Delete', exact: true }).click();
 	}
 
 	async addToComparisonGroup(groupName: string) {

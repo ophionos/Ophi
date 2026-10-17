@@ -395,6 +395,8 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   signed-in page. Wait for `body[data-hydrated]` (set in the root layout's `onMount`;
   `BasePage.waitForPageLoad()` uses it) and for concrete responses (`page.waitForResponse`). The marker
   also stops pre-hydration clicks hitting native form behavior.
+- **e2e locators use `data-testid` or roles, never styling classes.** A `.bg-surface-2.rounded-lg`
+  alert-row locator matched nothing after a restyle, and only the nightly run caught it.
 - **Settings-area e2e recipe** (`/settings/*`, `/scrape-health`):
   1. Clicks that open modals/toggles go inside `expect(...).toPass()`.
   2. Fills on fields re-synced by an on-mount `$effect` use `fillStable`
