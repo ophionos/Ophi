@@ -148,6 +148,8 @@ export class ProductDetailPage extends BasePage {
 	async deleteAlertByIndex(index: number) {
 		const alertItem = this.alertItems.nth(index);
 		await alertItem.getByRole('button', { name: 'Delete alert' }).click();
+		// The row asks for confirmation before it deletes.
+		await this.page.getByRole('dialog', { name: 'Delete alert' }).getByRole('button', { name: 'Delete', exact: true }).click();
 	}
 
 	async addToComparisonGroup(groupName: string) {
