@@ -6,6 +6,7 @@ using Ophi.TestHelpers;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
 using Ophi.Infrastructure.Persistence;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Ophi.Api.Tests.Unit.Comparisons;
 
@@ -15,11 +16,12 @@ public class GetComparisonGroupsHandlerTests : IDisposable
     private readonly OphiDbContext _dbContext;
     private readonly GetComparisonGroups.Handler _handler;
     private readonly Guid _testUserId;
+    private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 10, 8, 12, 0, 0, TimeSpan.Zero));
 
     public GetComparisonGroupsHandlerTests()
     {
         (_dbContext, _connection) = TestDbContextFactory.Create();
-        _handler = new GetComparisonGroups.Handler(_dbContext, NullLogger<GetComparisonGroups.Handler>.Instance);
+        _handler = new GetComparisonGroups.Handler(_dbContext, _time, NullLogger<GetComparisonGroups.Handler>.Instance);
         _testUserId = Guid.NewGuid();
 
         // Seed test user for FK constraints
@@ -203,6 +205,90 @@ public class GetComparisonGroupsHandlerTests : IDisposable
         result.Items.First(g => g.Name == "Group 2").ProductCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task Handle_WithMixedCurrencies_ReturnsTheBestPriceOfTheDominantCurrency()
+    {
+        // The card shows the same best price as the detail page: the currency first, then the MIN.
+        var group = CreateGroup("Mixed");
+        _dbContext.ComparisonGroups.Add(group);
+        var usdCheap = CreatePricedProduct("US cheap", group.Id, 100m);
+        _dbContext.Products.AddRange(
+            CreatePricedProduct("EU listing", group.Id, 80m, "EUR"),
+            usdCheap,
+            CreatePricedProduct("US dear", group.Id, 120m),
+            CreateProduct("Unpriced", group.Id));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetComparisonGroups.Query(_testUserId), TestContext.Current.CancellationToken);
+
+        var dto = result.Items.Single();
+        dto.ProductCount.Should().Be(4);
+        dto.BestPriceProductId.Should().Be(usdCheap.Id);
+        dto.BestPriceProductName.Should().Be("US cheap");
+        dto.BestPrice.Should().Be(100m);
+        dto.Currency.Should().Be("USD");
+    }
+
+    [Fact]
+    public async Task Handle_WithNoPricedProducts_ReturnsNoBestPriceAndNoSparkline()
+    {
+        var group = CreateGroup("Unpriced");
+        _dbContext.ComparisonGroups.Add(group);
+        _dbContext.Products.Add(CreateProduct("Unpriced", group.Id));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetComparisonGroups.Query(_testUserId), TestContext.Current.CancellationToken);
+
+        var dto = result.Items.Single();
+        dto.BestPriceProductId.Should().BeNull();
+        dto.BestPrice.Should().BeNull();
+        dto.Currency.Should().BeNull();
+        dto.Sparkline.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheBestProductsDailyLowsInItsCurrencyInDateOrder()
+    {
+        var group = CreateGroup("History");
+        _dbContext.ComparisonGroups.Add(group);
+        var best = CreatePricedProduct("Best", group.Id, 40m);
+        var other = CreatePricedProduct("Other", group.Id, 60m);
+        _dbContext.Products.AddRange(best, other);
+        var now = _time.GetUtcNow().UtcDateTime;
+        _dbContext.PricePoints.AddRange(
+            Point(best.Id, 50m, now.AddDays(-2)),
+            Point(best.Id, 45m, now.AddDays(-5)),
+            Point(best.Id, 48m, now.AddDays(-5).AddHours(-1)),
+            Point(best.Id, 30m, now.AddDays(-3), "EUR"),
+            Point(best.Id, 70m, now.AddDays(-40)),
+            Point(other.Id, 10m, now.AddDays(-1)));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetComparisonGroups.Query(_testUserId), TestContext.Current.CancellationToken);
+
+        result.Items.Single().Sparkline.Select(s => (s.Date, s.Price)).Should().Equal(
+            ("2026-10-03", 45m),
+            ("2026-10-06", 50m));
+    }
+
+    [Fact]
+    public async Task Handle_WithEqualBestPrices_NamesTheSameProductAsTheDetailPage()
+    {
+        var group = CreateGroup("Tie");
+        _dbContext.ComparisonGroups.Add(group);
+        _dbContext.Products.AddRange(
+            CreatePricedProduct("Tie A", group.Id, 30m),
+            CreatePricedProduct("Tie B", group.Id, 30m),
+            CreatePricedProduct("Tie C", group.Id, 30m));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var list = await _handler.Handle(new GetComparisonGroups.Query(_testUserId), TestContext.Current.CancellationToken);
+        var detail = await new GetComparisonGroup.Handler(_dbContext, _time, NullLogger<GetComparisonGroup.Handler>.Instance)
+            .Handle(new GetComparisonGroup.Query(group.Id, _testUserId), TestContext.Current.CancellationToken);
+
+        list.Items.Single().BestPriceProductId.Should().Be(detail.BestPriceProductId);
+    }
+
     private ComparisonGroup CreateGroup(string name)
     {
         return new ComparisonGroup
@@ -215,6 +301,12 @@ public class GetComparisonGroupsHandlerTests : IDisposable
 
     private Product CreateProduct(string name, Guid comparisonGroupId) =>
         TestEntityFactory.Product(_testUserId).Named(name).InGroup(comparisonGroupId).Build();
+
+    private Product CreatePricedProduct(string name, Guid comparisonGroupId, decimal price, string currency = "USD") =>
+        TestEntityFactory.Product(_testUserId).Named(name).InGroup(comparisonGroupId).Priced(price).WithCurrency(currency).Build();
+
+    private static PricePoint Point(Guid productId, decimal price, DateTime recordedAt, string currency = "USD") =>
+        new() { Id = Guid.NewGuid(), ProductId = productId, Price = price, Currency = currency, RecordedAt = recordedAt };
 
     public void Dispose()
     {

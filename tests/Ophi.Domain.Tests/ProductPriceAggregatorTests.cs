@@ -203,4 +203,47 @@ public class ProductPriceAggregatorTests
         product.CurrentPrice.Should().Be(25m);
         product.PreviousPrice.Should().Be(20m);
     }
+
+    private sealed record Member(Guid Id, decimal? Price, string Currency = "USD");
+
+    private static Member? Cheapest(params Member[] members) =>
+        ProductPriceAggregator.CheapestInDominantCurrency(members, m => m.Price, m => m.Currency, m => m.Id);
+
+    [Fact]
+    public void CheapestInDominantCurrency_WithMixedCurrencies_PicksTheMinInsideTheDominantOne()
+    {
+        // EUR 80 is not cheaper than USD 100: the currency is chosen first.
+        var usdCheap = new Member(Guid.NewGuid(), 100m);
+
+        var result = Cheapest(new Member(Guid.NewGuid(), 80m, "EUR"), usdCheap, new Member(Guid.NewGuid(), 120m));
+
+        result.Should().Be(usdCheap);
+    }
+
+    [Fact]
+    public void CheapestInDominantCurrency_IgnoresUnpricedMembersWhenChoosingTheCurrency()
+    {
+        // Two unpriced EUR members must not make EUR dominant and leave the group with no best price.
+        var usd = new Member(Guid.NewGuid(), 50m);
+
+        var result = Cheapest(new Member(Guid.NewGuid(), null, "EUR"), new Member(Guid.NewGuid(), null, "EUR"), usd);
+
+        result.Should().Be(usd);
+    }
+
+    [Fact]
+    public void CheapestInDominantCurrency_WithEqualPrices_PicksTheLowestIdWhateverTheOrder()
+    {
+        var low = new Member(new Guid("00000000-0000-0000-0000-000000000001"), 30m);
+        var high = new Member(new Guid("00000000-0000-0000-0000-000000000002"), 30m);
+
+        Cheapest(high, low).Should().Be(low);
+        Cheapest(low, high).Should().Be(low);
+    }
+
+    [Fact]
+    public void CheapestInDominantCurrency_WithNoPricedMembers_ReturnsNull()
+    {
+        Cheapest(new Member(Guid.NewGuid(), null)).Should().BeNull();
+    }
 }

@@ -84,4 +84,69 @@ describe('ComparisonCard', () => {
 
 		expect(screen.getByText('0 products')).toBeInTheDocument();
 	});
+	describe('preview', () => {
+		const priced: ComparisonGroup = {
+			...mockGroup,
+			bestPriceProductId: 'p1',
+			bestPriceProductName: 'Logitech MX Master 3S',
+			bestPrice: 45,
+			currency: 'USD',
+			sparkline: [
+				{ date: '2026-10-01', price: 50 },
+				{ date: '2026-10-02', price: 48 },
+				{ date: '2026-10-03', price: 45 }
+			]
+		};
+
+		it('should show the cheapest price and product when the group has a best price', () => {
+			render(ComparisonCard, { props: { group: priced } });
+
+			const best = screen.getByTestId('comparison-card-best');
+			expect(best).toHaveTextContent('Cheapest $45.00');
+			expect(best).toHaveTextContent('Logitech MX Master 3S');
+		});
+
+		it('should not use winner wording when the group has a best price', () => {
+			const { container } = render(ComparisonCard, { props: { group: priced } });
+
+			expect(container.textContent).not.toMatch(/best|winner/i);
+		});
+
+		it('should draw a hidden sparkline when the series has enough points', () => {
+			const { container } = render(ComparisonCard, { props: { group: priced } });
+
+			expect(container.querySelector('svg polyline')).not.toBeNull();
+			expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+		});
+
+		it('should not draw a sparkline when the series is too short', () => {
+			const { container } = render(ComparisonCard, {
+				props: { group: { ...priced, sparkline: priced.sparkline!.slice(0, 1) } }
+			});
+
+			expect(container.querySelector('polyline')).toBeNull();
+		});
+
+		it('should draw a flat sparkline without NaN when every price is equal', () => {
+			const flat = priced.sparkline!.map((p) => ({ ...p, price: 45 }));
+			const { container } = render(ComparisonCard, { props: { group: { ...priced, sparkline: flat } } });
+
+			expect(container.querySelector('polyline')?.getAttribute('points')).not.toContain('NaN');
+		});
+
+		it('should let the card shrink below its text width in a grid column', () => {
+			// A grid item's minimum is its min-content width, and the nowrap preview line makes
+			// that the full text: the card then pushed a phone-width page sideways.
+			render(ComparisonCard, { props: { group: priced } });
+
+			expect(screen.getByTestId('comparison-card').className).toContain('min-w-0');
+		});
+
+		it('should show no preview when the group has no best price', () => {
+			render(ComparisonCard, { props: { group: mockGroup } });
+
+			expect(screen.queryByTestId('comparison-card-best')).toBeNull();
+		});
+	});
 });
+

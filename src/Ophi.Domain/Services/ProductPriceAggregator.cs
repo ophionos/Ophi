@@ -106,5 +106,27 @@ public static class ProductPriceAggregator
             .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault()?.Key;
 
+    /// <summary>
+    /// The cheapest priced member of a set whose members may be priced in different currencies (a
+    /// comparison group's best price). Unpriced members are dropped BEFORE the currency is chosen, so
+    /// they cannot make their currency dominant. Then the MIN inside <see cref="DominantCurrency"/>,
+    /// equal prices broken on the id so the list card and the detail page name the same member
+    /// whatever order the database returned. Null when no member has a price.
+    /// </summary>
+    public static T? CheapestInDominantCurrency<T>(
+        IEnumerable<T> members, Func<T, decimal?> price, Func<T, string> currency, Func<T, Guid> id)
+        where T : class
+    {
+        var priced = members.Where(m => price(m).HasValue).ToList();
+        var dominant = DominantCurrency(priced.Select(currency));
+        if (dominant == null) return null;
+
+        return priced
+            .Where(m => string.Equals(currency(m), dominant, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(m => price(m)!.Value)
+            .ThenBy(id)
+            .First();
+    }
+
     public readonly record struct UrlPrice(decimal Price, string Currency);
 }

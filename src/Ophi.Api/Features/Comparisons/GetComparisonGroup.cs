@@ -96,19 +96,9 @@ public static class GetComparisonGroup
 
             // Best price: choose the currency first, then the MIN inside it. EUR 80 is not
             // cheaper than USD 100, and rates are display-only (docs/agent-notes.md § Pricing).
-            var productsWithPrice = products.Where(p => p.CurrentPrice.HasValue).ToList();
-            Guid? bestPriceProductId = null;
-            decimal? bestPrice = null;
-
-            var bestCurrency = ProductPriceAggregator.DominantCurrency(productsWithPrice.Select(p => p.Currency));
-            if (bestCurrency != null)
-            {
-                var bestProduct = productsWithPrice
-                    .Where(p => string.Equals(p.Currency, bestCurrency, StringComparison.OrdinalIgnoreCase))
-                    .MinBy(p => p.CurrentPrice!.Value)!;
-                bestPriceProductId = bestProduct.Id;
-                bestPrice = bestProduct.CurrentPrice;
-            }
+            var bestProduct = ProductPriceAggregator.CheapestInDominantCurrency(products, p => p.CurrentPrice, p => p.Currency, p => p.Id);
+            var bestPriceProductId = bestProduct?.Id;
+            var bestPrice = bestProduct?.CurrentPrice;
 
             // Map to DTOs with IsBestPrice flag
             var productDtos = products.Select(p => new ProductDto(

@@ -824,6 +824,12 @@ export interface ComparisonGroup {
 	id: string;
 	name: string;
 	productCount: number;
+	// The card preview. Absent on a group the create call just returned.
+	bestPriceProductId?: string | null;
+	bestPriceProductName?: string | null;
+	bestPrice?: number | null;
+	currency?: string | null;
+	sparkline?: { date: string; price: number }[];
 }
 
 export interface ComparisonGroupDetail {

@@ -2,6 +2,7 @@
 #pragma warning disable
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace Ophi.Api.Generated.WolverineHandlers
 {
@@ -11,11 +12,13 @@ namespace Ophi.Api.Generated.WolverineHandlers
     {
         private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _serviceScopeFactory;
         private readonly Microsoft.Extensions.Logging.ILogger<Ophi.Api.Features.Comparisons.GetComparisonGroups.Handler> _loggerOfHandler;
+        private readonly System.TimeProvider _timeProvider;
 
-        public QueryHandler1464538680(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, Microsoft.Extensions.Logging.ILogger<Ophi.Api.Features.Comparisons.GetComparisonGroups.Handler> loggerOfHandler)
+        public QueryHandler1464538680(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, Microsoft.Extensions.Logging.ILogger<Ophi.Api.Features.Comparisons.GetComparisonGroups.Handler> loggerOfHandler, System.TimeProvider timeProvider)
         {
             _serviceScopeFactory = serviceScopeFactory;
             _loggerOfHandler = loggerOfHandler;
+            _timeProvider = timeProvider;
         }
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
@@ -29,7 +32,7 @@ namespace Ophi.Api.Generated.WolverineHandlers
 
             System.Diagnostics.Activity.Current?.SetTag("message.handler", "Ophi.Api.Features.Comparisons.GetComparisonGroups.Handler");
             System.Diagnostics.Activity.Current?.SetTag("handler.type", "Ophi.Api.Features.Comparisons.GetComparisonGroups.Handler");
-            var handler = new Ophi.Api.Features.Comparisons.GetComparisonGroups.Handler(ophiDbContext, _loggerOfHandler);
+            var handler = new Ophi.Api.Features.Comparisons.GetComparisonGroups.Handler(ophiDbContext, _timeProvider, _loggerOfHandler);
             
             // The actual message execution
             var outgoing1 = await handler.Handle(query, cancellation).ConfigureAwait(false);

@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { Trash2, GitCompare } from 'lucide-svelte';
 	import type { ComparisonGroup } from '$lib/api/client';
+	import { formatPrice } from '$lib/format';
+	import Sparkline from '$lib/components/products/Sparkline.svelte';
 
 	interface Props {
 		group: ComparisonGroup;
@@ -14,7 +16,8 @@
 <!-- The name link stretches over the card (after:absolute), so a click anywhere opens the group;
      the delete button sits above it with `relative`. -->
 <div
-	class="relative bg-surface-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-brand"
+	data-testid="comparison-card"
+	class="relative min-w-0 bg-surface-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-brand"
 >
 	<div class="flex items-start justify-between">
 		<div class="flex-1 min-w-0">
@@ -33,6 +36,18 @@
 				{group.productCount}
 				{group.productCount === 1 ? 'product' : 'products'}
 			</p>
+			{#if group.bestPrice != null && group.currency}
+				<div class="mt-3 flex items-center justify-between gap-3">
+					<p class="min-w-0 truncate text-sm text-gray-600 dark:text-gray-300" data-testid="comparison-card-best">
+						Cheapest
+						<span class="font-semibold text-gray-900 dark:text-white"
+							>{formatPrice(group.bestPrice, group.currency)}</span
+						>
+						· {group.bestPriceProductName}
+					</p>
+					<Sparkline data={group.sparkline ?? []} width={72} height={24} />
+				</div>
+			{/if}
 		</div>
 
 		{#if onDelete}
