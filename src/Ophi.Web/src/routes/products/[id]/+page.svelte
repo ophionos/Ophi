@@ -42,6 +42,7 @@
 	import { fly } from 'svelte/transition';
 	import { isBuiltInStoreUrl } from '$lib/utils/storeMatch';
 	import { isAwaitingScrape } from '$lib/utils/awaitingScrape';
+	import { bestPriceUrlId as findBestPriceUrlId } from '$lib/utils/bestPrice';
 	import { liveRefresh } from '$lib/utils/liveRefresh';
 	import SectionCard from '$lib/components/shared/SectionCard.svelte';
 
@@ -99,12 +100,7 @@
 		})
 	);
 
-	const bestPriceUrlId = $derived.by(() => {
-		if (!product?.urls) return null;
-		const withPrice = product.urls.filter((u) => u.currentPrice != null);
-		if (withPrice.length <= 1) return null;
-		return withPrice.reduce((best, u) => (u.currentPrice! < best.currentPrice! ? u : best)).id;
-	});
+	const bestPriceUrlId = $derived(findBestPriceUrlId(product));
 
 	const historyPointCount = $derived(priceHistory?.history?.length ?? 0);
 
