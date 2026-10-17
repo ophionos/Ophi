@@ -78,6 +78,13 @@ beforeEach(() => {
 	vi.mocked(api.getProducts).mockResolvedValue(emptyPage);
 });
 
+describe('Dashboard Page — header', () => {
+	it('should render the page title as the level-one heading', () => {
+		renderDashboard();
+		expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Dashboard');
+	});
+});
+
 describe('Dashboard Page — delete', () => {
 	beforeEach(() => {
 		vi.mocked(api.deleteProduct).mockResolvedValue(undefined as unknown as void);

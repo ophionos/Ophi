@@ -4,6 +4,7 @@
 	import ScrapeHealthTable from '$lib/components/scraping/ScrapeHealthTable.svelte';
 	import SectionCard from '$lib/components/shared/SectionCard.svelte';
 	import StatCard from '$lib/components/shared/StatCard.svelte';
+	import PageHeader from '$lib/components/shared/PageHeader.svelte';
 	import { Activity, RefreshCw, CircleCheckBig, AlertTriangle, CircleAlert } from 'lucide-svelte';
 
 	let { data: pageData }: { data: PageData } = $props();
@@ -30,20 +31,18 @@
 </svelte:head>
 
 <div class="space-y-6">
-	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-3">
-			<Activity size={24} class="text-brand dark:text-brand-muted" />
-			<h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Scrape Health</h1>
-		</div>
-		<button
-			onclick={handleRefresh}
-			disabled={refreshing}
-			class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-		>
-			<RefreshCw size={14} class={refreshing ? 'animate-spin' : ''} />
-			Refresh
-		</button>
-	</div>
+	<PageHeader title="Scrape Health" description="How reliably each store domain scraped over the last 7 days">
+		{#snippet actions()}
+			<button
+				onclick={handleRefresh}
+				disabled={refreshing}
+				class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
+			>
+				<RefreshCw size={14} class={refreshing ? 'animate-spin' : ''} />
+				Refresh
+			</button>
+		{/snippet}
+	</PageHeader>
 
 	{#if loadError}
 		<div

@@ -10,6 +10,8 @@
 	import { GitCompare, Plus, Package } from 'lucide-svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
+	import PageHeader from '$lib/components/shared/PageHeader.svelte';
+	import InlineStats from '$lib/components/shared/InlineStats.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -83,34 +85,24 @@
 </svelte:head>
 
 <div>
-	<div class="mb-8 flex items-start justify-between">
-		<div>
-			<h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Comparison Groups</h1>
-			<p class="text-gray-600 dark:text-gray-400">Compare prices across similar products</p>
-		</div>
-		<button
-			onclick={handleOpenCreate}
-			class="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
-		>
-			<Plus size={18} />
-			Create Comparison
-		</button>
-	</div>
+	<PageHeader title="Comparison Groups" description="Compare prices across similar products">
+		{#snippet actions()}
+			<button
+				onclick={handleOpenCreate}
+				class="whitespace-nowrap px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
+			>
+				<Plus size={18} />
+				Create Comparison
+			</button>
+		{/snippet}
+	</PageHeader>
 
-	<!-- Slim inline summary — a single digit per stat doesn't warrant full-width cards. -->
-	<div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6 px-1">
-		<div class="flex items-center gap-2" data-testid="stat-total-groups">
-			<GitCompare size={16} class="text-brand dark:text-brand-muted" />
-			<span class="text-sm text-gray-500 dark:text-gray-400">Total Groups</span>
-			<span class="text-sm font-semibold text-gray-900 dark:text-white">{stats.totalGroups}</span>
-		</div>
-		<div class="hidden sm:block w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
-		<div class="flex items-center gap-2" data-testid="stat-total-products">
-			<Package size={16} class="text-green-600 dark:text-green-400" />
-			<span class="text-sm text-gray-500 dark:text-gray-400">Total Products</span>
-			<span class="text-sm font-semibold text-gray-900 dark:text-white">{stats.totalProducts}</span>
-		</div>
-	</div>
+	<InlineStats
+		stats={[
+			{ label: 'Total Groups', value: stats.totalGroups, icon: GitCompare, testid: 'stat-total-groups' },
+			{ label: 'Total Products', value: stats.totalProducts, icon: Package, testid: 'stat-total-products' }
+		]}
+	/>
 
 	<div>
 		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">All Comparison Groups</h2>

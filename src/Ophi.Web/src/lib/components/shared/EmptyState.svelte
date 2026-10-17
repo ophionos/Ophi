@@ -53,9 +53,9 @@
 			</div>
 			{#if BadgeIcon}
 				<div
-					class="absolute -bottom-1 -right-1 w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center"
+					class="absolute -bottom-1 -right-1 w-10 h-10 bg-success/15 rounded-full flex items-center justify-center"
 				>
-					<BadgeIcon size={20} class="text-green-600 dark:text-green-400" />
+					<BadgeIcon size={20} class="text-success" />
 				</div>
 			{/if}
 		</div>
