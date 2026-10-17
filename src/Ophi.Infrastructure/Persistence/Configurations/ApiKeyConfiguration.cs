@@ -22,10 +22,7 @@ public class ApiKeyConfiguration : IEntityTypeConfiguration<ApiKey>
             .IsUnique();
 
         builder.Property(k => k.Scopes)
-            .HasConversion(
-                v => string.Join(',', v),
-                v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
-            )
+            .HasCommaSeparatedConversion()
             .IsRequired();
 
         builder.HasIndex(k => k.UserId);

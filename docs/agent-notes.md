@@ -285,6 +285,9 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   later writes must go through the methods. A new mutation needs a method, not a setter.
   `has-pending-model-changes` stays clean. The prices stay settable because the static
   `ProductPriceAggregator` writes them.
+- **A `List<string>` column uses `HasCommaSeparatedConversion()`** (`Persistence/StringListConversion.cs`).
+  A bare `HasConversion` has no value comparer, so EF compared by reference and an in-place `Add` was
+  silently not saved (#66).
 
 - **Settings API:** nullable int fields use sentinel `0` = "clear to null" (a `When` guard + `Must()`).
   Check-interval cascade: `product.CheckIntervalMinutes ?? user.DefaultCheckIntervalMinutes ?? 60`,
