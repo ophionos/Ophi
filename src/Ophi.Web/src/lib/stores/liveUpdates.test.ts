@@ -6,6 +6,7 @@ import { API_BASE } from '$lib/api/client';
 // open/message/error from the test rather than open a real network connection.
 class MockEventSource {
 	static last: MockEventSource | null = null;
+	static count = 0;
 	url: string;
 	withCredentials: boolean;
 	onopen: (() => void) | null = null;
@@ -17,6 +18,7 @@ class MockEventSource {
 		this.url = url;
 		this.withCredentials = init?.withCredentials ?? false;
 		MockEventSource.last = this;
+		MockEventSource.count++;
 	}
 
 	close() {
@@ -115,5 +117,105 @@ describe('liveUpdates store', () => {
 
 		expect(source.closed).toBe(true);
 		expect(liveUpdates.connected).toBe(false);
+	});
+
+	describe('reconnect backoff', () => {
+		// Math.random() = 0 puts the jittered delay at its floor: half of the backoff step.
+		// Steps are 2 s, 4 s, 8 s, ... capped at 60 s, so the floors are 1 s, 2 s, 4 s, ... 30 s.
+		let hidden = false;
+
+		beforeEach(() => {
+			vi.useFakeTimers();
+			vi.spyOn(Math, 'random').mockReturnValue(0);
+			hidden = false;
+			vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+			MockEventSource.count = 0;
+		});
+
+		afterEach(() => {
+			liveUpdates.disconnect();
+			vi.useRealTimers();
+			vi.restoreAllMocks();
+		});
+
+		it('should close the failed EventSource instead of leaving the browser to retry', () => {
+			liveUpdates.connect();
+			const first = MockEventSource.last!;
+
+			first.emitError();
+
+			expect(first.closed).toBe(true);
+			expect(MockEventSource.count).toBe(1);
+		});
+
+		it('should reconnect after the backoff delay', () => {
+			liveUpdates.connect();
+			MockEventSource.last!.emitError();
+
+			vi.advanceTimersByTime(999);
+			expect(MockEventSource.count).toBe(1);
+
+			vi.advanceTimersByTime(1);
+			expect(MockEventSource.count).toBe(2);
+		});
+
+		it('should double the delay on each consecutive failure up to the cap', () => {
+			liveUpdates.connect();
+			const floors = [1000, 2000, 4000, 8000, 16000, 30000, 30000];
+
+			for (const [i, floor] of floors.entries()) {
+				MockEventSource.last!.emitError();
+				vi.advanceTimersByTime(floor - 1);
+				expect(MockEventSource.count).toBe(i + 1);
+				vi.advanceTimersByTime(1);
+				expect(MockEventSource.count).toBe(i + 2);
+			}
+		});
+
+		it('should reset the delay after a successful open', () => {
+			liveUpdates.connect();
+			MockEventSource.last!.emitError();
+			vi.advanceTimersByTime(1000);
+			MockEventSource.last!.emitError();
+			vi.advanceTimersByTime(2000);
+
+			MockEventSource.last!.emitOpen();
+			MockEventSource.last!.emitError();
+			vi.advanceTimersByTime(1000);
+
+			expect(MockEventSource.count).toBe(4);
+		});
+
+		it('should not reconnect after disconnect', () => {
+			liveUpdates.connect();
+			MockEventSource.last!.emitError();
+
+			liveUpdates.disconnect();
+			vi.advanceTimersByTime(60_000);
+
+			expect(MockEventSource.count).toBe(1);
+		});
+
+		it('should wait while the tab is hidden and reconnect when it becomes visible', () => {
+			liveUpdates.connect();
+			MockEventSource.last!.emitError();
+			hidden = true;
+
+			vi.advanceTimersByTime(60_000);
+			expect(MockEventSource.count).toBe(1);
+
+			hidden = false;
+			document.dispatchEvent(new Event('visibilitychange'));
+			expect(MockEventSource.count).toBe(2);
+		});
+
+		it('should not open a connection on visibility change while connected', () => {
+			liveUpdates.connect();
+			MockEventSource.last!.emitOpen();
+
+			document.dispatchEvent(new Event('visibilitychange'));
+
+			expect(MockEventSource.count).toBe(1);
+		});
 	});
 });

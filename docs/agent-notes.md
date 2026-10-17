@@ -345,7 +345,9 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
 - **`$derived.by()`** for function-based derived values; no colons or slashes in `class:` directives.
 - **`liveRefresh()`** (`$lib/utils/liveRefresh.ts`) is THE pattern for SSE + poll-fallback surfaces.
   The SSE URL is `${API_BASE}/events` — `API_BASE` already contains `/api/v1` (`liveUpdates.test.ts`
-  guards the doubled prefix).
+  guards the doubled prefix). `liveUpdates` closes the `EventSource` on every error and reconnects
+  on its own backoff (2 s doubling to 60 s, jittered, none while the tab is hidden); the browser's
+  built-in retry hit a down server every few seconds from every tab (#86).
 - **The service worker's account caches** (`ophi-pages`, `ophi-api`; rules in
   `$lib/offline/cache-policy.ts`) hold one account's data. They survive app updates, so they must be
   cleared at every session boundary (`endsSession`) and on a 401. A new API read the offline pages need
