@@ -69,7 +69,9 @@ public static class SetAlertActive
                 alert.LastTriggeredAt,
                 alert.Currency,
                 product.Currency,
-                alert.HasCurrencyMismatch(product.Currency));
+                alert.HasCurrencyMismatch(product.Currency),
+                product.PreviousPrice,
+                product.ImageUrl);
         }
 
         /// <summary>

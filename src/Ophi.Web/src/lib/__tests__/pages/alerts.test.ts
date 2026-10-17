@@ -79,6 +79,16 @@ describe('alerts loader', () => {
 });
 
 describe('Alerts page', () => {
+	it('should show each row with its thumbnail, current price and distance to the target', () => {
+		renderPage('http://localhost/alerts', [
+			makeAlert({ id: 'a1', productName: 'Zebra Lamp', productImageUrl: 'https://img.example/z.png', previousPrice: 120 })
+		]);
+
+		const row = screen.getByTestId('alert-row');
+		expect(within(row).getByRole('img', { name: 'Zebra Lamp' })).toHaveAttribute('src', 'https://img.example/z.png');
+		expect(within(row).getByTestId('alert-distance')).toHaveTextContent('$100.00 now · $20.00 above target');
+	});
+
 	it('should render one row per alert, each linking to its product', () => {
 		renderPage();
 		expect(screen.getAllByTestId('alert-row')).toHaveLength(3);

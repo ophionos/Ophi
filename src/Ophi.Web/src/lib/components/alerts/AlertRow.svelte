@@ -11,6 +11,10 @@
 		/** The product's current currency — what a dormant alert must be re-denominated into. */
 		productCurrency: string;
 		productCurrentPrice?: number;
+		/** The price before the product's last change — the baseline a percent-drop alert fires against. */
+		productPreviousPrice?: number;
+		/** Shown as a thumbnail when the row names its product. */
+		productImageUrl?: string;
 		/** When set, the row names and links its product (used where alerts span products). */
 		product?: { id: string; name: string };
 		onDelete: () => Promise<void>;
@@ -27,6 +31,8 @@
 		alert,
 		productCurrency,
 		productCurrentPrice,
+		productPreviousPrice,
+		productImageUrl,
 		product,
 		onDelete,
 		onRedenominate,
@@ -67,13 +73,38 @@
 		}
 	}
 
+	// Not dormant means the target and the product price share productCurrency, so they compare.
+	// A percent-drop alert fires on one change between two checks, so it has no standing distance:
+	// show the last change instead.
+	const distance = $derived.by(() => {
+		if (alert.hasCurrencyMismatch || productCurrentPrice == null) return null;
+		const now = `${formatPrice(productCurrentPrice, productCurrency)} now`;
+		if (alert.condition === 'percentDrop') {
+			if (!productPreviousPrice || productPreviousPrice === productCurrentPrice) return { text: now, reached: false };
+			const change = ((productCurrentPrice - productPreviousPrice) / productPreviousPrice) * 100;
+			const pct = Math.abs(change).toFixed(1).replace(/\.0$/, '');
+			const sign = change < 0 ? '−' : '+';
+			return {
+				text: `${now} · last change ${sign}${pct}% from ${formatPrice(productPreviousPrice, productCurrency)}`,
+				reached: false
+			};
+		}
+		const gap = alert.condition === 'below' ? productCurrentPrice - alert.targetPrice : alert.targetPrice - productCurrentPrice;
+		if (gap <= 0) return { text: `${now} · target reached`, reached: true };
+		const side = alert.condition === 'below' ? 'above' : 'below';
+		return { text: `${now} · ${formatPrice(gap, productCurrency)} ${side} target`, reached: false };
+	});
+
 	async function handleRedenominate(targetPrice: number) {
 		await onRedenominate(targetPrice);
 		redenominating = false;
 	}
 </script>
 
-<div class="flex items-center justify-between p-3 bg-surface-2 rounded-lg" data-testid="alert-row">
+<div
+	class="flex items-center justify-between p-3 bg-surface-1 border border-gray-200 dark:border-gray-700/50 rounded-lg"
+	data-testid="alert-row"
+>
 	<div class="flex items-center gap-3 min-w-0">
 		{#if onSelectChange}
 			<input
@@ -83,6 +114,20 @@
 				aria-label="Select alert for {product?.name ?? 'this product'}"
 				class="h-4 w-4 shrink-0 rounded border-gray-300 dark:border-gray-600 text-brand focus:ring-brand"
 			/>
+		{/if}
+		{#if product}
+			<div data-testid="alert-thumbnail" class="shrink-0">
+				{#if productImageUrl}
+					<img src={productImageUrl} alt={product.name} loading="lazy" class="h-10 w-10 rounded object-cover" />
+				{:else}
+					<div
+						class="h-10 w-10 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm font-semibold text-gray-500 dark:text-gray-400"
+						aria-hidden="true"
+					>
+						{product.name.charAt(0).toUpperCase()}
+					</div>
+				{/if}
+			</div>
 		{/if}
 		<div
 			class="p-2 rounded-full shrink-0 {alert.hasCurrencyMismatch
@@ -118,6 +163,19 @@
 					? `${alert.targetPrice.toFixed(0)}%`
 					: formatPrice(alert.targetPrice, alert.currency)}
 			</p>
+			{#if distance}
+				<p
+					data-testid="alert-distance"
+					class="text-xs tabular-nums {distance.reached
+						? 'font-medium text-green-700 dark:text-green-400'
+						: 'text-gray-600 dark:text-gray-300'}"
+					title={alert.condition === 'percentDrop'
+						? `Fires when one price change between two checks is a drop of ${alert.targetPrice.toFixed(0)}% or more`
+						: undefined}
+				>
+					{distance.text}
+				</p>
+			{/if}
 			{#if alert.hasCurrencyMismatch}
 				<p data-testid="alert-currency-mismatch" class="text-xs text-amber-700 dark:text-amber-400">
 					Dormant — target is in {alert.currency}, product is now priced in

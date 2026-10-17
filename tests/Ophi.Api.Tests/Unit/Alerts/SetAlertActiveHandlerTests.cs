@@ -50,6 +50,24 @@ public class SetAlertActiveHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ReturnsTheSameRowFieldsAsGetAlerts()
+    {
+        // The alerts page swaps the returned DTO into its list, so a field missing here would
+        // drop the thumbnail and the last-change line from the row on every pause.
+        _product.PreviousPrice = 50m;
+        _product.ImageUrl = "https://img.example/widget.png";
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var alert = await SeedAlertAsync(active: true);
+
+        var result = await _handler.Handle(
+            new SetAlertActive.Command(alert.Id, false) { UserId = _userId },
+            TestContext.Current.CancellationToken);
+
+        result.PreviousPrice.Should().Be(50m);
+        result.ProductImageUrl.Should().Be("https://img.example/widget.png");
+    }
+
+    [Fact]
     public async Task Handle_ResumingPausedAlert_PersistsActive()
     {
         var alert = await SeedAlertAsync(active: false);

@@ -53,6 +53,23 @@ public class RedenominateAlertHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ReturnsTheSameRowFieldsAsGetAlerts()
+    {
+        // Like SetAlertActive, the result replaces the row in the client's list.
+        var alert = await SeedDormantAlert(alertCurrency: "USD", productCurrency: "EUR");
+        var product = await _dbContext.Products.FindAsync([_testProductId], TestContext.Current.CancellationToken);
+        product!.PreviousPrice = 130m;
+        product.ImageUrl = "https://img.example/hd600.png";
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(
+            Command(alert.Id, targetPrice: 69m, expected: "EUR"), TestContext.Current.CancellationToken);
+
+        result.PreviousPrice.Should().Be(130m);
+        result.ProductImageUrl.Should().Be("https://img.example/hd600.png");
+    }
+
+    [Fact]
     public async Task Handle_DoesNotCarryTheOldTargetForward()
     {
         // 80 USD is not 80 EUR. Silently reusing the number is the bug the dormancy rule prevents,

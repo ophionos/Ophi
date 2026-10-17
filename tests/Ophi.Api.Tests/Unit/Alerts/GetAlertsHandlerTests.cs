@@ -315,6 +315,24 @@ public class GetAlertsHandlerTests : IDisposable
         result.Items.Should().ContainSingle().Which.HasCurrencyMismatch.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Handle_ReturnsThePreviousPriceAndTheProductImage()
+    {
+        // The alerts page shows a thumbnail and, for a percent-drop alert, the last price change.
+        // PreviousPrice is that change's baseline, in ProductCurrency like CurrentPrice.
+        var product = TestEntityFactory.Product(_testUserId).Named("Widget")
+            .Priced(90m, previous: 100m).WithImage("https://img.example/widget.png").Build();
+        _dbContext.Products.Add(product);
+        _dbContext.Alerts.Add(CreateAlert(product.Id, 15m, AlertCondition.PercentDrop));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetAlerts.Query(_testUserId), TestContext.Current.CancellationToken);
+
+        var dto = result.Items.Should().ContainSingle().Subject;
+        dto.PreviousPrice.Should().Be(100m);
+        dto.ProductImageUrl.Should().Be("https://img.example/widget.png");
+    }
+
     private Product CreateProduct(string name) =>
         TestEntityFactory.Product(_testUserId).Named(name).Build();
 

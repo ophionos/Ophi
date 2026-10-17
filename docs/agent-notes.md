@@ -34,6 +34,11 @@ other kind of fact. Link to owners; don't restate them here.
     default so queued messages still deserialize.
   - The dormancy rule has one definition, `Alert.IsCurrencyMismatch`. `GetAlerts` calls the static
     because that query projects columns. Don't re-implement the comparison per read path.
+  - `PercentDrop` fires on **one** price change between two checks, not on a drop from
+    `Alert.ReferencePrice` (the price at creation, which no evaluation reads). So the alert row shows
+    the last change against `Product.PreviousPrice` and no "distance to target". `GetAlerts`,
+    `SetAlertActive` and `RedenominateAlert` return the same row fields, because the alerts page swaps
+    the returned DTO into its list.
   - Migration `AddAlertCurrency` backfills from each alert's product; the scaffolded `""` default would
     have muted every existing alert. `AlertCurrencyBackfillTests` (Postgres tier) guards it.
   - **Recovery is `RedenominateAlert`, and it requires a new target.** Reusing the old number under a
