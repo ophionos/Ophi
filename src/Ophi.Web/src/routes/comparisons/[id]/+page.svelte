@@ -5,7 +5,6 @@
 	import { page } from '$app/state';
 	import { api, type ComparisonGroupDetail } from '$lib/api/client';
 	import { formatPrice } from '$lib/format';
-	import { comparisons } from '$lib/stores/comparisons.svelte';
 	import { liveUpdates } from '$lib/stores/liveUpdates.svelte';
 	import ComparisonChart from '$lib/components/comparisons/ComparisonChart.svelte';
 	import AddProductToGroupModal from '$lib/components/products/AddProductToGroupModal.svelte';
@@ -75,11 +74,6 @@
 
 	async function refreshGroupData() {
 		group = await api.getComparisonGroup(groupId, selectedDays);
-		comparisons.update(groupId, {
-			id: groupId,
-			name: group.name,
-			productCount: group.products.length
-		});
 	}
 
 	async function handleAddProducts(productIds: string[]) {
@@ -137,7 +131,6 @@
 		deleteGroupLoading = true;
 		try {
 			await api.deleteComparisonGroup(groupId);
-			comparisons.remove(groupId);
 			toast.success('Comparison group deleted');
 			goto(resolve('/comparisons'));
 		} catch (error) {

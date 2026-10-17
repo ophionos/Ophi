@@ -2,9 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import ComparisonsPage from '../../../routes/comparisons/+page.svelte';
 import { auth } from '$lib/stores/auth.svelte';
-import { comparisons } from '$lib/stores/comparisons.svelte';
 import { api } from '$lib/api/client';
-import { goto } from '$app/navigation';
 
 // Mock the API client
 vi.mock('$lib/api/client', async () => {
@@ -41,7 +39,6 @@ describe('Comparisons Page', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		auth.logout();
-		comparisons.clear();
 		auth.login(mockUser);
 	});
 
@@ -168,15 +165,10 @@ describe('Comparisons Page', () => {
 	});
 
 	describe('navigation', () => {
-		it('should navigate to comparison detail on view', async () => {
+		it('should link each card to its comparison detail page', () => {
 			renderPage(mockGroups);
 
-			const viewButtons = screen.getAllByTitle('View');
-			await fireEvent.click(viewButtons[0]);
-
-			await waitFor(() => {
-				expect(goto).toHaveBeenCalledWith('/comparisons/g1');
-			});
+			expect(screen.getByRole('link', { name: 'Laptops' })).toHaveAttribute('href', '/comparisons/g1');
 		});
 	});
 });

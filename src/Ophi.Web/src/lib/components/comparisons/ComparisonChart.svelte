@@ -11,6 +11,9 @@
 
 	let { products }: Props = $props();
 	let canvas = $state<HTMLCanvasElement>();
+	// Chart.js loads lazily; until the first chart is built the canvas would sit blank. It stays
+	// true across redraws (the module is cached by then), so a range change does not flash it.
+	let chartReady = $state(false);
 
 	let uniqueCurrencies = $derived([...new Set(products.map((p) => p.currency))]);
 	let hasMismatch = $derived(uniqueCurrencies.length > 1);
@@ -85,6 +88,7 @@
 
 		loadChart().then((Chart) => {
 			if (cancelled || !canvas) return;
+			chartReady = true;
 			chart = new Chart(ctx, {
 				type: 'line',
 				data: {
@@ -198,6 +202,14 @@
 		{/if}
 		<div class="relative w-full h-80">
 			<canvas bind:this={canvas}></canvas>
+			{#if !chartReady}
+				<div
+					class="absolute inset-0 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400"
+					role="status"
+				>
+					Loading chart…
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

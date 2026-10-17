@@ -17,7 +17,6 @@
 	import { liveUpdates } from '$lib/stores/liveUpdates.svelte';
 	import { products } from '$lib/stores/products.svelte';
 	import { tags } from '$lib/stores/tags.svelte';
-	import { comparisons } from '$lib/stores/comparisons.svelte';
 	import { stores } from '$lib/stores/stores.svelte';
 	import SkipLink from '$lib/components/shared/SkipLink.svelte';
 	import OfflineBanner from '$lib/components/shared/OfflineBanner.svelte';
@@ -164,7 +163,6 @@
 			notifications.clear();
 			products.clear();
 			tags.clear();
-			comparisons.clear();
 			stores.clear();
 			goto(resolve('/auth/login'));
 		} catch (error) {

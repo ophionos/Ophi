@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import ComparisonDetailPage from '../../../routes/comparisons/[id]/+page.svelte';
 import { auth } from '$lib/stores/auth.svelte';
-import { comparisons } from '$lib/stores/comparisons.svelte';
 import { api } from '$lib/api/client';
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
@@ -159,7 +158,6 @@ describe('Comparison Detail Page', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		auth.logout();
-		comparisons.clear();
 		setupPageParams('g1');
 		auth.login(mockUser);
 	});

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import ComparisonCard from './ComparisonCard.svelte';
+
+vi.mock('$app/paths', () => ({
+	resolve: (path: string) => path
+}));
 import type { ComparisonGroup } from '$lib/api/client';
 
 describe('ComparisonCard', () => {
@@ -29,26 +33,27 @@ describe('ComparisonCard', () => {
 		expect(screen.getByText('5 products')).toBeInTheDocument();
 	});
 
-	it('should render view button when onView is provided', () => {
-		const onView = vi.fn();
-		render(ComparisonCard, { props: { group: mockGroup, onView } });
-
-		expect(screen.getByTitle('View')).toBeInTheDocument();
-	});
-
-	it('should not render view button when onView is not provided', () => {
+	it('should link the group name to the group page', () => {
 		render(ComparisonCard, { props: { group: mockGroup } });
 
-		expect(screen.queryByTitle('View')).not.toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'Headphones Comparison' })).toHaveAttribute(
+			'href',
+			'/comparisons/group-123'
+		);
 	});
 
-	it('should call onView when view button is clicked', async () => {
-		const onView = vi.fn();
-		render(ComparisonCard, { props: { group: mockGroup, onView } });
+	it('should stretch the link over the whole card', () => {
+		render(ComparisonCard, { props: { group: mockGroup } });
 
-		await fireEvent.click(screen.getByTitle('View'));
+		expect(screen.getByRole('link').className).toContain('after:absolute');
+	});
 
-		expect(onView).toHaveBeenCalledWith(mockGroup);
+	it('should keep the delete button outside the link and above it', () => {
+		render(ComparisonCard, { props: { group: mockGroup, onDelete: vi.fn() } });
+
+		const del = screen.getByTitle('Delete');
+		expect(del.closest('a')).toBeNull();
+		expect(del.className).toContain('relative');
 	});
 
 	it('should render delete button when onDelete is provided', () => {

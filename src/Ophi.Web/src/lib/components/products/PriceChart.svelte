@@ -59,6 +59,9 @@
 		return { min: lowest - pad, max: lowest + pad };
 	}
 	let canvas = $state<HTMLCanvasElement>();
+	// Chart.js loads lazily; until the first chart is built the canvas would sit blank. It stays
+	// true across redraws (the module is cached by then), so a range change does not flash it.
+	let chartReady = $state(false);
 
 	$effect(() => {
 		if (!canvas || history.length <= 1) return;
@@ -146,6 +149,7 @@
 
 		loadChart().then((Chart) => {
 			if (cancelled || !canvas) return;
+			chartReady = true;
 			chart = new Chart(ctx, {
 				type: 'line',
 				data: {
@@ -261,7 +265,7 @@
 {#if hasMismatch}
 	<CurrencyMismatchBanner currencies={uniqueCurrencies} />
 {/if}
-<div class="w-full h-64">
+<div class="relative w-full h-64">
 	{#if loading}
 		<div class="h-full flex flex-col items-center justify-center gap-2 text-gray-400 dark:text-gray-500" data-testid="chart-loading">
 			<LoaderCircle size={32} class="animate-spin opacity-40" />
@@ -287,6 +291,15 @@
 		>
 			<canvas bind:this={canvas}></canvas>
 		</div>
+		<!-- A sibling of the role="img" box: an image's children are hidden from screen readers. -->
+		{#if !chartReady}
+			<div
+				class="absolute inset-0 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400"
+				role="status"
+			>
+				Loading chart…
+			</div>
+		{/if}
 		<div id="chart-data-summary" class="sr-only">
 			Price history chart showing {history.length} data points
 			from {history[0]?.date ?? 'unknown'} to {history[history.length - 1]?.date ?? 'unknown'}.
