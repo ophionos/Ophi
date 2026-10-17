@@ -204,7 +204,11 @@ function setupPageParams(id: string) {
 	page.params = { id };
 }
 
-function renderPage(product: ProductDetail | null, stores: Store[] = [], challengeAvailable = false) {
+function renderPage(
+	product: ProductDetail | null,
+	stores: Store[] = [],
+	challengeAvailable = false
+) {
 	// Action-handler mocks for code paths that hit the API directly
 	vi.mocked(api.getProduct).mockResolvedValue(product as ProductDetail);
 	vi.mocked(api.getPriceHistory).mockResolvedValue(mockPriceHistory);
@@ -381,6 +385,50 @@ describe('Product Detail Page', () => {
 			await waitFor(() => {
 				expect(screen.getByText('active')).toBeInTheDocument();
 			});
+		});
+	});
+
+	describe('layout', () => {
+		it('should keep the status and edit actions in the hero next to the title', async () => {
+			auth.login(mockUser);
+			renderPage(mockProductWithCustomFields);
+
+			const hero = await screen.findByTestId('product-hero');
+			expect(within(hero).getByTestId('product-status')).toHaveTextContent('active');
+			expect(within(hero).getByTitle('Edit product')).toBeInTheDocument();
+		});
+
+		it('should offer one way back, the breadcrumb, when the product loads', async () => {
+			auth.login(mockUser);
+			renderPage(mockProductWithCustomFields);
+
+			await screen.findByTestId('product-hero');
+			expect(screen.getByTestId('breadcrumbs')).toBeInTheDocument();
+			// The old header had an unnamed arrow button that repeated the breadcrumb.
+			expect(
+				screen
+					.getAllByRole('button')
+					.filter((b) => !b.textContent?.trim() && !b.title && !b.getAttribute('aria-label'))
+			).toHaveLength(0);
+		});
+
+		it('should put the alerts and the comparison group in the side rail', async () => {
+			auth.login(mockUser);
+			renderPage(mockProductWithCustomFields);
+
+			const rail = await screen.findByTestId('product-rail');
+			expect(within(rail).getByText('Price Alerts')).toBeInTheDocument();
+			expect(within(rail).getByText('Comparison Group')).toBeInTheDocument();
+		});
+
+		it('should place the danger zone after every other section, outside the rail', async () => {
+			auth.login(mockUser);
+			renderPage(mockProductWithCustomFields);
+
+			const rail = await screen.findByTestId('product-rail');
+			const danger = screen.getByTestId('danger-zone');
+			expect(rail).not.toContainElement(danger);
+			expect(rail.compareDocumentPosition(danger) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 		});
 	});
 
@@ -749,14 +797,10 @@ describe('Product Detail Page', () => {
 			const dialog = await submitUrl('https://apple.com/macbook');
 
 			await waitFor(() => {
-				expect(within(dialog).getByRole('alert')).toHaveTextContent(
-					'This URL is already tracked'
-				);
+				expect(within(dialog).getByRole('alert')).toHaveTextContent('This URL is already tracked');
 			});
 			expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeEnabled();
-			expect(within(dialog).getByLabelText('Product URL')).toHaveValue(
-				'https://apple.com/macbook'
-			);
+			expect(within(dialog).getByLabelText('Product URL')).toHaveValue('https://apple.com/macbook');
 		});
 
 		it('should close the modal when the add succeeds but the refresh fails', async () => {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import type { ProductDetail } from '$lib/api/client';
 import ProductHero from './ProductHero.svelte';
 import PriceStats from './PriceStats.svelte';
@@ -48,9 +49,19 @@ describe('ProductHero', () => {
 		expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('MacBook Pro');
 	});
 
-	it('should show the No Image placeholder when the product has no image', () => {
+	it('should not reserve space for an image when the product has no image', () => {
+		// The placeholder pushed the title to half the card width and the price below the fold.
 		render(ProductHero, { props: { product } });
-		expect(screen.getByText('No Image')).toBeInTheDocument();
+		expect(screen.queryByText('No Image')).not.toBeInTheDocument();
+		expect(screen.queryByRole('img')).not.toBeInTheDocument();
+	});
+
+	it('should render the actions in the title row when given', () => {
+		const actions = createRawSnippet(() => ({ render: () => '<button>Edit product</button>' }));
+		render(ProductHero, { props: { product, actions } });
+
+		const titleRow = screen.getByRole('heading', { level: 1 }).parentElement!;
+		expect(titleRow).toContainElement(screen.getByRole('button', { name: 'Edit product' }));
 	});
 
 	it('should render the product tags', () => {
@@ -117,7 +128,10 @@ describe('ComparisonGroupPanel', () => {
 			props: { groups, currentGroupId: 'g1', onAdd: vi.fn(), onRemove: vi.fn() }
 		});
 		expect(screen.getByText('3 products in group')).toBeInTheDocument();
-		expect(screen.getByRole('link', { name: 'View Group' })).toHaveAttribute('href', '/comparisons/g1');
+		expect(screen.getByRole('link', { name: 'View Group' })).toHaveAttribute(
+			'href',
+			'/comparisons/g1'
+		);
 	});
 
 	it('should call onRemove when Remove is clicked', async () => {
@@ -139,6 +153,9 @@ describe('ComparisonGroupPanel', () => {
 
 	it('should link to comparisons when no groups exist', () => {
 		render(ComparisonGroupPanel, { props: { groups: [], onAdd: vi.fn(), onRemove: vi.fn() } });
-		expect(screen.getByRole('link', { name: 'Create one' })).toHaveAttribute('href', '/comparisons');
+		expect(screen.getByRole('link', { name: 'Create one' })).toHaveAttribute(
+			'href',
+			'/comparisons'
+		);
 	});
 });
