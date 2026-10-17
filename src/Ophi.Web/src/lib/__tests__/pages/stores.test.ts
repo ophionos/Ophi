@@ -95,10 +95,25 @@ describe('Store Configurations Page', () => {
 		});
 	});
 
-	it('should strip the ?edit param after auto-opening so it cannot reopen', async () => {
+	it('should not call replaceState while mounting', async () => {
+		// On a direct load, onMount runs before SvelteKit's router has started, and the dev build
+		// throws "Cannot call replaceState(...) before router is initialized" (#63).
 		renderStores('www.mystore.com');
 
-		await waitFor(() => expect(replaceState).toHaveBeenCalled());
+		await waitFor(() => expect(screen.getByText('Edit Store Configuration')).toBeInTheDocument());
+		expect(replaceState).not.toHaveBeenCalled();
+	});
+
+	it('should strip the ?edit param when the auto-opened modal closes', async () => {
+		renderStores('www.mystore.com');
+
+		await waitFor(() => expect(screen.getByText('Edit Store Configuration')).toBeInTheDocument());
+		await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+		await waitFor(() =>
+			expect(screen.queryByText('Edit Store Configuration')).not.toBeInTheDocument()
+		);
+		expect(replaceState).toHaveBeenCalledTimes(1);
 		const urlArg = vi.mocked(replaceState).mock.calls[0][0] as URL;
 		expect(new URL(urlArg, 'http://localhost').searchParams.has('edit')).toBe(false);
 	});
@@ -115,15 +130,13 @@ describe('Store Configurations Page', () => {
 		);
 	});
 
-	it('should not open the edit modal for a built-in store, but still strips ?edit', async () => {
-		// Built-in stores are not editable, so a ?edit deep-link to one must be a no-op for the
-		// modal — while still cleaning the URL so the param can't linger.
+	it('should not open the edit modal for a built-in store', async () => {
+		// Built-in stores are not editable, so a ?edit deep-link to one is a no-op.
 		renderStores('www.amazon.com', [amazonStore]);
 
-		await waitFor(() => expect(replaceState).toHaveBeenCalled());
+		await Promise.resolve();
 		expect(screen.queryByText('Edit Store Configuration')).not.toBeInTheDocument();
-		const urlArg = vi.mocked(replaceState).mock.calls[0][0] as URL;
-		expect(new URL(urlArg, 'http://localhost').searchParams.has('edit')).toBe(false);
+		expect(replaceState).not.toHaveBeenCalled();
 	});
 
 	it('should not open the edit modal without an ?edit param', async () => {
