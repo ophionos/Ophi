@@ -132,11 +132,11 @@ export class DashboardPage extends BasePage {
 	}
 
 	async navigateToStores() {
-		// Stores is now under the settings dropdown
-		const settingsMenu = this.page.locator('[data-settings-menu]');
-		const settingsButton = settingsMenu.locator('button').first();
-		await settingsButton.click();
-		const storesLink = settingsMenu.getByRole('link', { name: 'Stores' });
+		// Stores is under the Manage dropdown
+		const manageMenu = this.page.locator('[data-manage-menu]');
+		const manageButton = manageMenu.locator('button').first();
+		await manageButton.click();
+		const storesLink = manageMenu.getByRole('link', { name: 'Stores' });
 		await expect(storesLink).toBeVisible({ timeout: 5000 });
 		await storesLink.click();
 		await expect(this.page).toHaveURL(/\/stores/);

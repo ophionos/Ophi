@@ -41,7 +41,7 @@
 	let mobileMenuOpen = $state(false);
 	let clientAuthChecked = $state(false);
 	let clientAuthChecking = $state(false);
-	let settingsOpen = $state(false);
+	let manageOpen = $state(false);
 	let userMenuOpen = $state(false);
 	let commandPaletteOpen = $state(false);
 
@@ -51,6 +51,10 @@
 		if (resolved === resolve('/dashboard')) return currentPath === resolved || currentPath === resolve('/');
 		return currentPath.startsWith(resolved);
 	}
+
+	const manageActive = $derived(
+		isActive(resolve('/tags')) || isActive(resolve('/stores')) || isActive(resolve('/scrape-health'))
+	);
 
 	function navLinkClass(resolved: string): string {
 		return isActive(resolved)
@@ -69,8 +73,8 @@
 
 	function handleClickOutside(e: MouseEvent) {
 		const target = e.target as HTMLElement;
-		if (!target.closest('[data-settings-menu]')) {
-			settingsOpen = false;
+		if (!target.closest('[data-manage-menu]')) {
+			manageOpen = false;
 		}
 		if (!target.closest('[data-user-menu]')) {
 			userMenuOpen = false;
@@ -79,7 +83,7 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
-			settingsOpen = false;
+			manageOpen = false;
 			userMenuOpen = false;
 		}
 		if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -222,30 +226,22 @@
 							>
 								Alerts
 							</a>
-							<!-- Settings dropdown -->
-							<div class="relative" data-settings-menu use:menuKeyNav>
+							<!-- Manage dropdown: the library pages. Settings is a plain link to its own tabs. -->
+							<div class="relative" data-manage-menu use:menuKeyNav>
 								<button
-									onclick={() => (settingsOpen = !settingsOpen)}
-									class="px-3 py-1.5 text-sm font-medium {isActive(resolve('/settings')) || isActive(resolve('/tags')) || isActive(resolve('/stores')) || isActive(resolve('/scrape-health')) ? 'text-brand dark:text-brand-muted bg-brand-light dark:bg-brand-dark/30' : 'text-gray-700 dark:text-gray-300 hover:text-brand dark:hover:text-brand-muted hover:bg-surface-2'} rounded-md transition-colors flex items-center gap-1"
-									aria-expanded={settingsOpen}
+									onclick={() => (manageOpen = !manageOpen)}
+									class="px-3 py-1.5 text-sm font-medium {manageActive ? 'text-brand dark:text-brand-muted bg-brand-light dark:bg-brand-dark/30' : 'text-gray-700 dark:text-gray-300 hover:text-brand dark:hover:text-brand-muted hover:bg-surface-2'} rounded-md transition-colors flex items-center gap-1"
+									aria-expanded={manageOpen}
 									aria-haspopup="true"
 								>
-									Settings
-									<ChevronDown size={12} class="transition-transform {settingsOpen ? 'rotate-180' : ''}" />
+									Manage
+									<ChevronDown size={12} class="transition-transform {manageOpen ? 'rotate-180' : ''}" />
 								</button>
-								{#if settingsOpen}
+								{#if manageOpen}
 									<div class="absolute left-0 mt-1 w-48 bg-surface-1 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
 										<a
-											href={resolve('/settings')}
-											onclick={() => (settingsOpen = false)}
-											class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-surface-2 hover:text-brand dark:hover:text-brand-muted transition-colors"
-										>
-											<SlidersHorizontal size={15} class="text-gray-400 dark:text-gray-500" />
-											App Settings
-										</a>
-										<a
 											href={resolve('/tags')}
-											onclick={() => (settingsOpen = false)}
+											onclick={() => (manageOpen = false)}
 											class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-surface-2 hover:text-brand dark:hover:text-brand-muted transition-colors"
 										>
 											<Tag size={15} class="text-gray-400 dark:text-gray-500" />
@@ -253,7 +249,7 @@
 										</a>
 										<a
 											href={resolve('/stores')}
-											onclick={() => (settingsOpen = false)}
+											onclick={() => (manageOpen = false)}
 											class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-surface-2 hover:text-brand dark:hover:text-brand-muted transition-colors"
 										>
 											<Store size={15} class="text-gray-400 dark:text-gray-500" />
@@ -261,7 +257,7 @@
 										</a>
 										<a
 											href={resolve('/scrape-health')}
-											onclick={() => (settingsOpen = false)}
+											onclick={() => (manageOpen = false)}
 											class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-surface-2 hover:text-brand dark:hover:text-brand-muted transition-colors"
 										>
 											<Activity size={15} class="text-gray-400 dark:text-gray-500" />
@@ -270,6 +266,13 @@
 									</div>
 								{/if}
 							</div>
+							<a
+								href={resolve('/settings')}
+								class="px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/settings'))} rounded-md transition-colors"
+								aria-current={isActive(resolve('/settings')) ? 'page' : undefined}
+							>
+								Settings
+							</a>
 						</div>
 					</div>
 					<div class="flex items-center gap-3">
@@ -329,7 +332,7 @@
 
 			<!-- Mobile menu -->
 			{#if mobileMenuOpen}
-				<div class="md:hidden border-t border-gray-200 dark:border-gray-700">
+				<div class="md:hidden border-t border-gray-200 dark:border-gray-700" data-mobile-menu>
 					<div class="px-4 py-3 space-y-1">
 						<a
 							href={resolve('/dashboard')}
@@ -355,45 +358,47 @@
 						>
 							Alerts
 						</a>
-						<div class="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
-							<p class="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Settings</p>
+						<div role="group" aria-labelledby="mobile-manage-heading" class="pt-2 mt-2 space-y-1 border-t border-gray-200 dark:border-gray-700">
+							<p id="mobile-manage-heading" class="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Manage</p>
+							<a
+								href={resolve('/tags')}
+								onclick={() => (mobileMenuOpen = false)}
+								class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/tags'))} rounded-md"
+								aria-current={isActive(resolve('/tags')) ? 'page' : undefined}
+							>
+								<Tag size={18} class="text-gray-400 dark:text-gray-500" />
+								Tags
+							</a>
+							<a
+								href={resolve('/stores')}
+								onclick={() => (mobileMenuOpen = false)}
+								class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/stores'))} rounded-md"
+								aria-current={isActive(resolve('/stores')) ? 'page' : undefined}
+							>
+								<Store size={18} class="text-gray-400 dark:text-gray-500" />
+								Stores
+							</a>
+							<a
+								href={resolve('/scrape-health')}
+								onclick={() => (mobileMenuOpen = false)}
+								class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/scrape-health'))} rounded-md"
+								aria-current={isActive(resolve('/scrape-health')) ? 'page' : undefined}
+							>
+								<Activity size={18} class="text-gray-400 dark:text-gray-500" />
+								Scrape Health
+							</a>
 						</div>
-						<a
-							href={resolve('/settings')}
-							onclick={() => (mobileMenuOpen = false)}
-							class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/settings'))} rounded-md"
-							aria-current={isActive(resolve('/settings')) ? 'page' : undefined}
-						>
-							<SlidersHorizontal size={18} class="text-gray-400 dark:text-gray-500" />
-							App Settings
-						</a>
-						<a
-							href={resolve('/tags')}
-							onclick={() => (mobileMenuOpen = false)}
-							class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/tags'))} rounded-md"
-							aria-current={isActive(resolve('/tags')) ? 'page' : undefined}
-						>
-							<Tag size={18} class="text-gray-400 dark:text-gray-500" />
-							Tags
-						</a>
-						<a
-							href={resolve('/stores')}
-							onclick={() => (mobileMenuOpen = false)}
-							class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/stores'))} rounded-md"
-							aria-current={isActive(resolve('/stores')) ? 'page' : undefined}
-						>
-							<Store size={18} class="text-gray-400 dark:text-gray-500" />
-							Stores
-						</a>
-						<a
-							href={resolve('/scrape-health')}
-							onclick={() => (mobileMenuOpen = false)}
-							class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/scrape-health'))} rounded-md"
-							aria-current={isActive(resolve('/scrape-health')) ? 'page' : undefined}
-						>
-							<Activity size={18} class="text-gray-400 dark:text-gray-500" />
-							Scrape Health
-						</a>
+						<div class="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
+							<a
+								href={resolve('/settings')}
+								onclick={() => (mobileMenuOpen = false)}
+								class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/settings'))} rounded-md"
+								aria-current={isActive(resolve('/settings')) ? 'page' : undefined}
+							>
+								<SlidersHorizontal size={18} class="text-gray-400 dark:text-gray-500" />
+								Settings
+							</a>
+						</div>
 					</div>
 					<div class="border-t border-gray-200 dark:border-gray-700 px-4 py-3">
 						<div class="flex items-center justify-between">
