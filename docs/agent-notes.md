@@ -122,7 +122,8 @@ other kind of fact. Link to owners; don't restate them here.
   `ProductPriceAggregator.CheapestInDominantCurrency`: it drops unpriced members before it chooses
   the currency, and it breaks equal prices on the id. Both `GetComparisonGroup` and the list card
   (`GetComparisonGroups`) call it, so the two pages name the same product. The comparison
-  page's "You save" figure (`$lib/utils/comparisonSavings.ts`) compares only within that currency.
+  page names that product neutrally ("Cheapest in this group"), with no "Winner" or savings figure:
+  a group can be a wishlist of different products, where the cheapest saves nothing on the others.
   - **Read paths obey the same rule.** History may hold other currencies (a URL that changed
     currency, a re-anchor), so the at-lowest flag, the product statistics, the sparklines and the
     comparison history filter price points to the product's (or URL's) currency. The deal score

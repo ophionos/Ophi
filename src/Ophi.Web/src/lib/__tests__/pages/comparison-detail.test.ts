@@ -183,26 +183,25 @@ describe('Comparison Detail Page', () => {
 		});
 	});
 
-	describe('winner spotlight', () => {
-		it('should show winner spotlight when bestPrice exists', () => {
+	describe('cheapest spotlight', () => {
+		it('should name the cheapest product in neutral wording when bestPrice exists', () => {
 			renderPage();
-			expect(screen.getByText('Winner')).toBeInTheDocument();
-			expect(screen.getByText('Best Price')).toBeInTheDocument();
-			const dellTexts = screen.getAllByText(/Dell XPS/);
-			expect(dellTexts.length).toBeGreaterThanOrEqual(1);
+			const spotlight = screen.getByTestId('cheapest-spotlight');
+			expect(spotlight).toHaveTextContent('Cheapest in this group');
+			expect(spotlight).toHaveTextContent('Dell XPS');
+			expect(spotlight).toHaveTextContent('$1,499.99');
 		});
 
-		it('should show savings vs next cheapest', () => {
-			renderPage();
-			// Savings = 1999.99 - 1499.99 = 500.00
-			expect(screen.getByText('You save')).toBeInTheDocument();
-			expect(screen.getByText(/500\.00/)).toBeInTheDocument();
+		it('should not frame the group as a contest when bestPrice exists', () => {
+			// A group can be a wishlist: buying the cheapest item saves nothing on the others.
+			const { container } = renderPage();
+			expect(container.textContent).not.toMatch(/winner|you save|best price/i);
 		});
 
-		it('should not show winner spotlight when no bestPrice', () => {
+		it('should not show the spotlight when no bestPrice', () => {
 			renderPage(mockGroupNoBestPrice);
 			expect(screen.getByText('Empty Group')).toBeInTheDocument();
-			expect(screen.queryByText('Winner')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('cheapest-spotlight')).not.toBeInTheDocument();
 		});
 	});
 
@@ -241,10 +240,20 @@ describe('Comparison Detail Page', () => {
 			).toBeInTheDocument();
 		});
 
-		it('should show Best Price badge on best price product', () => {
+		it('should mark the cheapest row with a badge when bestPrice exists', () => {
 			renderPage();
-			expect(screen.getByText('Best Price')).toBeInTheDocument();
-			expect(screen.getByText('Winner')).toBeInTheDocument();
+			const rows = screen.getAllByTestId('comparison-product-row');
+			expect(rows[1]).toHaveTextContent('Cheapest');
+			expect(rows[0]).not.toHaveTextContent('Cheapest');
+		});
+
+		it('should give every row the same thumbnail and name size when one row is cheapest', () => {
+			renderPage();
+			const [other, cheapest] = screen.getAllByTestId('comparison-product-row');
+			const thumb = (row: HTMLElement) => row.firstElementChild!.getAttribute('class');
+			const name = (row: HTMLElement) => row.querySelector('a')!.getAttribute('class');
+			expect(thumb(cheapest)).toBe(thumb(other));
+			expect(name(cheapest)).toBe(name(other));
 		});
 	});
 

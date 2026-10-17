@@ -15,7 +15,7 @@
 		Trash2,
 		Package,
 		ExternalLink,
-		Trophy,
+		BadgeCheck,
 		ListTree,
 		TrendingUp
 	} from 'lucide-svelte';
@@ -23,7 +23,6 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
 	import PageHeader from '$lib/components/shared/PageHeader.svelte';
-	import { savingsVsNext as computeSavingsVsNext } from '$lib/utils/comparisonSavings';
 
 	let { data: pageData }: { data: PageData } = $props();
 
@@ -52,8 +51,6 @@
 			}
 		});
 	});
-
-	const savingsVsNext = $derived(computeSavingsVsNext(group));
 
 	async function handleDaysChange(days: number) {
 		selectedDays = days;
@@ -181,47 +178,31 @@
 	</div>
 
 	{#if group}
-		<!-- Winner Spotlight Banner -->
+		<!-- Cheapest product. Neutral on purpose: a group can be a wishlist of different products,
+		     where the cheapest one is not a winner and saves nothing on the others. -->
 		{#if group.bestPrice != null && group.bestPriceProductId}
 			{@const bestPriceProductId = group.bestPriceProductId}
 			{@const bestProduct = group.products.find((p) => p.id === bestPriceProductId)}
 			{#if bestProduct}
 				<div
-					class="mb-6 p-5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl shadow-sm ring-1 ring-green-200/50 dark:ring-green-800/50"
-					data-testid="winner-spotlight"
+					class="mb-6 p-5 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm"
+					data-testid="cheapest-spotlight"
 				>
 					<div class="flex items-center gap-4">
-						<div class="p-3 bg-green-100 dark:bg-green-900/60 rounded-full shadow-inner">
-							<Trophy size={24} class="text-green-600 dark:text-green-400" />
+						<div class="p-3 bg-success/15 rounded-full">
+							<BadgeCheck size={24} class="text-success" />
 						</div>
 						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2">
-								<p
-									class="text-sm font-semibold text-green-800 dark:text-green-300 uppercase tracking-wide"
-								>
-									Winner
-								</p>
-							</div>
-							<p class="text-lg font-bold text-green-700 dark:text-green-400 truncate">
+							<p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+								Cheapest in this group
+							</p>
+							<p class="text-lg font-semibold text-gray-900 dark:text-white truncate">
 								{bestProduct.name}
 							</p>
-							<p class="text-2xl font-extrabold text-green-800 dark:text-green-300 mt-0.5">
+							<p class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
 								{formatPrice(group.bestPrice, bestProduct.currency)}
 							</p>
 						</div>
-						{#if savingsVsNext != null && savingsVsNext > 0}
-							<div class="shrink-0 text-right">
-								<p
-									class="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wide"
-								>
-									You save
-								</p>
-								<p class="text-xl font-bold text-green-700 dark:text-green-300">
-									{formatPrice(savingsVsNext, bestProduct.currency)}
-								</p>
-								<p class="text-xs text-green-600/70 dark:text-green-400/70">vs. next cheapest</p>
-							</div>
-						{/if}
 					</div>
 				</div>
 			{/if}
@@ -318,27 +299,26 @@
 			{:else}
 				<div class="divide-y divide-gray-200 dark:divide-gray-700">
 					{#each group.products as product (product.id)}
+						<!-- Every row has one size so the names line up; only the badge and the
+						     background mark the cheapest. -->
 						<div
 							class="p-4 flex items-center gap-4 transition-colors {product.isBestPrice
-								? 'bg-green-50/50 dark:bg-green-900/10 ring-1 ring-inset ring-green-200 dark:ring-green-800/50'
+								? 'bg-success/5'
 								: 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}"
+							data-testid="comparison-product-row"
 						>
 							{#if product.imageUrl}
 								<img
 									src={product.imageUrl}
 									alt=""
 									loading="lazy"
-									class="{product.isBestPrice
-										? 'w-20 h-20'
-										: 'w-16 h-16'} object-cover rounded transition-all"
+									class="w-16 h-16 object-cover rounded"
 								/>
 							{:else}
 								<div
-									class="{product.isBestPrice
-										? 'w-20 h-20'
-										: 'w-16 h-16'} bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center transition-all"
+									class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center"
 								>
-									<Package size={product.isBestPrice ? 28 : 24} class="text-gray-400" />
+									<Package size={24} class="text-gray-400" />
 								</div>
 							{/if}
 
@@ -346,27 +326,21 @@
 								<div class="flex items-center gap-2">
 									<a
 										href={resolve(`/products/${product.id}`)}
-										class="{product.isBestPrice
-											? 'text-base'
-											: 'text-sm'} font-medium text-gray-900 dark:text-white hover:text-brand dark:hover:text-brand-muted truncate"
+										class="text-sm font-medium text-gray-900 dark:text-white hover:text-brand dark:hover:text-brand-muted truncate"
 									>
 										{product.name}
 									</a>
 									{#if product.isBestPrice}
 										<span
-											class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full"
+											class="inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-success/15 text-success rounded-full"
 										>
-											<Trophy size={10} />
-											Best Price
+											<BadgeCheck size={10} />
+											Cheapest
 										</span>
 									{/if}
 								</div>
 								{#if product.currentPrice != null}
-									<p
-										class="{product.isBestPrice
-											? 'text-xl font-bold text-green-700 dark:text-green-400'
-											: 'text-lg font-semibold text-gray-900 dark:text-white'} mt-1"
-									>
+									<p class="text-lg font-semibold text-gray-900 dark:text-white mt-1">
 										{formatPrice(product.currentPrice, product.currency)}
 									</p>
 								{:else}
