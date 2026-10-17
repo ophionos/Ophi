@@ -113,7 +113,8 @@ other kind of fact. Link to owners; don't restate them here.
   beats USD 100 numerically while costing more. When no URL matches, the product re-anchors onto the
   **dominant** currency (most URLs, ties by code) and takes the MIN within it. Any fallback must
   choose a currency before comparing two decimals. `ProductPriceAggregator.DominantCurrency` is the
-  one implementation; `GetComparisonGroup` uses it for the group's best price.
+  one implementation; `GetComparisonGroup` uses it for the group's best price. The comparison
+  page's "You save" figure (`$lib/utils/comparisonSavings.ts`) compares only within that currency.
   - **Read paths obey the same rule.** History may hold other currencies (a URL that changed
     currency, a re-anchor), so the at-lowest flag, the product statistics, the sparklines and the
     comparison history filter price points to the product's (or URL's) currency. The deal score
