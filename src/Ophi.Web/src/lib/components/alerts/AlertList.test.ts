@@ -32,6 +32,7 @@ describe('AlertList', () => {
 			props: { alerts, productCurrency: 'USD', onDelete, onRedenominate: vi.fn() }
 		});
 		await fireEvent.click(screen.getAllByLabelText('Delete alert')[1]);
+		await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 		expect(onDelete).toHaveBeenCalledWith('a2');
 	});
 });

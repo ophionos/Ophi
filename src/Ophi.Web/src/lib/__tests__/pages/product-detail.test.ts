@@ -635,6 +635,9 @@ describe('Product Detail Page', () => {
 			});
 
 			await fireEvent.click(screen.getByLabelText('Delete alert'));
+			await fireEvent.click(
+				within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' })
+			);
 
 			await waitFor(() => {
 				expect(screen.queryByText(/Below: \$1,800\.00/)).not.toBeInTheDocument();

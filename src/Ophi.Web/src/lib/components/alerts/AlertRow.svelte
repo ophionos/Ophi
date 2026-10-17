@@ -4,6 +4,7 @@
 	import type { ProductAlert } from '$lib/api/client';
 	import { formatPrice } from '$lib/format';
 	import RedenominateAlertForm from '$lib/components/alerts/RedenominateAlertForm.svelte';
+	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 
 	interface Props {
 		alert: ProductAlert;
@@ -35,6 +36,7 @@
 	}: Props = $props();
 
 	let deleting = $state(false);
+	let confirmingDelete = $state(false);
 	let toggling = $state(false);
 	let redenominating = $state(false);
 
@@ -54,12 +56,14 @@
 		percentDrop: 'Drop %'
 	};
 
-	async function handleDelete() {
+	// Deleting also drops the alert's trigger history, so it is confirmed like other destructive actions.
+	async function handleConfirmDelete() {
 		deleting = true;
 		try {
 			await onDelete();
 		} finally {
 			deleting = false;
+			confirmingDelete = false;
 		}
 	}
 
@@ -154,7 +158,7 @@
 				disabled={toggling}
 				aria-label={alert.active ? 'Pause alert' : 'Resume alert'}
 				title={alert.active ? 'Pause alert' : 'Resume alert'}
-				class="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50"
+				class="flex items-center gap-1 p-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50"
 			>
 				{#if toggling}
 					<LoaderCircle size={16} class="animate-spin" />
@@ -163,19 +167,33 @@
 				{:else}
 					<Play size={16} />
 				{/if}
+				<span class="hidden sm:inline">{alert.active ? 'Pause' : 'Resume'}</span>
 			</button>
 		{/if}
 		<button
-			onclick={handleDelete}
+			onclick={() => (confirmingDelete = true)}
 			disabled={deleting}
 			aria-label="Delete alert"
-			class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md disabled:opacity-50"
+			title="Delete alert"
+			class="flex items-center gap-1 p-2 text-sm text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md disabled:opacity-50"
 		>
 			{#if deleting}
 				<LoaderCircle size={16} class="animate-spin" />
 			{:else}
 				<Trash2 size={16} />
 			{/if}
+			<span class="hidden sm:inline">Delete</span>
 		</button>
 	</div>
 </div>
+
+<ConfirmModal
+	isOpen={confirmingDelete}
+	title="Delete alert"
+	message="Delete this alert{product
+		? ` for ${product.name}`
+		: ''} and its trigger history? This cannot be undone."
+	loading={deleting}
+	onConfirm={handleConfirmDelete}
+	onCancel={() => (confirmingDelete = false)}
+/>

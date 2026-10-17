@@ -54,18 +54,48 @@ describe('AlertRow', () => {
 		expect(link).toHaveAttribute('href', '/base/products/p1');
 	});
 
-	it('should call onDelete and disable the button while the delete is in flight', async () => {
+	it('should ask for confirmation before deleting', async () => {
+		const { onDelete } = renderRow();
+
+		await fireEvent.click(screen.getByLabelText('Delete alert'));
+
+		expect(screen.getByRole('dialog')).toHaveTextContent(/cannot be undone/);
+		expect(onDelete).not.toHaveBeenCalled();
+	});
+
+	it('should not delete when the confirmation is cancelled', async () => {
+		const { onDelete } = renderRow();
+
+		await fireEvent.click(screen.getByLabelText('Delete alert'));
+		await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+		expect(onDelete).not.toHaveBeenCalled();
+	});
+
+	it('should call onDelete once confirmed and disable the button while it is in flight', async () => {
 		let finish!: () => void;
 		const onDelete = vi.fn(() => new Promise<void>((r) => (finish = r)));
 		renderRow({ onDelete });
 
 		const button = screen.getByLabelText('Delete alert');
 		await fireEvent.click(button);
+		await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 		expect(onDelete).toHaveBeenCalledOnce();
 		expect(button).toBeDisabled();
 
 		finish();
 		await waitFor(() => expect(button).not.toBeDisabled());
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+	});
+
+	it('should give the row actions a tooltip and a visible label', () => {
+		renderRow({ onToggleActive: vi.fn().mockResolvedValue(undefined) });
+
+		const del = screen.getByLabelText('Delete alert');
+		expect(del).toHaveAttribute('title', 'Delete alert');
+		expect(del).toHaveTextContent('Delete');
+		expect(screen.getByLabelText('Pause alert')).toHaveTextContent('Pause');
 	});
 
 	describe('pause toggle', () => {
