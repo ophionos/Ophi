@@ -42,7 +42,7 @@ export class ProductDetailPage extends BasePage {
 		this.backButton = page.locator('[data-testid="breadcrumbs"]').getByRole('link', { name: 'Dashboard' });
 		this.productName = page.getByRole('heading', { level: 1 });
 		this.viewOnStoreLink = page.getByText('View on store');
-		this.statusBadge = page.locator('span.rounded-full.capitalize');
+		this.statusBadge = page.getByTestId('product-status');
 		this.currentPrice = page.locator('[data-testid="single-price-display"] .text-3xl');
 		this.priceChangeIndicator = page.locator('.text-lg').filter({ has: page.locator('svg') });
 		this.productImage = page.locator('img[alt]').first();

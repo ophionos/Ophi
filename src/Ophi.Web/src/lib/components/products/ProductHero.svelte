@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Clock, ImageOff } from 'lucide-svelte';
+	import { Clock } from 'lucide-svelte';
+	import type { Snippet } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import type { ProductDetail } from '$lib/api/client';
 	import { formatCheckInterval } from '$lib/format';
@@ -8,9 +9,11 @@
 
 	interface Props {
 		product: ProductDetail;
+		/** The product's status and actions, shown in the title row so they sit by the name. */
+		actions?: Snippet;
 	}
 
-	let { product }: Props = $props();
+	let { product, actions }: Props = $props();
 
 	const priceStory = $derived(
 		getPriceStory({
@@ -33,6 +36,7 @@
 <div
 	class="relative bg-surface-1 rounded-2xl shadow-xl border border-gray-200 dark:border-white/5 overflow-hidden ring-1 ring-black/5 mb-8"
 	in:fly={{ y: 20, duration: 500, delay: 100 }}
+	data-testid="product-hero"
 >
 	<!-- Ambient background glow behind image -->
 	<div
@@ -51,22 +55,20 @@
 					class="w-full h-full object-contain p-2"
 				/>
 			</div>
-		{:else}
-			<div
-				class="w-full md:w-40 h-12 md:h-32 shrink-0 bg-gray-100/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-white/10 flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-500 mb-4 md:mb-0"
-			>
-				<ImageOff size={16} aria-hidden="true" />
-				No Image
-			</div>
 		{/if}
 
-		<div class="md:ml-6 flex-1 flex flex-col justify-center min-w-0">
-			<div class="flex items-center gap-3 mb-4">
+		<!-- Without an image the text takes the full width: a placeholder only pushed the title
+		     to half the card and the price further down on a phone. -->
+		<div class="{product.imageUrl ? 'md:ml-6' : ''} flex-1 flex flex-col justify-center min-w-0">
+			<div class="flex flex-wrap items-start justify-between gap-3 mb-4">
 				<h1
-					class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white leading-tight max-w-2xl"
+					class="min-w-0 text-2xl md:text-3xl font-bold text-gray-900 dark:text-white leading-tight max-w-2xl"
 				>
 					{product.name}
 				</h1>
+				{#if actions}
+					<div class="flex shrink-0 flex-wrap items-center gap-2">{@render actions()}</div>
+				{/if}
 			</div>
 			{#if priceStory}
 				<div class="mb-3">

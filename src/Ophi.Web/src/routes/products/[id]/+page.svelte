@@ -25,7 +25,6 @@
 	import ScrapeHistory from '$lib/components/products/ScrapeHistory.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import {
-		ArrowLeft,
 		ExternalLink,
 		Bell,
 		BellPlus,
@@ -333,7 +332,6 @@
 				return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
 		}
 	}
-
 </script>
 
 <svelte:head>
@@ -354,51 +352,6 @@
 			<ChevronRight size={14} />
 			<span class="text-gray-900 dark:text-white truncate max-w-xs">{product.name}</span>
 		</nav>
-
-		<!-- Header -->
-		<div class="flex items-center gap-4 mb-6">
-			<button
-				onclick={() => goto(resolve('/dashboard'))}
-				class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg shrink-0"
-			>
-				<ArrowLeft size={20} />
-			</button>
-			<div class="flex-1 flex items-center gap-3 min-w-0">
-				{#if product.urls && product.urls.length > 1}
-					<span
-						class="text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1 rounded-full shadow-sm"
-					>
-						Tracking {product.urls.length} stores
-					</span>
-				{:else}
-					<a
-						href={product.affiliateUrl ?? product.url}
-						target="_blank"
-						rel="noopener noreferrer external"
-						class="text-sm font-medium text-brand dark:text-brand-muted hover:text-brand-hover dark:hover:text-brand-muted bg-brand-light dark:bg-brand-dark/20 px-3 py-1 rounded-full flex items-center gap-1.5 transition-colors"
-					>
-						View on store
-						<ExternalLink size={14} />
-					</a>
-				{/if}
-			</div>
-			{#if product.status !== 'pending'}
-				<button
-					onclick={() => (showEditModal = true)}
-					class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-					title="Edit product"
-				>
-					<Pencil size={18} />
-				</button>
-			{/if}
-			<span
-				class="px-2.5 py-1 text-xs font-medium rounded-full capitalize {getStatusBadgeClass(
-					product.status
-				)}"
-			>
-				{product.status}
-			</span>
-		</div>
 
 		<!-- Out of Stock Banner -->
 		{#if product.isOutOfStock}
@@ -439,7 +392,47 @@
 			</div>
 		{/if}
 
-		<ProductHero {product} />
+		<ProductHero {product}>
+			{#snippet actions()}
+				<!-- A snippet does not keep the outer {#if product} narrowing for TypeScript. -->
+				{#if product}
+					{#if product.urls && product.urls.length > 1}
+						<span
+							class="text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1 rounded-full shadow-sm"
+						>
+							Tracking {product.urls.length} stores
+						</span>
+					{:else}
+						<a
+							href={product.affiliateUrl ?? product.url}
+							target="_blank"
+							rel="noopener noreferrer external"
+							class="text-sm font-medium text-brand dark:text-brand-muted hover:text-brand-hover dark:hover:text-brand-muted bg-brand-light dark:bg-brand-dark/20 px-3 py-1 rounded-full flex items-center gap-1.5 transition-colors"
+						>
+							View on store
+							<ExternalLink size={14} />
+						</a>
+					{/if}
+					{#if product.status !== 'pending'}
+						<button
+							onclick={() => (showEditModal = true)}
+							class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+							title="Edit product"
+						>
+							<Pencil size={18} />
+						</button>
+					{/if}
+					<span
+						data-testid="product-status"
+						class="px-2.5 py-1 text-xs font-medium rounded-full capitalize {getStatusBadgeClass(
+							product.status
+						)}"
+					>
+						{product.status}
+					</span>
+				{/if}
+			{/snippet}
+		</ProductHero>
 
 		<!-- Statistics -->
 		<PriceStats {product} {bestPriceUrlId} />
@@ -516,7 +509,13 @@
 					</div>
 				{/if}
 
-				<!-- Alerts Section -->
+				<!-- Scrape History — diagnostic and collapsed, so it comes last in the main column. -->
+				<ScrapeHistory {productId} currency={product.currency} />
+			</div>
+			<!-- Right rail. Not sticky: with the alerts in it the rail can be taller than the
+			     viewport, and a sticky rail then hides its lower cards until the page ends. -->
+			<div class="lg:col-span-1" data-testid="product-rail">
+				<!-- Alerts — in the rail, so the main column holds the price and the rail what acts on it -->
 				<div in:fly={{ y: 20, duration: 500, delay: 600 }}>
 					<SectionCard title="Price Alerts" icon={Bell}>
 						{#snippet action()}
@@ -540,12 +539,6 @@
 					</SectionCard>
 				</div>
 
-				<!-- Scrape History — diagnostic and collapsed, so it follows the alerts. -->
-				<ScrapeHistory {productId} currency={product.currency} />
-			</div>
-			<!-- Right rail — sticky so the secondary panels track the viewport while the taller
-			     main column scrolls, instead of leaving a large void at the bottom. -->
-			<div class="lg:col-span-1 lg:sticky lg:top-20">
 				<!-- Custom Fields -->
 				{#if product.customFields && product.customFields.length > 0}
 					<div in:fly={{ y: 20, duration: 500, delay: 350 }}>
@@ -577,34 +570,34 @@
 						/>
 					</SectionCard>
 				</div>
-
-				<!-- Danger Zone — Collapsible -->
-				<div in:fly={{ y: 20, duration: 500, delay: 800 }}>
-					<SectionCard
-						title="Danger Zone"
-						icon={TriangleAlert}
-						collapsible
-						open={false}
-						accent="danger"
-						testid="danger-zone"
-					>
-						<div class="flex items-center justify-between gap-4">
-							<div>
-								<p class="font-medium text-gray-900 dark:text-white">Delete this product</p>
-								<p class="text-sm text-gray-500 dark:text-gray-400">
-									This will permanently delete the product and all its price history.
-								</p>
-							</div>
-							<button
-								onclick={() => (showDeleteConfirm = true)}
-								class="shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
-							>
-								Delete Product
-							</button>
-						</div>
-					</SectionCard>
-				</div>
 			</div>
+		</div>
+
+		<!-- Danger Zone — collapsed, and last so the one destructive action is not prominent -->
+		<div class="mt-6" in:fly={{ y: 20, duration: 500, delay: 800 }}>
+			<SectionCard
+				title="Danger Zone"
+				icon={TriangleAlert}
+				collapsible
+				open={false}
+				accent="danger"
+				testid="danger-zone"
+			>
+				<div class="flex items-center justify-between gap-4">
+					<div>
+						<p class="font-medium text-gray-900 dark:text-white">Delete this product</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							This will permanently delete the product and all its price history.
+						</p>
+					</div>
+					<button
+						onclick={() => (showDeleteConfirm = true)}
+						class="shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+					>
+						Delete Product
+					</button>
+				</div>
+			</SectionCard>
 		</div>
 	</div>
 
