@@ -23,6 +23,7 @@
 	import SectionCard from '$lib/components/shared/SectionCard.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
+	import PageHeader from '$lib/components/shared/PageHeader.svelte';
 	import { savingsVsNext as computeSavingsVsNext } from '$lib/utils/comparisonSavings';
 
 	let { data: pageData }: { data: PageData } = $props();
@@ -165,30 +166,24 @@
 		</a>
 
 		{#if group}
-			<div class="flex items-start justify-between">
-				<div>
-					<h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{group.name}</h1>
-					{#if group.description}
-						<p class="text-gray-600 dark:text-gray-400 mt-1">{group.description}</p>
-					{/if}
-				</div>
-				<div class="flex gap-2">
+			<PageHeader title={group.name} description={group.description ?? undefined}>
+				{#snippet actions()}
 					<button
 						onclick={handleOpenAddProduct}
-						class="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
+						class="whitespace-nowrap px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
 					>
 						<Plus size={18} />
 						Add Product
 					</button>
 					<button
 						onclick={handleOpenDeleteGroup}
-						class="px-4 py-2 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+						class="whitespace-nowrap px-4 py-2 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
 					>
 						<Trash2 size={18} />
 						Delete Group
 					</button>
-				</div>
-			</div>
+				{/snippet}
+			</PageHeader>
 		{/if}
 	</div>
 

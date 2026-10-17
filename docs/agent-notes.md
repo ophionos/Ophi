@@ -370,6 +370,12 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   its `icon` prop, and reuse the icon the app already uses for that concept); `menuKeyNav` for dropdown
   a11y; one `QuickAlert` per row in a `Map<productId, QuickAlert>`; `loadChart()` keeps Chart.js in its
   own chunk; `formatPrice()` in `$lib/format.ts` is pinned to en-US (tests assert `"$99.99"`).
+- **One page frame.** The `<main>` in `routes/+layout.svelte` is the only page container (max width and
+  padding); a page adds no `max-w-*`/`mx-auto` of its own, or its edge drifts from every other page.
+  Every authenticated page starts with `shared/PageHeader.svelte` (title, optional description,
+  `actions` snippet). Counts go in `shared/InlineStats.svelte`; `StatCard` is only for numbers that
+  are the page's content (product price stats, scrape health). A page whose filter chips already show
+  the counts (stores) has no stat row.
 - **Colours come from the semantic tokens in `app.css`** (`price-drop/increase/unchanged` and their
   `-subtle` backgrounds, `success`, `warning`, `danger`, `surface-*`, `brand*`). Each token carries its
   own `.dark` value, so a component adds no `dark:` pair for it; a price change maps through

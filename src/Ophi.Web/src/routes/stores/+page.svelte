@@ -15,9 +15,9 @@
 	import StoreModal from '$lib/components/stores/StoreModal.svelte';
 	import TestStoreModal from '$lib/components/stores/TestStoreModal.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
-	import StatCard from '$lib/components/shared/StatCard.svelte';
+	import PageHeader from '$lib/components/shared/PageHeader.svelte';
 	import ImportStoreModal from '$lib/components/stores/ImportStoreModal.svelte';
-	import { Store as StoreIcon, Plus, Sparkles, Upload } from 'lucide-svelte';
+	import { Store as StoreIcon, Plus, Upload } from 'lucide-svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { downloadBlob } from '$lib/utils/download';
 	import { findStoreForDomain } from '$lib/utils/storeMatch';
@@ -205,14 +205,11 @@
 </svelte:head>
 
 <div>
-	<div class="mb-8 flex items-start justify-between">
-		<div>
-			<h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Store Configurations</h1>
-			<p class="text-gray-600 dark:text-gray-400">
-				Manage CSS selectors for scraping product data from different stores
-			</p>
-		</div>
-		<div class="flex gap-2">
+	<PageHeader
+		title="Store Configurations"
+		description="Manage CSS selectors for scraping product data from different stores"
+	>
+		{#snippet actions()}
 			<button
 				onclick={() => (importModalOpen = true)}
 				class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-2"
@@ -222,44 +219,15 @@
 			</button>
 			<button
 				onclick={handleOpenCreate}
-				class="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
+				class="whitespace-nowrap px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
 			>
 				<Plus size={18} />
 				Add Store
 			</button>
-		</div>
-	</div>
+		{/snippet}
+	</PageHeader>
 
-	<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-		<StatCard
-			label="Total Stores"
-			value={stats.total}
-			icon={StoreIcon}
-			iconClass="text-brand-secondary dark:text-brand-secondary-dark"
-			testid="stat-total-stores"
-		/>
-		<StatCard
-			label="Built-in"
-			value={stats.builtIn}
-			icon={StoreIcon}
-			iconClass="text-brand dark:text-brand-muted"
-			testid="stat-built-in-stores"
-		/>
-		<StatCard
-			label="Custom"
-			value={stats.custom}
-			icon={StoreIcon}
-			iconClass="text-green-600 dark:text-green-400"
-			testid="stat-custom-stores"
-		/>
-		<StatCard
-			label="Auto-detected"
-			value={stats.autoCreated}
-			icon={Sparkles}
-			iconClass="text-amber-600 dark:text-amber-400"
-		/>
-	</div>
-
+	<!-- The filter chips carry the counts, so the page has no separate stat row. -->
 	<div class="flex flex-wrap gap-2 mb-6" data-testid="store-filters">
 		{#each storeFilters as opt (opt.value)}
 			<button

@@ -10,6 +10,7 @@
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 	import { Bell, Pause, Play, Trash2 } from 'lucide-svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
+	import PageHeader from '$lib/components/shared/PageHeader.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -210,10 +211,7 @@
 </svelte:head>
 
 <div>
-	<div class="mb-6">
-		<h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Alerts</h1>
-		<p class="text-gray-600 dark:text-gray-400">Every price alert across your products</p>
-	</div>
+	<PageHeader title="Alerts" description="Every price alert across your products" />
 
 	{#if alerts.length === 0}
 		<EmptyState

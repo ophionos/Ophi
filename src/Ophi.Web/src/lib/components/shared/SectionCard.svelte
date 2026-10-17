@@ -56,12 +56,12 @@
 
 	const cardBorder = $derived(
 		accent === 'danger'
-			? 'border-red-200 dark:border-red-900/50'
+			? 'border-danger/30'
 			: 'border-gray-200 dark:border-gray-700/50 ring-1 ring-black/5 dark:ring-white/5'
 	);
 
 	const iconClass = $derived(
-		accent === 'danger' ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'
+		accent === 'danger' ? 'text-danger' : 'text-gray-400 dark:text-gray-500'
 	);
 </script>
 
@@ -96,7 +96,7 @@
 		{#if isOpen}
 			<div
 				class="{bodyClass} border-t {accent === 'danger'
-					? 'border-red-200 dark:border-red-900/50'
+					? 'border-danger/30'
 					: 'border-gray-200 dark:border-gray-700'}"
 			>
 				{@render children()}

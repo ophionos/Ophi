@@ -25,6 +25,7 @@
 	import { flip } from 'svelte/animate';
 	import OnboardingTour from '$lib/components/shared/OnboardingTour.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
+	import PageHeader from '$lib/components/shared/PageHeader.svelte';
 
 	let { data: pageData }: { data: PageData } = $props();
 
@@ -364,6 +365,8 @@
 </svelte:head>
 
 <div>
+	<PageHeader title="Dashboard" description="Your tracked products and their latest prices" />
+
 	<DashboardStatsBar
 		{totalProducts}
 		priceDrops={priceDropCount}

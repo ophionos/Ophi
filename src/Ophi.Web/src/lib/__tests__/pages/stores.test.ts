@@ -79,6 +79,13 @@ describe('Store Configurations Page', () => {
 		page.url = new URL('http://localhost/stores') as unknown as typeof page.url;
 	});
 
+	it('should show the store counts only on the filter chips', () => {
+		renderStores();
+		expect(screen.getByTestId('store-filter-all')).toHaveTextContent('All (1)');
+		expect(screen.getByTestId('store-filter-custom')).toHaveTextContent('Custom (1)');
+		expect(screen.queryByTestId('stat-total-stores')).not.toBeInTheDocument();
+	});
+
 	it('should show the empty state with an add action when no stores exist', () => {
 		renderStores(undefined, []);
 		expect(screen.getByText('No stores configured')).toBeInTheDocument();

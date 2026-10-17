@@ -18,10 +18,10 @@ export class StoresPage extends BasePage {
 		this.storeCards = page.locator('.bg-white.rounded-lg.shadow-sm.border');
 		this.loadingSpinner = page.locator('[data-testid="page-loading"]');
 		this.emptyState = page.getByText('No stores configured');
-		// Stats render via the shared StatCard (value is the p.text-xl inside the card).
-		this.totalStoresCount = page.getByTestId('stat-total-stores').locator('p.text-xl');
-		this.builtInStoresCount = page.getByTestId('stat-built-in-stores').locator('p.text-xl');
-		this.customStoresCount = page.getByTestId('stat-custom-stores').locator('p.text-xl');
+		// The counts live on the filter chips ("All (n)", "Built-in (n)", …).
+		this.totalStoresCount = page.getByTestId('store-filter-all');
+		this.builtInStoresCount = page.getByTestId('store-filter-built-in');
+		this.customStoresCount = page.getByTestId('store-filter-custom');
 	}
 
 	async goto() {

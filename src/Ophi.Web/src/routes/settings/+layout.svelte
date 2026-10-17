@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Settings, Bell, KeyRound, DatabaseBackup, UserRound } from 'lucide-svelte';
+	import PageHeader from '$lib/components/shared/PageHeader.svelte';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -21,12 +22,10 @@
 </script>
 
 <div>
-	<div class="mb-6">
-		<h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h1>
-		<p class="text-gray-600 dark:text-gray-400">
-			Scraping behaviour, notification channels, API access, data import/export, and your account
-		</p>
-	</div>
+	<PageHeader
+		title="Settings"
+		description="Scraping behaviour, notification channels, API access, data import/export, and your account"
+	/>
 
 	<nav class="flex gap-2 overflow-x-auto mb-6 border-b border-gray-200 dark:border-gray-700 pb-px" aria-label="Settings sections" data-testid="settings-nav">
 		{#each sections as section (section.href)}

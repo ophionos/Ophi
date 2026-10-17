@@ -5,9 +5,11 @@
 	import TagList from '$lib/components/tags/TagList.svelte';
 	import TagModal from '$lib/components/tags/TagModal.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
-	import { Tag as TagIcon, Plus } from 'lucide-svelte';
+	import { Tag as TagIcon, Plus, Package } from 'lucide-svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
+	import PageHeader from '$lib/components/shared/PageHeader.svelte';
+	import InlineStats from '$lib/components/shared/InlineStats.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -87,37 +89,25 @@
 </svelte:head>
 
 <div>
-	<div class="mb-8 flex items-start justify-between gap-4">
-		<div>
-			<h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Tags</h1>
-			<p class="text-gray-600 dark:text-gray-400">
-				Create and manage tags to organize your tracked products
-			</p>
-		</div>
-		<button
-			onclick={handleOpenCreate}
-			class="shrink-0 whitespace-nowrap px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
-			data-testid="create-tag-button"
-		>
-			<Plus size={18} />
-			Create Tag
-		</button>
-	</div>
+	<PageHeader title="Tags" description="Create and manage tags to organize your tracked products">
+		{#snippet actions()}
+			<button
+				onclick={handleOpenCreate}
+				class="whitespace-nowrap px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
+				data-testid="create-tag-button"
+			>
+				<Plus size={18} />
+				Create Tag
+			</button>
+		{/snippet}
+	</PageHeader>
 
-	<!-- Slim inline summary, same as Comparisons — a single digit per stat doesn't warrant cards. -->
-	<div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6 px-1">
-		<div class="flex items-center gap-2" data-testid="stat-total-tags">
-			<TagIcon size={16} class="text-brand dark:text-brand-muted" />
-			<span class="text-sm text-gray-500 dark:text-gray-400">Total Tags</span>
-			<span class="text-sm font-semibold text-gray-900 dark:text-white">{stats.total}</span>
-		</div>
-		<div class="hidden sm:block w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
-		<div class="flex items-center gap-2" data-testid="stat-tagged-products">
-			<TagIcon size={16} class="text-green-600 dark:text-green-400" />
-			<span class="text-sm text-gray-500 dark:text-gray-400">Tagged Products</span>
-			<span class="text-sm font-semibold text-gray-900 dark:text-white">{stats.totalProducts}</span>
-		</div>
-	</div>
+	<InlineStats
+		stats={[
+			{ label: 'Total Tags', value: stats.total, icon: TagIcon, testid: 'stat-total-tags' },
+			{ label: 'Tagged Products', value: stats.totalProducts, icon: Package, testid: 'stat-tagged-products' }
+		]}
+	/>
 
 	<div>
 		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">All Tags</h2>
