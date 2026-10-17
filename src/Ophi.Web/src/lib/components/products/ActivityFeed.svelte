@@ -97,7 +97,7 @@
 						{#if event.product.alertCount > 0}
 							<span class="inline-flex items-center gap-1 ml-2 text-xs text-amber-600 dark:text-amber-400">
 								<Bell size={10} />
-								{event.product.alertCount} alerts
+								{event.product.alertCount} {event.product.alertCount === 1 ? 'alert' : 'alerts'}
 							</span>
 						{/if}
 					</p>
