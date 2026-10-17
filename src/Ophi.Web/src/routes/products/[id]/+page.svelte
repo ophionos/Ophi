@@ -217,13 +217,14 @@
 	}
 
 	async function handleAddUrl(url: string) {
+		// A failed add propagates to AddUrlModal, which shows it inline and re-enables the form.
+		await api.addProductUrl(productId, url);
+		showAddUrlModal = false;
+		toast.success('URL added');
 		try {
-			await api.addProductUrl(productId, url);
-			showAddUrlModal = false;
 			product = await api.getProduct(productId);
-			toast.success('URL added');
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Failed to add URL');
+		} catch {
+			// The URL was added; the live refresh picks it up.
 		}
 	}
 

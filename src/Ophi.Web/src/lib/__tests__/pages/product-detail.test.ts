@@ -725,4 +725,47 @@ describe('Product Detail Page', () => {
 			});
 		});
 	});
+
+	describe('add store URL', () => {
+		async function submitUrl(url: string) {
+			await fireEvent.click(await screen.findByRole('button', { name: 'Add URL' }));
+			const dialog = await screen.findByRole('dialog');
+			await fireEvent.input(within(dialog).getByLabelText('Product URL'), {
+				target: { value: url }
+			});
+			await fireEvent.click(within(dialog).getByRole('button', { name: 'Add URL' }));
+			return dialog;
+		}
+
+		it('should show the error inline and re-enable the modal when the add fails', async () => {
+			auth.login(mockUser);
+			vi.mocked(api.addProductUrl).mockRejectedValue(new Error('This URL is already tracked'));
+			renderPage(mockProductWithCustomFields);
+
+			const dialog = await submitUrl('https://apple.com/macbook');
+
+			await waitFor(() => {
+				expect(within(dialog).getByRole('alert')).toHaveTextContent(
+					'This URL is already tracked'
+				);
+			});
+			expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeEnabled();
+			expect(within(dialog).getByLabelText('Product URL')).toHaveValue(
+				'https://apple.com/macbook'
+			);
+		});
+
+		it('should close the modal when the add succeeds but the refresh fails', async () => {
+			auth.login(mockUser);
+			vi.mocked(api.addProductUrl).mockResolvedValue(undefined as never);
+			renderPage(mockProductWithCustomFields);
+			vi.mocked(api.getProduct).mockRejectedValue(new Error('Network error'));
+
+			await submitUrl('https://store.example/macbook');
+
+			await waitFor(() => {
+				expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+			});
+		});
+	});
 });
