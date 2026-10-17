@@ -106,10 +106,16 @@ describe('ActivityFeed', () => {
 		expect(container.querySelector('[aria-label*="Deal score"]')).toBeTruthy();
 	});
 
-	it('should handle products with alerts', () => {
+	it('should handle products with a single alert using singular label', () => {
+		const products = [makeProduct({ priceChange: -10, alertCount: 1 })];
+		render(ActivityFeed, { props: { products } });
+		expect(screen.getByText('1 alert')).toBeTruthy();
+	});
+
+	it('should handle products with multiple alerts', () => {
 		const products = [makeProduct({ priceChange: -10, alertCount: 2 })];
 		render(ActivityFeed, { props: { products } });
-		expect(screen.getByText(/2 alerts/i)).toBeTruthy();
+		expect(screen.getByText('2 alerts')).toBeTruthy();
 	});
 
 	it('should show out of stock events', () => {
