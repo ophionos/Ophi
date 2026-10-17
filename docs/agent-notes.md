@@ -370,6 +370,12 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   its `icon` prop, and reuse the icon the app already uses for that concept); `menuKeyNav` for dropdown
   a11y; one `QuickAlert` per row in a `Map<productId, QuickAlert>`; `loadChart()` keeps Chart.js in its
   own chunk; `formatPrice()` in `$lib/format.ts` is pinned to en-US (tests assert `"$99.99"`).
+- **Colours come from the semantic tokens in `app.css`** (`price-drop/increase/unchanged` and their
+  `-subtle` backgrounds, `success`, `warning`, `danger`, `surface-*`, `brand*`). Each token carries its
+  own `.dark` value, so a component adds no `dark:` pair for it; a price change maps through
+  `$lib/utils/priceColors.ts`. Chart series take `chartSeriesColor(i)` from `$lib/utils/chart.ts`, which
+  has no green or red (they mean "dropped" and "rose"). Pages still on raw `green-*`/`bg-white` utilities
+  move to the tokens when they are next changed.
 
 ## Testing recipes
 

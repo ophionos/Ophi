@@ -28,6 +28,7 @@
 	import DealScore from '$lib/components/products/DealScore.svelte';
 	import { createAnimatedPrice } from '$lib/utils/animatedPrice.svelte';
 	import { getPriceStory } from '$lib/utils/priceStory';
+	import { priceChangeChipClass } from '$lib/utils/priceColors';
 	import { QuickAlert } from '$lib/utils/quickAlert.svelte';
 	import ScanAnimation from '$lib/components/products/ScanAnimation.svelte';
 	import FormError from '$lib/components/shared/FormError.svelte';
@@ -80,23 +81,12 @@
 	}));
 
 	const storyVariantClasses: Record<string, string> = {
-		positive: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
-		negative: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
-		neutral: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400',
+		positive: priceChangeChipClass(-1),
+		negative: priceChangeChipClass(1),
+		neutral: priceChangeChipClass(0),
 		highlight: 'bg-brand-subtle dark:bg-brand-dark/40 text-brand dark:text-brand-muted'
 	};
 
-	function getPriceChangeColor() {
-		if (!product.priceChange || product.priceChange === 0) return 'text-gray-500';
-		return product.priceChange < 0 ? 'text-green-600' : 'text-red-600';
-	}
-
-	function getPriceChangeBgColor() {
-		if (!product.priceChange || product.priceChange === 0) return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
-		return product.priceChange < 0
-			? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
-			: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400';
-	}
 
 
 </script>
@@ -236,9 +226,9 @@
 				{#if product.priceChange}
 					<span class="relative inline-flex items-center justify-center">
 						{#if product.priceChange <= -5}
-							<span class="absolute inset-0 rounded-full animate-ping opacity-25 {getPriceChangeBgColor()}" style="animation-duration: 2s;"></span>
+							<span class="absolute inset-0 rounded-full animate-ping opacity-25 {priceChangeChipClass(product.priceChange)}" style="animation-duration: 2s;"></span>
 						{/if}
-						<span class="relative inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full {getPriceChangeBgColor()}" data-testid="price-change-badge">
+						<span class="relative inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full {priceChangeChipClass(product.priceChange)}" data-testid="price-change-badge">
 							{#if product.priceChange < 0}
 								<TrendingDown size={12} />
 							{:else}

@@ -61,13 +61,13 @@
 				class="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700/50 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 group"
 			>
 				<!-- Event icon -->
-				<div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center {event.type === 'drop' ? 'bg-green-100 dark:bg-green-900/40' : event.type === 'out-of-stock' ? 'bg-red-100 dark:bg-red-900/40' : 'bg-red-100 dark:bg-red-900/40'}">
+				<div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center {event.type === 'drop' ? 'bg-price-drop-subtle' : 'bg-price-increase-subtle'}">
 					{#if event.type === 'drop'}
-						<TrendingDown size={18} class="text-green-600 dark:text-green-400" />
+						<TrendingDown size={18} class="text-price-drop" />
 					{:else if event.type === 'out-of-stock'}
-						<PackageX size={18} class="text-red-600 dark:text-red-400" />
+						<PackageX size={18} class="text-danger" />
 					{:else}
-						<TrendingUp size={18} class="text-red-600 dark:text-red-400" />
+						<TrendingUp size={18} class="text-price-increase" />
 					{/if}
 				</div>
 
@@ -83,13 +83,13 @@
 					</div>
 					<p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
 						{#if event.type === 'out-of-stock'}
-							<span class="font-medium text-red-600 dark:text-red-400">Out of stock</span>
+							<span class="font-medium text-danger">Out of stock</span>
 							{#if event.product.currentPrice}
 								<span class="text-gray-400 dark:text-gray-500"> · last known {formatPrice(event.product.currentPrice, event.product.currency)}</span>
 							{/if}
 						{:else}
 							Price {event.type === 'drop' ? 'dropped' : 'increased'} by
-							<span class="font-medium {event.type === 'drop' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+							<span class="font-medium {event.type === 'drop' ? 'text-price-drop' : 'text-price-increase'}">
 								{formatPrice(event.amount, event.product.currency)}
 							</span>
 							<span class="text-gray-400 dark:text-gray-500">({event.percent.toFixed(1)}%)</span>
@@ -105,7 +105,7 @@
 
 				<!-- Price + time -->
 				<div class="shrink-0 text-right">
-					<p class="font-semibold {event.type === 'out-of-stock' ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}">
+					<p class="font-semibold {event.type === 'out-of-stock' ? 'text-danger' : 'text-gray-900 dark:text-white'}">
 						{#if event.type === 'out-of-stock'}
 							OOS
 						{:else}

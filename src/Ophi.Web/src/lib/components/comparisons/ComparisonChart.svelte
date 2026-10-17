@@ -2,7 +2,7 @@
 	import type { ComparisonProduct } from '$lib/api/client';
 	import { theme } from '$lib/stores/theme.svelte';
 	import CurrencyMismatchBanner from '$lib/components/shared/CurrencyMismatchBanner.svelte';
-	import { loadChart, getChartThemeColors } from '$lib/utils/chart';
+	import { loadChart, getChartThemeColors, chartSeriesColor } from '$lib/utils/chart';
 	import { formatPrice } from '$lib/format';
 
 	interface Props {
@@ -14,17 +14,6 @@
 
 	let uniqueCurrencies = $derived([...new Set(products.map((p) => p.currency))]);
 	let hasMismatch = $derived(uniqueCurrencies.length > 1);
-
-	const colors = [
-		{ border: 'rgb(13, 148, 136)', bg: 'rgba(13, 148, 136, 0.1)' },
-		{ border: 'rgb(16, 185, 129)', bg: 'rgba(16, 185, 129, 0.1)' },
-		{ border: 'rgb(249, 115, 22)', bg: 'rgba(249, 115, 22, 0.1)' },
-		{ border: 'rgb(139, 92, 246)', bg: 'rgba(139, 92, 246, 0.1)' },
-		{ border: 'rgb(236, 72, 153)', bg: 'rgba(236, 72, 153, 0.1)' },
-		{ border: 'rgb(245, 158, 11)', bg: 'rgba(245, 158, 11, 0.1)' },
-		{ border: 'rgb(6, 182, 212)', bg: 'rgba(6, 182, 212, 0.1)' },
-		{ border: 'rgb(239, 68, 68)', bg: 'rgba(239, 68, 68, 0.1)' }
-	];
 
 	function getAllDates(): string[] {
 		const dateSet = new Set<string>();
@@ -54,7 +43,7 @@
 		});
 
 		const datasets = products.map((product, index) => {
-			const colorSet = colors[index % colors.length];
+			const colorSet = chartSeriesColor(index);
 
 			const priceMap = new Map<string, number>();
 			product.priceHistory.forEach((h) => {
@@ -78,7 +67,7 @@
 				label,
 				data,
 				borderColor: colorSet.border,
-				backgroundColor: colorSet.bg,
+				backgroundColor: colorSet.fill,
 				borderWidth: 2,
 				fill: false,
 				// Stepped: price stays flat until it actually changes (matches the carry-forward data),

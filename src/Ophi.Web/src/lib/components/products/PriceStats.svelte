@@ -44,6 +44,12 @@
 		return !(min === max && max === average && average === current && min > 0);
 	});
 
+	// Highest gets no colour: it is a fact about the history, not a warning. Current shares the
+	// drop colour only when it is the lowest, so equal prices never look different.
+	const currentAtLowest = $derived(
+		product.statistics.current != null && product.statistics.current > 0 && product.statistics.current <= product.statistics.min
+	);
+
 	const uniqueCurrencies = $derived(
 		product.urls ? [...new Set(product.urls.map((u) => u.currency))] : []
 	);
@@ -73,7 +79,7 @@
 					</p>
 					<p
 						class="text-xl font-bold mt-1 tabular-nums {url.id === bestPriceUrlId
-							? 'text-green-600 dark:text-green-400'
+							? 'text-price-drop'
 							: 'text-gray-900 dark:text-white'}"
 					>
 						{url.currentPrice != null ? formatPrice(url.currentPrice, url.currency) : ''}
@@ -88,14 +94,13 @@
 		<div in:fly={{ y: 20, duration: 500, delay: 200 }}>
 			<StatCard
 				label="Lowest"
-				valueClass="text-green-600 dark:text-green-400"
+				valueClass="text-price-drop"
 				value={product.statistics.min > 0 ? formatPrice(animMin.current, product.currency) : '-'}
 			/>
 		</div>
 		<div in:fly={{ y: 20, duration: 500, delay: 250 }}>
 			<StatCard
 				label="Highest"
-				valueClass="text-red-600 dark:text-red-400"
 				value={product.statistics.max > 0 ? formatPrice(animMax.current, product.currency) : '-'}
 			/>
 		</div>
@@ -110,7 +115,7 @@
 		<div in:fly={{ y: 20, duration: 500, delay: 350 }}>
 			<StatCard
 				label="Current"
-				valueClass="text-brand dark:text-brand-muted"
+				valueClass={currentAtLowest ? 'text-price-drop' : 'text-gray-900 dark:text-white'}
 				value={product.statistics.current
 					? formatPrice(animCurrent.current, product.currency)
 					: '-'}
@@ -140,7 +145,7 @@
 						</p>
 						<p
 							class="text-sm font-bold tabular-nums {url.id === bestPriceUrlId
-								? 'text-green-600 dark:text-green-400'
+								? 'text-price-drop'
 								: 'text-gray-900 dark:text-white'}"
 						>
 							{url.currency}

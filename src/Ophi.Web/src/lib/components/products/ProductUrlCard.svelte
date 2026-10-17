@@ -261,7 +261,7 @@
 		{#if !isBuiltInStore}
 			<a
 				href={`/stores?edit=${encodeURIComponent(getDomain(productUrl.url))}`}
-				class="p-1.5 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded"
+				class="p-1.5 text-gray-400 hover:text-brand-secondary dark:hover:text-brand-secondary-dark hover:bg-brand-secondary/10 rounded"
 				title="Store configuration"
 			>
 				<Settings size={16} />

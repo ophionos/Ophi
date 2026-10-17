@@ -13,7 +13,8 @@ vi.mock('chart.js', () => {
 
 	return {
 		Chart: Object.assign(MockChart, {
-			register: vi.fn()
+			register: vi.fn(),
+			defaults: { font: {} }
 		}),
 		LineController: vi.fn(),
 		LineElement: vi.fn(),

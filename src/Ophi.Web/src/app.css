@@ -19,23 +19,17 @@
 	--color-brand-secondary: #6366f1;
 	--color-brand-secondary-dark: #818cf8;
 
-	--color-price-drop: #16a34a;
-	--color-price-drop-light: #dcfce7;
-	--color-price-drop-dark: #166534;
-	--color-price-increase: #dc2626;
-	--color-price-increase-light: #fee2e2;
-	--color-price-increase-dark: #991b1b;
-	--color-price-unchanged: #6b7280;
-	--color-price-unchanged-light: #f3f4f6;
-	--color-price-unchanged-dark: #374151;
-
-	/* Price Change Colors */
-	--color-price-up: rgba(239, 68, 68, 1);
-	/* red-500 */
-	--color-price-down: rgba(34, 197, 94, 1);
-	/* green-500 */
-	--color-price-neutral: rgba(107, 114, 128, 1);
-	/* gray-500 */
+	/* Semantic colours. Values live in :root and .dark below, so dark mode is defined once
+	   instead of a light/dark utility pair in every component. */
+	--color-price-drop: var(--price-drop);
+	--color-price-drop-subtle: var(--price-drop-subtle);
+	--color-price-increase: var(--price-increase);
+	--color-price-increase-subtle: var(--price-increase-subtle);
+	--color-price-unchanged: var(--price-unchanged);
+	--color-price-unchanged-subtle: var(--price-unchanged-subtle);
+	--color-success: var(--success);
+	--color-warning: var(--warning);
+	--color-danger: var(--danger);
 }
 
 @keyframes shimmer {
@@ -75,6 +69,16 @@
 	--surface-1: #ffffff;
 	--surface-2: #f3f4f6;
 	--surface-3: #e5e7eb;
+
+	--price-drop: #15803d; /* green-700 */
+	--price-drop-subtle: #dcfce7; /* green-100 */
+	--price-increase: #b91c1c; /* red-700 */
+	--price-increase-subtle: #fee2e2; /* red-100 */
+	--price-unchanged: #4b5563; /* gray-600 */
+	--price-unchanged-subtle: #f3f4f6; /* gray-100 */
+	--success: #15803d; /* green-700 */
+	--warning: #b45309; /* amber-700 */
+	--danger: #b91c1c; /* red-700 */
 }
 
 .dark {
@@ -82,6 +86,16 @@
 	--surface-1: #1f2937;
 	--surface-2: #283141;
 	--surface-3: #374151;
+
+	--price-drop: #4ade80; /* green-400 */
+	--price-drop-subtle: rgb(20 83 45 / 0.4); /* green-900/40 */
+	--price-increase: #f87171; /* red-400 */
+	--price-increase-subtle: rgb(127 29 29 / 0.4); /* red-900/40 */
+	--price-unchanged: #9ca3af; /* gray-400 */
+	--price-unchanged-subtle: #374151; /* gray-700 */
+	--success: #4ade80; /* green-400 */
+	--warning: #fbbf24; /* amber-400 */
+	--danger: #f87171; /* red-400 */
 }
 
 body {

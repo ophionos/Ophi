@@ -72,6 +72,27 @@ describe('PriceStats', () => {
 		}
 	});
 
+	function statValue(label: string): HTMLElement {
+		return screen.getByText(label).parentElement!.nextElementSibling as HTMLElement;
+	}
+
+	it('should not colour the highest price as a price increase', () => {
+		render(PriceStats, { props: { product, bestPriceUrlId: null } });
+		expect(statValue('Highest').className).not.toMatch(/price-increase|text-red/);
+		expect(statValue('Lowest').className).toContain('text-price-drop');
+	});
+
+	it('should colour the current price like the lowest when it is at the lowest', () => {
+		const atLow = { ...product, statistics: { ...product.statistics, current: 1899.99 } };
+		render(PriceStats, { props: { product: atLow, bestPriceUrlId: null } });
+		expect(statValue('Current').className).toContain('text-price-drop');
+	});
+
+	it('should not colour the current price as a drop when it is above the lowest', () => {
+		render(PriceStats, { props: { product, bestPriceUrlId: null } });
+		expect(statValue('Current').className).not.toContain('text-price-drop');
+	});
+
 	it('should show the single-price display when every stat is the same value', () => {
 		const flat = {
 			...product,

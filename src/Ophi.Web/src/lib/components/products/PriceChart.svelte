@@ -2,7 +2,7 @@
 	import type { PriceHistoryPoint } from '$lib/api/client';
 	import { theme } from '$lib/stores/theme.svelte';
 	import CurrencyMismatchBanner from '$lib/components/shared/CurrencyMismatchBanner.svelte';
-	import { loadChart, getChartThemeColors, formatChartDate } from '$lib/utils/chart';
+	import { loadChart, getChartThemeColors, formatChartDate, chartSeriesColor } from '$lib/utils/chart';
 	import { formatPrice } from '$lib/format';
 
 	import { ChartNoAxesColumn, LoaderCircle } from 'lucide-svelte';
@@ -22,13 +22,6 @@
 	}
 
 	let { history, currency, urlHistories, loading = false }: Props = $props();
-
-	const multiLineColors = [
-		'rgb(13, 148, 136)',
-		'rgb(16, 185, 129)',
-		'rgb(245, 158, 11)',
-		'rgb(239, 68, 68)'
-	];
 
 	let uniqueCurrencies = $derived(
 		urlHistories ? [...new Set(urlHistories.map((uh) => uh.currency))] : []
@@ -103,7 +96,7 @@
 			labels = sortedDates.map(d => formatChartDate(d, false));
 
 			datasets = urlHistories.map((uh, i) => {
-				const color = multiLineColors[i % multiLineColors.length];
+				const color = chartSeriesColor(i).border;
 				const dateMap = new Map(uh.history.map((h) => [h.date, h.price]));
 				const data = allDatesArray.map((d) => dateMap.get(d) ?? null);
 				const domainLabel = getDomain(uh.url);
@@ -182,8 +175,7 @@
 								pointStyle: 'circle',
 								padding: 16,
 								font: {
-									size: 12,
-									family: 'system-ui, -apple-system, sans-serif'
+									size: 12
 								}
 							}
 						},

@@ -24,9 +24,28 @@ export async function loadChart(): Promise<ChartClass> {
 			mod.Legend,
 			mod.Filler
 		);
+		// Chart.js draws on a canvas, so it does not inherit the page font from CSS.
+		mod.Chart.defaults.font.family = "'Signika Negative Variable', sans-serif";
 		registered = true;
 	}
 	return mod.Chart;
+}
+
+/**
+ * Categorical colours for chart series, in order. Brand teal first; no green or red, because those
+ * mean "price dropped" and "price rose" everywhere else, and neighbours are far apart in hue.
+ */
+export const CHART_SERIES_COLORS: readonly { border: string; fill: string }[] = [
+	{ border: 'rgb(13, 148, 136)', fill: 'rgba(13, 148, 136, 0.1)' }, // teal
+	{ border: 'rgb(99, 102, 241)', fill: 'rgba(99, 102, 241, 0.1)' }, // indigo
+	{ border: 'rgb(245, 158, 11)', fill: 'rgba(245, 158, 11, 0.1)' }, // amber
+	{ border: 'rgb(236, 72, 153)', fill: 'rgba(236, 72, 153, 0.1)' }, // pink
+	{ border: 'rgb(14, 165, 233)', fill: 'rgba(14, 165, 233, 0.1)' }, // sky
+	{ border: 'rgb(139, 92, 246)', fill: 'rgba(139, 92, 246, 0.1)' } // violet
+];
+
+export function chartSeriesColor(index: number): { border: string; fill: string } {
+	return CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length];
 }
 
 export interface ChartThemeColors {

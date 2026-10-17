@@ -167,7 +167,7 @@
 				<p
 					data-testid="alert-distance"
 					class="text-xs tabular-nums {distance.reached
-						? 'font-medium text-green-700 dark:text-green-400'
+						? 'font-medium text-success'
 						: 'text-gray-600 dark:text-gray-300'}"
 					title={alert.condition === 'percentDrop'
 						? `Fires when one price change between two checks is a drop of ${alert.targetPrice.toFixed(0)}% or more`
