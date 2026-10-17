@@ -61,9 +61,13 @@
 		if (match && !match.isBuiltIn) {
 			handleOpenEdit(match);
 		}
+	}
 
-		// Strip ?edit from the URL so closing the modal can't be reopened by a re-render and a
-		// manual refresh doesn't re-trigger the auto-open.
+	// Strip ?edit when the editor closes, so a refresh doesn't re-trigger the auto-open. Not on
+	// mount: on a direct load onMount runs before SvelteKit's router has started, and the dev
+	// build's replaceState throws there, which aborted hydration (#63).
+	function clearEditQueryParam() {
+		if (!page.url.searchParams.has('edit')) return;
 		const url = new URL(page.url);
 		url.searchParams.delete('edit');
 		replaceState(url, {});
@@ -82,6 +86,7 @@
 	function handleCloseModal() {
 		modalOpen = false;
 		editingStore = undefined;
+		clearEditQueryParam();
 	}
 
 	async function handleSave(data: CreateStoreRequest | UpdateStoreRequest) {
