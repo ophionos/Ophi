@@ -532,6 +532,7 @@
 							alerts={product.alerts}
 							productCurrency={product.currency}
 							productCurrentPrice={product.currentPrice}
+							productPreviousPrice={product.previousPrice}
 							onDelete={handleDeleteAlert}
 							onRedenominate={handleRedenominateAlert}
 							onToggleActive={handleToggleAlert}

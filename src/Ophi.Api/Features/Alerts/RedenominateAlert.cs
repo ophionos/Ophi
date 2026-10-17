@@ -48,7 +48,9 @@ public static class RedenominateAlert
         DateTime? LastTriggered,
         string Currency,
         string ProductCurrency,
-        bool HasCurrencyMismatch
+        bool HasCurrencyMismatch,
+        decimal? PreviousPrice,
+        string? ProductImageUrl
     );
 
     public class Validator : AbstractValidator<Command>
@@ -118,7 +120,9 @@ public static class RedenominateAlert
                 product.Currency,
                 // Computed rather than hardcoded false, so the one definition of "dormant" stays
                 // the only one — a future change to the rule cannot leave this slice stale.
-                alert.HasCurrencyMismatch(product.Currency)
+                alert.HasCurrencyMismatch(product.Currency),
+                product.PreviousPrice,
+                product.ImageUrl
             );
         }
     }

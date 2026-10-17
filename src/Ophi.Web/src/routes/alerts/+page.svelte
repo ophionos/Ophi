@@ -304,6 +304,8 @@
 						product={{ id: alert.productId, name: alert.productName }}
 						productCurrency={alert.productCurrency}
 						productCurrentPrice={alert.currentPrice}
+						productPreviousPrice={alert.previousPrice}
+						productImageUrl={alert.productImageUrl}
 						selected={selectedIds.has(alert.id)}
 						onSelectChange={(on) => setSelected(alert.id, on)}
 						onToggleActive={() => handleToggle(alert)}

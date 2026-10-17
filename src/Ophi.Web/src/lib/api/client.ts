@@ -801,6 +801,9 @@ export interface Alert {
 	productCurrency: string;
 	/** True when the two differ and the alert is therefore dormant. */
 	hasCurrencyMismatch: boolean;
+	/** The price before the product's last change, in `productCurrency`. */
+	previousPrice?: number;
+	productImageUrl?: string;
 }
 
 export interface Tag {

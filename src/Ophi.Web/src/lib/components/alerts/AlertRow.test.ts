@@ -98,6 +98,68 @@ describe('AlertRow', () => {
 		expect(screen.getByLabelText('Pause alert')).toHaveTextContent('Pause');
 	});
 
+	describe('distance to the target', () => {
+		it('should show the current price and how far it is above a below-target', () => {
+			renderRow({ productCurrentPrice: 129 });
+			expect(screen.getByTestId('alert-distance')).toHaveTextContent('$129.00 now · $49.00 above target');
+		});
+
+		it('should say the target is reached when the price is at or below a below-target', () => {
+			renderRow({ productCurrentPrice: 79.5 });
+			expect(screen.getByTestId('alert-distance')).toHaveTextContent('$79.50 now · target reached');
+		});
+
+		it('should show how far the price is below an above-target', () => {
+			renderRow({ alert: { ...baseAlert, condition: 'above', targetPrice: 150 }, productCurrentPrice: 120 });
+			expect(screen.getByTestId('alert-distance')).toHaveTextContent('$120.00 now · $30.00 below target');
+		});
+
+		it('should show the last price change for a percentDrop alert', () => {
+			renderRow({
+				alert: { ...baseAlert, condition: 'percentDrop', targetPrice: 15 },
+				productCurrentPrice: 90,
+				productPreviousPrice: 100
+			});
+			expect(screen.getByTestId('alert-distance')).toHaveTextContent('$90.00 now · last change −10% from $100.00');
+		});
+
+		it('should show only the current price for a percentDrop alert with no previous price', () => {
+			renderRow({ alert: { ...baseAlert, condition: 'percentDrop', targetPrice: 15 }, productCurrentPrice: 90 });
+			expect(screen.getByTestId('alert-distance')).toHaveTextContent(/^\$90\.00 now$/);
+		});
+
+		it('should not show a distance when the product has no current price', () => {
+			renderRow();
+			expect(screen.queryByTestId('alert-distance')).not.toBeInTheDocument();
+		});
+
+		it('should not show a distance when the alert is dormant', () => {
+			renderRow({
+				alert: { ...baseAlert, hasCurrencyMismatch: true },
+				productCurrency: 'EUR',
+				productCurrentPrice: 100
+			});
+			expect(screen.queryByTestId('alert-distance')).not.toBeInTheDocument();
+		});
+	});
+
+	describe('thumbnail', () => {
+		it('should show the product image when the row names its product', () => {
+			renderRow({ product: { id: 'p1', name: 'Widget' }, productImageUrl: 'https://img.example/w.png' });
+			expect(screen.getByRole('img', { name: 'Widget' })).toHaveAttribute('src', 'https://img.example/w.png');
+		});
+
+		it('should show the product initial when there is no image', () => {
+			renderRow({ product: { id: 'p1', name: 'widget' } });
+			expect(screen.getByTestId('alert-thumbnail')).toHaveTextContent('W');
+		});
+
+		it('should not show a thumbnail when the row does not name its product', () => {
+			renderRow({ productImageUrl: 'https://img.example/w.png' });
+			expect(screen.queryByTestId('alert-thumbnail')).not.toBeInTheDocument();
+		});
+	});
+
 	describe('pause toggle', () => {
 		it('should not render a pause control when onToggleActive is not given', () => {
 			renderRow();

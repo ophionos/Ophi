@@ -21,6 +21,11 @@ public static class GetAlerts
     /// <param name="HasCurrencyMismatch">
     /// True when the two currencies differ and the alert is therefore dormant.
     /// </param>
+    /// <param name="PreviousPrice">
+    /// The product price before its last change, in <paramref name="ProductCurrency"/>. A percent-drop
+    /// alert fires on one change of at least its target, so this is that alert's baseline — not the
+    /// price when the alert was created.
+    /// </param>
     public record Dto(
         Guid Id,
         Guid ProductId,
@@ -32,7 +37,9 @@ public static class GetAlerts
         DateTime? LastTriggered,
         string Currency,
         string ProductCurrency,
-        bool HasCurrencyMismatch
+        bool HasCurrencyMismatch,
+        decimal? PreviousPrice,
+        string? ProductImageUrl
     );
 
     public class Handler(OphiDbContext dbContext, ILogger<Handler> logger)
@@ -55,6 +62,8 @@ public static class GetAlerts
                     a.ProductId,
                     ProductName = a.Product.Name,
                     a.Product.CurrentPrice,
+                    a.Product.PreviousPrice,
+                    ProductImageUrl = a.Product.ImageUrl,
                     ProductCurrency = a.Product.Currency,
                     a.TargetPrice,
                     a.Currency,
@@ -76,7 +85,9 @@ public static class GetAlerts
                     r.LastTriggeredAt,
                     r.Currency,
                     r.ProductCurrency,
-                    Alert.IsCurrencyMismatch(r.Currency, r.Condition, r.ProductCurrency)
+                    Alert.IsCurrencyMismatch(r.Currency, r.Condition, r.ProductCurrency),
+                    r.PreviousPrice,
+                    r.ProductImageUrl
                 ))
                 .ToList();
 

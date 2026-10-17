@@ -6,13 +6,21 @@
 		alerts: ProductAlert[];
 		productCurrency: string;
 		productCurrentPrice?: number;
+		productPreviousPrice?: number;
 		onDelete: (alertId: string) => Promise<void>;
 		onRedenominate: (alertId: string, targetPrice: number) => Promise<void>;
 		onToggleActive?: (alertId: string) => Promise<void>;
 	}
 
-	let { alerts, productCurrency, productCurrentPrice, onDelete, onRedenominate, onToggleActive }: Props =
-		$props();
+	let {
+		alerts,
+		productCurrency,
+		productCurrentPrice,
+		productPreviousPrice,
+		onDelete,
+		onRedenominate,
+		onToggleActive
+	}: Props = $props();
 </script>
 
 {#if alerts.length === 0}
@@ -29,6 +37,7 @@
 				{alert}
 				{productCurrency}
 				{productCurrentPrice}
+				{productPreviousPrice}
 				onDelete={() => onDelete(alert.id)}
 				onRedenominate={(targetPrice) => onRedenominate(alert.id, targetPrice)}
 				onToggleActive={onToggleActive ? () => onToggleActive(alert.id) : undefined}
