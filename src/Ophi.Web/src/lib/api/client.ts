@@ -178,6 +178,8 @@ class ApiClient {
 		if (params?.favourite) query.set('favourite', 'true');
 		if (params?.priceDrop) query.set('priceDrop', 'true');
 		if (params?.hasAlerts) query.set('hasAlerts', 'true');
+		if (params?.needsAction) query.set('needsAction', 'true');
+		if (params?.nearTarget) query.set('nearTarget', 'true');
 		const qs = query.toString();
 		return this.request<{
 			items: Product[];
@@ -187,6 +189,8 @@ class ApiClient {
 			atLowestCount: number;
 			priceDropCount: number;
 			withAlertsCount: number;
+			needsActionCount: number;
+			nearTargetCount: number;
 		}>(`/products${qs ? `?${qs}` : ''}`);
 	}
 
@@ -673,6 +677,8 @@ export interface GetProductsParams {
 	favourite?: boolean;
 	priceDrop?: boolean;
 	hasAlerts?: boolean;
+	needsAction?: boolean;
+	nearTarget?: boolean;
 }
 
 export interface CustomField {
@@ -710,6 +716,37 @@ export interface Product {
 	affiliateUrl?: string;
 	checkIntervalMinutes?: number;
 	hasPriceAnomaly?: boolean;
+	attention?: ProductAttention | null;
+	closestAlert?: AlertTarget | null;
+}
+
+/** Worst first. The first four need the user; out of stock and paused are information only. */
+export type AttentionKind =
+	| 'blocked'
+	| 'priceNotFound'
+	| 'failing'
+	| 'priceAnomaly'
+	| 'outOfStock'
+	| 'paused';
+
+/** The product's worst URL state and the URL to act on. */
+export interface ProductAttention {
+	kind: AttentionKind;
+	isAction: boolean;
+	productUrlId: string;
+	url: string;
+	consecutiveFailures: number;
+	backoffUntil?: string | null;
+	lastError?: string | null;
+}
+
+/** The alert target nearest the price. A gap of zero or less means the target is reached. */
+export interface AlertTarget {
+	alertId: string;
+	condition: 'below' | 'above';
+	targetPrice: number;
+	gap: number;
+	isNear: boolean;
 }
 
 export interface ChallengeFrame {

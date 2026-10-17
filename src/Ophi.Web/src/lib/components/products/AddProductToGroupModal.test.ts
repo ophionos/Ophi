@@ -56,7 +56,9 @@ describe('AddProductToGroupModal', () => {
 					pageSize,
 					atLowestCount: 0,
 					priceDropCount: 0,
-					withAlertsCount: 0
+					withAlertsCount: 0,
+					needsActionCount: 0,
+					nearTargetCount: 0
 				};
 			}
 		);

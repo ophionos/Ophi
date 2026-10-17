@@ -294,4 +294,67 @@ public class ProviderSensitiveTests(PostgresFixture fixture)
         seen.Should().OnlyHaveUniqueItems("a tied row must not appear on two pages");
         seen.Should().BeEquivalentTo(expectedIds, "no row may be dropped between pages");
     }
+
+    [Fact]
+    public async Task GetProducts_NeedsActionAndNearTarget_TranslateAndCountOnPostgres()
+    {
+        // Both predicates run as SQL only for real here: the stored error category (an int column,
+        // null on legacy rows) and the currency compare, which Postgres does case-sensitively.
+        var userId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        await using (var ctx = fixture.CreateContext())
+        {
+            ctx.Users.Add(TestEntityFactory.User(userId).Build());
+
+            var blocked = TestEntityFactory.Product(userId).Named("Blocked").Build();
+            var blockedUrl = TestEntityFactory.ProductUrl(blocked.Id).Build();
+            blockedUrl.RecordFailure("Blocked by anti-bot", now, ScrapeErrorCategory.AntiBot);
+
+            // A row written before the category column existed: an error, no category.
+            var legacy = TestEntityFactory.Product(userId).Named("Legacy").Build();
+            var legacyUrl = new ProductUrl
+            {
+                Id = Guid.NewGuid(), ProductId = legacy.Id, Url = "https://example.com/legacy",
+                LastError = "HTTP 500", ConsecutiveFailures = 3
+            };
+
+            var rateLimited = TestEntityFactory.Product(userId).Named("Rate limited").Build();
+            var rateLimitedUrl = TestEntityFactory.ProductUrl(rateLimited.Id).Build();
+            for (var i = 0; i < 3; i++) rateLimitedUrl.RecordTransientFailure("429", now);
+
+            var near = TestEntityFactory.Product(userId).Named("Near").Priced(104m).Build();
+            var far = TestEntityFactory.Product(userId).Named("Far").Priced(120m).Build();
+
+            ctx.Products.AddRange(blocked, legacy, rateLimited, near, far);
+            ctx.ProductUrls.AddRange(blockedUrl, legacyUrl, rateLimitedUrl);
+            ctx.Alerts.AddRange(
+                // Lower-case currency: a plain text compare would miss it on Postgres.
+                TestEntityFactory.Alert(near.Id, userId).WithTarget(100m).WithCurrency("usd").Build(),
+                TestEntityFactory.Alert(far.Id, userId).WithTarget(100m).Build());
+            await ctx.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using (var ctx = fixture.CreateContext())
+        {
+            var handler = new Ophi.Api.Features.Products.GetProducts.Handler(
+                ctx, TimeProvider.System, NullLogger<Ophi.Api.Features.Products.GetProducts.Handler>.Instance);
+
+            var all = await handler.Handle(
+                new Ophi.Api.Features.Products.GetProducts.Query(userId), TestContext.Current.CancellationToken);
+            var needsAction = await handler.Handle(
+                new Ophi.Api.Features.Products.GetProducts.Query(userId, NeedsAction: true),
+                TestContext.Current.CancellationToken);
+            var nearTarget = await handler.Handle(
+                new Ophi.Api.Features.Products.GetProducts.Query(userId, NearTarget: true),
+                TestContext.Current.CancellationToken);
+
+            all.NeedsActionCount.Should().Be(2);
+            needsAction.Items.Select(i => i.Name).Should().BeEquivalentTo("Blocked", "Legacy");
+            all.Items.Single(i => i.Name == "Blocked").Attention!.Kind.Should().Be("blocked");
+            all.Items.Single(i => i.Name == "Legacy").Attention!.Kind.Should().Be("failing");
+            all.NearTargetCount.Should().Be(1);
+            nearTarget.Items.Select(i => i.Name).Should().Equal("Near");
+        }
+    }
 }

@@ -219,7 +219,7 @@ public static class ScrapeNewProductHandler
 
             // Failure
             product.MarkAsError();
-            productUrl.RecordFailure(result.Error ?? "Failed to extract price", now);
+            productUrl.RecordFailure(result.Error ?? "Failed to extract price", now, result.ErrorCategory);
 
             dbContext.ScrapeLogs.Add(ScrapeOutcomeWriter.BuildFailureLog(
                 product.Id, productUrl.Id, result.Error ?? "Failed to extract price",

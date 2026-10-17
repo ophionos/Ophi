@@ -197,6 +197,15 @@ other kind of fact. Link to owners; don't restate them here.
   dispatcher filters it **in the stage-1 SQL, never in `IsDue`**: a backed-off URL is not re-stamped,
   stays the oldest candidate, and would fill the over-fetch window. Every streak end clears it
   (success, out-of-stock, `Resume()`, so also the manual retry).
+- **`ProductAttention` owns "does this product need the user"; `AlertProximity` owns "near target".**
+  The list row (`attention`, `closestAlert`), the `needsAction`/`nearTarget` filters and their counts
+  all read them, so a chip's number always equals its rows. EF cannot translate the C# method, so
+  each class also has an `Expression` that restates it; the domain tests run both over the same cases
+  — change them together. The rule reads `ProductUrl.LastErrorCategory`, stored with every failure,
+  never a parse of `LastError`. A null category (a row from before the column) counts as generic
+  failing; `RateLimited` never needs the user. Near is within `NearFraction` (5 %) of an active
+  below/above target in the product's currency, compared upper-cased because Postgres text compare
+  is case-sensitive.
 - **JSON-LD matches must be scalars.** Stringifying `"price": [10,20]` produced `10,20`, which the
   European-comma heuristic read as 10.20. `JsonPathExtractor.MatchesInBlock` skips non-`JsonValue`
   matches.
