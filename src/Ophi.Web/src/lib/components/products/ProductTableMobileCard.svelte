@@ -16,6 +16,7 @@
 	import { formatTimeAgo, formatPrice } from '$lib/format';
 	import TagBadge from '$lib/components/tags/TagBadge.svelte';
 	import ConvertedPrice from '$lib/components/shared/ConvertedPrice.svelte';
+	import { priceChangeTextClass } from '$lib/utils/priceColors';
 
 	interface Props {
 		product: Product;
@@ -33,11 +34,6 @@
 
 	const isPending = $derived(product.status === 'pending');
 	const canToggleStatus = $derived(product.status === 'active' || product.status === 'paused');
-
-	function getPriceChangeColor(priceChange?: number) {
-		if (!priceChange || priceChange === 0) return 'text-gray-500';
-		return priceChange < 0 ? 'text-green-600' : 'text-red-600';
-	}
 
 	function getStatusClasses(status: string) {
 		switch (status) {
@@ -122,7 +118,7 @@
 					<ConvertedPrice amount={product.currentPrice} currency={product.currency} />
 					{#if product.priceChange}
 						{@const PriceIcon = product.priceChange < 0 ? TrendingDown : TrendingUp}
-						<span class="flex items-center text-xs tabular-nums {getPriceChangeColor(product.priceChange)}">
+						<span class="flex items-center text-xs tabular-nums {priceChangeTextClass(product.priceChange)}">
 							<PriceIcon size={10} class="mr-0.5" />
 							{Math.abs(product.priceChange).toFixed(1)}%
 						</span>

@@ -235,7 +235,7 @@
 			label="Total Stores"
 			value={stats.total}
 			icon={StoreIcon}
-			iconClass="text-purple-600 dark:text-purple-400"
+			iconClass="text-brand-secondary dark:text-brand-secondary-dark"
 			testid="stat-total-stores"
 		/>
 		<StatCard

@@ -32,7 +32,7 @@ vi.mock('chart.js', () => {
 		return { destroy: vi.fn(), update: vi.fn() };
 	}
 	return {
-		Chart: Object.assign(MockChart, { register: vi.fn() }),
+		Chart: Object.assign(MockChart, { register: vi.fn(), defaults: { font: {} } }),
 		LineController: vi.fn(),
 		LineElement: vi.fn(),
 		PointElement: vi.fn(),

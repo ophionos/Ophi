@@ -50,7 +50,7 @@
 			{/if}
 			{#if hasAffiliate}
 				<span
-					class="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full inline-flex items-center gap-1"
+					class="px-2 py-0.5 text-xs font-medium bg-brand-secondary/10 text-brand-secondary dark:text-brand-secondary-dark rounded-full inline-flex items-center gap-1"
 					data-testid="affiliate-badge"
 				>
 					<Link size={12} />
@@ -65,7 +65,7 @@
 			{#if onTest}
 				<button
 					onclick={() => onTest?.(store)}
-					class="p-2 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded"
+					class="p-2 text-gray-400 hover:text-brand-secondary dark:hover:text-brand-secondary-dark hover:bg-brand-secondary/10 rounded"
 					title="Test"
 				>
 					<FlaskConical size={16} />

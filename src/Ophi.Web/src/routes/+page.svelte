@@ -228,9 +228,9 @@
 					style="animation-delay: 300ms"
 				>
 					<div
-						class="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-xl flex items-center justify-center mb-4"
+						class="w-10 h-10 bg-brand-secondary/10 rounded-xl flex items-center justify-center mb-4"
 					>
-						<Shield class="text-purple-600 dark:text-purple-400" size={20} />
+						<Shield class="text-brand-secondary dark:text-brand-secondary-dark" size={20} />
 					</div>
 					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Self-Hosted</h3>
 					<p class="text-sm text-gray-500 dark:text-gray-400">
