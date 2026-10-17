@@ -139,4 +139,28 @@ describe('ProductEditModal', () => {
 			expect(onSave.mock.calls[0][0]).not.toHaveProperty('checkIntervalMinutes');
 		});
 	});
+
+	describe('form state while open', () => {
+		it('should keep unsaved edits when the product prop changes while open', async () => {
+			const product = createProduct();
+			const { rerender } = render(ProductEditModal, { props: { ...defaultProps, product } });
+			const nameInput = screen.getByLabelText('Name') as HTMLInputElement;
+			await fireEvent.input(nameInput, { target: { value: 'Edited Name' } });
+
+			await rerender({ product: { ...product, currentPrice: 9 } });
+
+			expect(nameInput.value).toBe('Edited Name');
+		});
+
+		it('should reload the form from the product when reopened', async () => {
+			const product = createProduct();
+			const { rerender } = render(ProductEditModal, { props: { ...defaultProps, product } });
+			await fireEvent.input(screen.getByLabelText('Name'), { target: { value: 'Discarded' } });
+
+			await rerender({ isOpen: false });
+			await rerender({ isOpen: true, product: { ...product, name: 'Renamed Elsewhere' } });
+
+			expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Renamed Elsewhere');
+		});
+	});
 });

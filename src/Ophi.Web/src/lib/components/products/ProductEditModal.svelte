@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Modal from '$lib/components/shared/Modal.svelte';
 	import type { ProductDetail, Tag, ProductTag, CustomField, ProductStatus } from '$lib/api/client';
 	import { isValidHttpUrl, CHECK_INTERVAL_OPTIONS } from '$lib/format';
@@ -36,18 +37,28 @@
 	let nameError = $state('');
 	let imageUrlError = $state('');
 
+	let wasOpen = false;
+
+	// Load the form only when the modal opens. untrack keeps product out of this effect's
+	// dependencies: the page replaces it on a live refresh or a tag add, and re-running here
+	// would discard the user's unsaved edits.
 	$effect(() => {
-		if (isOpen) {
-			name = product.name;
-			imageUrl = product.imageUrl ?? '';
-			status = product.status;
-			checkInterval = product.checkIntervalMinutes?.toString() ?? '';
-			productTags = [...(product.tags ?? [])];
-			customFields = [...(product.customFields ?? [])].map((f) => ({ ...f }));
-			error = '';
-			nameError = '';
-			imageUrlError = '';
-			saving = false;
+		if (isOpen && !wasOpen) {
+			wasOpen = true;
+			untrack(() => {
+				name = product.name;
+				imageUrl = product.imageUrl ?? '';
+				status = product.status;
+				checkInterval = product.checkIntervalMinutes?.toString() ?? '';
+				productTags = [...(product.tags ?? [])];
+				customFields = [...(product.customFields ?? [])].map((f) => ({ ...f }));
+				error = '';
+				nameError = '';
+				imageUrlError = '';
+				saving = false;
+			});
+		} else if (!isOpen) {
+			wasOpen = false;
 		}
 	});
 
