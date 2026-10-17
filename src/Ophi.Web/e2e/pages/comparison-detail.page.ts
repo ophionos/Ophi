@@ -8,8 +8,8 @@ export class ComparisonDetailPage extends BasePage {
 	readonly addProductButton: Locator;
 	readonly deleteGroupButton: Locator;
 
-	// Winner spotlight
-	readonly winnerSpotlight: Locator;
+	// Cheapest-product spotlight
+	readonly cheapestSpotlight: Locator;
 
 	// Chart
 	readonly chartSection: Locator;
@@ -28,8 +28,8 @@ export class ComparisonDetailPage extends BasePage {
 		this.addProductButton = page.getByRole('button', { name: 'Add Product' });
 		this.deleteGroupButton = page.getByRole('button', { name: 'Delete Group' });
 
-		// Winner spotlight
-		this.winnerSpotlight = page.locator('[data-testid="winner-spotlight"]');
+		// Cheapest-product spotlight
+		this.cheapestSpotlight = page.getByTestId('cheapest-spotlight');
 
 		// Chart section
 		this.chartSection = page.locator('div').filter({
@@ -92,13 +92,13 @@ export class ComparisonDetailPage extends BasePage {
 		await expect(this.groupName).toContainText(name);
 	}
 
-	async expectWinnerVisible(productName: string) {
-		await expect(this.winnerSpotlight).toBeVisible();
-		await expect(this.winnerSpotlight).toContainText(productName);
+	async expectCheapestVisible(productName: string) {
+		await expect(this.cheapestSpotlight).toBeVisible();
+		await expect(this.cheapestSpotlight).toContainText(productName);
 	}
 
-	async expectNoWinner() {
-		await expect(this.winnerSpotlight).not.toBeVisible();
+	async expectNoCheapest() {
+		await expect(this.cheapestSpotlight).not.toBeVisible();
 	}
 
 	async expectEmptyProducts() {

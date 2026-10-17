@@ -38,7 +38,10 @@
 			</p>
 			{#if group.bestPrice != null && group.currency}
 				<div class="mt-3 flex items-center justify-between gap-3">
-					<p class="min-w-0 truncate text-sm text-gray-600 dark:text-gray-300" data-testid="comparison-card-best">
+					<p
+						class="min-w-0 truncate text-sm text-gray-600 dark:text-gray-300"
+						data-testid="comparison-card-best"
+					>
 						Cheapest
 						<span class="font-semibold text-gray-900 dark:text-white"
 							>{formatPrice(group.bestPrice, group.currency)}</span
