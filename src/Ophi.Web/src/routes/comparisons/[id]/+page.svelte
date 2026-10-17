@@ -23,6 +23,7 @@
 	import SectionCard from '$lib/components/shared/SectionCard.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
+	import { savingsVsNext as computeSavingsVsNext } from '$lib/utils/comparisonSavings';
 
 	let { data: pageData }: { data: PageData } = $props();
 
@@ -52,15 +53,7 @@
 		});
 	});
 
-	// Compute savings vs next cheapest for spotlight
-	const savingsVsNext = $derived.by(() => {
-		if (!group || group.products.length < 2 || group.bestPrice == null) return null;
-		const sorted = group.products
-			.filter((p) => p.currentPrice != null)
-			.sort((a, b) => a.currentPrice! - b.currentPrice!);
-		if (sorted.length < 2) return null;
-		return sorted[1].currentPrice! - sorted[0].currentPrice!;
-	});
+	const savingsVsNext = $derived(computeSavingsVsNext(group));
 
 	async function handleDaysChange(days: number) {
 		selectedDays = days;
