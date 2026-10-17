@@ -199,6 +199,50 @@ public class ProviderSensitiveTests(PostgresFixture fixture)
     }
 
     [Fact]
+    public async Task GetComparisonGroups_ReturnsTheBestPriceAndItsCurrencyMatchedDailyLows()
+    {
+        // The card preview filters points on the product's currency through a join and groups by
+        // UTC day; both only run for real on Npgsql (timestamptz, case-sensitive text compare).
+        var userId = Guid.NewGuid();
+        var groupId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        Product best;
+
+        await using (var ctx = fixture.CreateContext())
+        {
+            ctx.Users.Add(TestEntityFactory.User(userId).Build());
+            ctx.ComparisonGroups.Add(new ComparisonGroup { Id = groupId, UserId = userId, Name = "Desks" });
+            best = TestEntityFactory.Product(userId).Named("Cheap").InGroup(groupId).Priced(40m).Build();
+            ctx.Products.AddRange(
+                best,
+                TestEntityFactory.Product(userId).Named("Dear").InGroup(groupId).Priced(60m).Build(),
+                TestEntityFactory.Product(userId).Named("Unpriced").InGroup(groupId).Build());
+            ctx.PricePoints.AddRange(
+                new PricePoint { Id = Guid.NewGuid(), ProductId = best.Id, Price = 45m, Currency = "USD", RecordedAt = now.AddDays(-3) },
+                new PricePoint { Id = Guid.NewGuid(), ProductId = best.Id, Price = 30m, Currency = "EUR", RecordedAt = now.AddDays(-2) },
+                new PricePoint { Id = Guid.NewGuid(), ProductId = best.Id, Price = 40m, Currency = "USD", RecordedAt = now.AddDays(-1) });
+            await ctx.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using (var ctx = fixture.CreateContext())
+        {
+            var handler = new Ophi.Api.Features.Comparisons.GetComparisonGroups.Handler(
+                ctx, TimeProvider.System,
+                NullLogger<Ophi.Api.Features.Comparisons.GetComparisonGroups.Handler>.Instance);
+
+            var result = await handler.Handle(
+                new Ophi.Api.Features.Comparisons.GetComparisonGroups.Query(userId),
+                TestContext.Current.CancellationToken);
+
+            var dto = result.Items.Should().ContainSingle().Subject;
+            dto.ProductCount.Should().Be(3);
+            dto.BestPriceProductId.Should().Be(best.Id);
+            dto.BestPrice.Should().Be(40m);
+            dto.Sparkline.Select(s => s.Price).Should().Equal(45m, 40m);
+        }
+    }
+
+    [Fact]
     public async Task GetProducts_PagingThroughTiedPrices_YieldsEveryProductExactlyOnce()
     {
         // Every GetProducts sort ends on a non-unique column, so without a unique final key SQL
