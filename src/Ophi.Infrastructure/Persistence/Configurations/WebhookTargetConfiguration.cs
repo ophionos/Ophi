@@ -19,10 +19,7 @@ public class WebhookTargetConfiguration : IEntityTypeConfiguration<WebhookTarget
             .HasMaxLength(2048);
 
         builder.Property(w => w.Events)
-            .HasConversion(
-                v => string.Join(',', v),
-                v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
-            )
+            .HasCommaSeparatedConversion()
             .IsRequired();
 
         builder.Property(w => w.IsEnabled)
