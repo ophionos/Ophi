@@ -12,7 +12,6 @@
 	import { notifications } from '$lib/stores/notifications.svelte';
 	import { products } from '$lib/stores/products.svelte';
 	import { tags } from '$lib/stores/tags.svelte';
-	import { comparisons } from '$lib/stores/comparisons.svelte';
 	import { stores } from '$lib/stores/stores.svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -128,7 +127,6 @@
 			notifications.clear();
 			products.clear();
 			tags.clear();
-			comparisons.clear();
 			stores.clear();
 			goto(resolve('/auth/login'));
 		} catch (err) {

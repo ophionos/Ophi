@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { api, type Tag } from '$lib/api/client';
-	import { tags } from '$lib/stores/tags.svelte';
 	import TagList from '$lib/components/tags/TagList.svelte';
 	import TagModal from '$lib/components/tags/TagModal.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
@@ -19,9 +18,9 @@
 	let deletingTag = $state<Tag | undefined>(undefined);
 	let deleteLoading = $state(false);
 
-	$effect(() => {
-		tags.set(data.tags);
-	});
+	// Rendered straight from the load data so the server HTML already has the rows (writable
+	// $derived: local edits apply at once, a new load replaces them).
+	let tags = $derived(data.tags);
 
 	function handleOpenCreate() {
 		editingTag = undefined;
@@ -41,11 +40,12 @@
 	async function handleSave(data: { name: string; color: string; weight: number }) {
 		if (editingTag) {
 			const updated = await api.updateTag(editingTag.id, data);
-			tags.update(editingTag.id, updated);
+			const editedId = editingTag.id;
+			tags = tags.map((t) => (t.id === editedId ? { ...t, ...updated } : t));
 			toast.success(`Tag "${updated.name}" updated`);
 		} else {
 			const created = await api.createTag(data.name, data.color, data.weight);
-			tags.add({ ...created, productCount: 0 });
+			tags = [...tags, { ...created, productCount: 0 }];
 			toast.success(`Tag "${created.name}" created`);
 		}
 		handleCloseModal();
@@ -68,7 +68,8 @@
 		deleteLoading = true;
 		try {
 			await api.deleteTag(deletingTag.id);
-			tags.remove(deletingTag.id);
+			const deletedId = deletingTag.id;
+			tags = tags.filter((t) => t.id !== deletedId);
 			toast.success(`Tag "${deletingTag.name}" deleted`);
 			handleCloseDelete();
 		} catch (error) {
@@ -79,8 +80,8 @@
 	}
 
 	const stats = $derived({
-		total: tags.items.length,
-		totalProducts: tags.items.reduce((sum, t) => sum + t.productCount, 0)
+		total: tags.length,
+		totalProducts: tags.reduce((sum, t) => sum + t.productCount, 0)
 	});
 </script>
 
@@ -111,7 +112,7 @@
 
 	<div>
 		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">All Tags</h2>
-		{#if tags.items.length === 0}
+		{#if tags.length === 0}
 			<EmptyState
 				icon={TagIcon}
 				title="No tags yet"
@@ -126,7 +127,7 @@
 				</button>
 			</EmptyState>
 		{:else}
-			<TagList tags={tags.items} onEdit={handleOpenEdit} onDelete={handleOpenDelete} />
+			<TagList {tags} onEdit={handleOpenEdit} onDelete={handleOpenDelete} />
 		{/if}
 	</div>
 </div>

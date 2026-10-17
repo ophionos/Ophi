@@ -1,9 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { api, type ComparisonGroup } from '$lib/api/client';
-	import { comparisons } from '$lib/stores/comparisons.svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import ComparisonCard from '$lib/components/comparisons/ComparisonCard.svelte';
 	import ComparisonModal from '$lib/components/comparisons/ComparisonModal.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
@@ -20,9 +17,9 @@
 	let deletingGroup = $state<ComparisonGroup | undefined>(undefined);
 	let deleteLoading = $state(false);
 
-	$effect(() => {
-		comparisons.set(data.groups);
-	});
+	// Rendered straight from the load data so the server HTML already has the rows. A writable
+	// $derived: local edits apply at once, and a new load (navigation, invalidate) replaces them.
+	let groups = $derived(data.groups);
 
 	function handleOpenCreate() {
 		modalOpen = true;
@@ -35,16 +32,12 @@
 	async function handleSave(name: string, description?: string) {
 		try {
 			const created = await api.createComparisonGroup(name, description);
-			comparisons.add(created);
+			groups = [...groups, created];
 			toast.success(`Comparison group "${created.name}" created`);
 			handleCloseModal();
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to create comparison group');
 		}
-	}
-
-	function handleView(group: ComparisonGroup) {
-		goto(resolve(`/comparisons/${group.id}`));
 	}
 
 	function handleOpenDelete(group: ComparisonGroup) {
@@ -64,7 +57,8 @@
 		deleteLoading = true;
 		try {
 			await api.deleteComparisonGroup(deletingGroup.id);
-			comparisons.remove(deletingGroup.id);
+			const deletedId = deletingGroup.id;
+			groups = groups.filter((g) => g.id !== deletedId);
 			toast.success(`Comparison group "${deletingGroup.name}" deleted`);
 			handleCloseDelete();
 		} catch (error) {
@@ -75,8 +69,8 @@
 	}
 
 	const stats = $derived({
-		totalGroups: comparisons.items.length,
-		totalProducts: comparisons.items.reduce((sum, g) => sum + g.productCount, 0)
+		totalGroups: groups.length,
+		totalProducts: groups.reduce((sum, g) => sum + g.productCount, 0)
 	});
 </script>
 
@@ -106,7 +100,7 @@
 
 	<div>
 		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">All Comparison Groups</h2>
-		{#if comparisons.items.length === 0}
+		{#if groups.length === 0}
 			<EmptyState
 				icon={GitCompare}
 				title="No comparison groups yet"
@@ -122,8 +116,8 @@
 			</EmptyState>
 		{:else}
 			<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-				{#each comparisons.items as group (group.id)}
-					<ComparisonCard {group} onView={handleView} onDelete={handleOpenDelete} />
+				{#each groups as group (group.id)}
+					<ComparisonCard {group} onDelete={handleOpenDelete} />
 				{/each}
 			</div>
 		{/if}

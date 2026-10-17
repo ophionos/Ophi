@@ -158,4 +158,14 @@ describe('ComparisonChart', () => {
 			expect(chartBox?.querySelector('canvas')).not.toBeNull();
 		});
 	});
+
+	describe('loading state', () => {
+		// Chart.js loads lazily, so the canvas would sit empty for a moment on a cold load.
+		it('should say the chart is loading until Chart.js has drawn it', async () => {
+			render(ComparisonChart, { props: defaultProps });
+
+			expect(screen.getByRole('status')).toHaveTextContent('Loading chart…');
+			await vi.waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+		});
+	});
 });

@@ -350,6 +350,12 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
 - **Never read back a `$state`/store in the same `$effect` that writes it** — proxies make
   `current !== newValue` re-fire forever (`effect_update_depth_exceeded`), often only on a rare path.
   For one-shot loader logic use `onMount` + the raw `data` prop.
+- **A page renders its list from `data`, not from a `$lib/stores/*` module.** Copying `data` into a
+  store inside `$effect` means the server HTML (effects do not run there) shows the empty state until
+  hydration. Use a writable `$derived(data.x)` for local edits; a new load replaces it. Never call a
+  store's `set` outside an effect either: a module-level `$state` is shared by every request on the
+  server, so one user's rows would render into another user's page. `list-pages.ssr.test.ts` renders
+  pages with `svelte/server` (a `// @vitest-environment node` file) to catch the empty flash.
 - **`$derived.by()`** for function-based derived values; no colons or slashes in `class:` directives.
 - **`liveRefresh()`** (`$lib/utils/liveRefresh.ts`) is THE pattern for SSE + poll-fallback surfaces.
   The SSE URL is `${API_BASE}/events` — `API_BASE` already contains `/api/v1` (`liveUpdates.test.ts`
