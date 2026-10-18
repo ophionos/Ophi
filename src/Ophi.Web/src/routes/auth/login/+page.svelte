@@ -4,7 +4,8 @@
 	import { api, ApiError } from '$lib/api/client';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { Package, LoaderCircle, Eye, EyeOff } from 'lucide-svelte';
+	import { LoaderCircle, Eye, EyeOff } from 'lucide-svelte';
+	import OphiLogo from '$lib/components/shared/OphiLogo.svelte';
 	import ThemeToggle from '$lib/components/shared/ThemeToggle.svelte';
 	import FormError from '$lib/components/shared/FormError.svelte';
 	import type { PageData } from './$types';
@@ -60,7 +61,7 @@
 				href={resolve('/')}
 				class="inline-flex min-h-11 items-center gap-2 text-2xl font-bold text-brand dark:text-brand-muted"
 			>
-				<Package size={32} />
+				<OphiLogo size={32} class="rounded" />
 				Ophi
 			</a>
 			<h2 class="mt-4 text-2xl font-semibold text-gray-900 dark:text-white">
@@ -91,12 +92,12 @@
 						class="w-full px-3 min-h-11 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 							'email'
 						).length > 0
-							? 'border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
+							? 'border-danger bg-danger/10'
 							: 'border-gray-300 dark:border-gray-600'}"
 					/>
 					{#if getFieldError('email').length > 0}
 						<div role="alert">
-							<ul id="email-errors" class="mt-1 text-xs text-red-600 dark:text-red-400">
+							<ul id="email-errors" class="mt-1 text-xs text-danger">
 								{#each getFieldError('email') as err, i (i)}
 									<li>{err}</li>
 								{/each}
@@ -126,7 +127,7 @@
 							class="w-full px-3 min-h-11 pr-12 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 								'password'
 							).length > 0
-								? 'border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
+								? 'border-danger bg-danger/10'
 								: 'border-gray-300 dark:border-gray-600'}"
 						/>
 						<button
@@ -145,7 +146,7 @@
 					</div>
 					{#if getFieldError('password').length > 0}
 						<div role="alert">
-							<ul id="password-errors" class="mt-1 text-xs text-red-600 dark:text-red-400">
+							<ul id="password-errors" class="mt-1 text-xs text-danger">
 								{#each getFieldError('password') as err, i (i)}
 									<li>{err}</li>
 								{/each}

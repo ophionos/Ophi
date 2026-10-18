@@ -14,6 +14,7 @@
 	height={size}
 	class={className}
 	aria-hidden="true"
+	data-testid="ophi-logo"
 >
 	<rect width="192" height="192" rx="32" fill="#0d9488" />
 	<g transform="translate(96,96)">

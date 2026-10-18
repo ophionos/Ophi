@@ -47,6 +47,13 @@ describe('Reset Password Page', () => {
 			expect(screen.getByRole('button', { name: /Reset password/i })).toBeInTheDocument();
 		});
 
+		it('should link the Ophi logo to the landing page', () => {
+			render(ResetPasswordPage);
+			expect(
+				screen.getByRole('link', { name: 'Ophi' }).querySelector('[data-testid="ophi-logo"]')
+			).not.toBeNull();
+		});
+
 		it('should render page heading', () => {
 			render(ResetPasswordPage);
 			expect(screen.getByText('Ophi')).toBeInTheDocument();

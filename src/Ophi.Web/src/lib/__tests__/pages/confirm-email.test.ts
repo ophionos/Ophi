@@ -24,6 +24,13 @@ describe('Confirm Email Page', () => {
 		setUrl('?token=abc123');
 	});
 
+	it('should link the Ophi logo to the landing page', () => {
+		render(ConfirmEmailPage);
+		expect(
+			screen.getByRole('link', { name: 'Ophi' }).querySelector('[data-testid="ophi-logo"]')
+		).not.toBeNull();
+	});
+
 	it('should not confirm on load', () => {
 		// Mail link scanners open links (some run scripts); only a click may use the token.
 		render(ConfirmEmailPage);

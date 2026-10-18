@@ -50,6 +50,9 @@ describe('Login Page', () => {
 			render(LoginPage);
 			expect(screen.getByText('Ophi')).toBeInTheDocument();
 			expect(screen.getByText(/Sign in to your account/i)).toBeInTheDocument();
+			expect(
+				screen.getByRole('link', { name: 'Ophi' }).querySelector('[data-testid="ophi-logo"]')
+			).not.toBeNull();
 		});
 
 		it('should render link to register page', () => {
