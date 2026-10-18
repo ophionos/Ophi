@@ -21,7 +21,7 @@
 		<button
 			type="button"
 			onclick={() => onModeChange(item.value)}
-			class="inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm transition-colors {mode === item.value
+			class="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-3 text-sm transition-colors {mode === item.value
 				? 'bg-surface-1 text-brand shadow-sm dark:text-brand-muted'
 				: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
 			aria-pressed={mode === item.value}

@@ -129,7 +129,7 @@
 		<button
 			onclick={handleToggle}
 			disabled={saving}
-			class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors {enabled
+			class="tap-area inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors {enabled
 				? 'bg-brand'
 				: 'bg-gray-300 dark:bg-gray-600'} disabled:opacity-50"
 			role="switch"
@@ -154,12 +154,12 @@
 			placeholder={configured ? `${recipientLabel} saved — enter a new one to replace` : placeholder}
 			onchange={handleRecipientChange}
 			disabled={saving}
-			class="flex-1 min-w-0 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50"
+			class="flex-1 min-w-0 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50"
 		/>
 		<button
 			onclick={handleTest}
 			disabled={testing || !configured}
-			class="px-3 py-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+			class="px-3 min-h-11 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 			data-testid="{channel}-test-button"
 		>
 			{testing ? 'Sending...' : 'Test'}

@@ -40,7 +40,7 @@
 		<div class="text-center mb-8">
 			<a
 				href={resolve('/')}
-				class="inline-flex items-center gap-2 text-2xl font-bold text-brand dark:text-brand-muted"
+				class="inline-flex min-h-11 items-center gap-2 text-2xl font-bold text-brand dark:text-brand-muted"
 			>
 				<Package size={32} />
 				Ophi

@@ -94,7 +94,7 @@
 		type="button"
 		onclick={toggleDropdown}
 		onkeydown={handleKeydown}
-		class="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+		class="inline-flex items-center gap-1 px-2 min-h-11 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
 		data-testid="add-tag-button"
 	>
 		<Plus size={14} />
@@ -118,7 +118,7 @@
 						type="button"
 						onclick={() => handleAddTag(tag.id)}
 						disabled={loading === tag.id}
-						class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 {focusedIndex === i ? 'bg-gray-100 dark:bg-gray-700' : ''}"
+						class="w-full flex items-center gap-2 px-3 min-h-11 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 {focusedIndex === i ? 'bg-gray-100 dark:bg-gray-700' : ''}"
 						role="option"
 						aria-selected={focusedIndex === i}
 					>

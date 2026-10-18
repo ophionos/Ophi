@@ -65,7 +65,7 @@
 			{#if onTest}
 				<button
 					onclick={() => onTest?.(store)}
-					class="p-2 text-gray-400 hover:text-brand-secondary dark:hover:text-brand-secondary-dark hover:bg-brand-secondary/10 rounded"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand-secondary dark:hover:text-brand-secondary-dark hover:bg-brand-secondary/10 rounded"
 					title="Test"
 				>
 					<FlaskConical size={16} />
@@ -74,7 +74,7 @@
 			{#if !store.isBuiltIn && onExport}
 				<button
 					onclick={() => onExport?.(store)}
-					class="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
 					title="Export"
 				>
 					<Download size={16} />
@@ -83,7 +83,7 @@
 		{#if !store.isBuiltIn && onEdit}
 				<button
 					onclick={() => onEdit?.(store)}
-					class="p-2 text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
 					title="Edit"
 				>
 					<Pencil size={16} />
@@ -92,7 +92,7 @@
 			{#if !store.isBuiltIn && onDelete}
 				<button
 					onclick={() => onDelete?.(store)}
-					class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
 					title="Delete"
 				>
 					<Trash2 size={16} />

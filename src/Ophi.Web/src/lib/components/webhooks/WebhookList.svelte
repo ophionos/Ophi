@@ -25,7 +25,7 @@
 		</div>
 		<button
 			onclick={onAdd}
-			class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md transition-colors"
+			class="flex items-center gap-1.5 px-3 min-h-11 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md transition-colors"
 		>
 			<Plus size={14} />
 			Add
@@ -60,14 +60,14 @@
 							onclick={() => onTest(webhook.id)}
 							disabled={testingId === webhook.id}
 							title="Send test payload"
-							class="p-1.5 text-gray-400 hover:text-brand dark:hover:text-brand-muted rounded transition-colors disabled:opacity-50"
+							class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand dark:hover:text-brand-muted rounded transition-colors disabled:opacity-50"
 						>
 							<Send size={14} />
 						</button>
 						<button
 							onclick={() => onEdit(webhook)}
 							title="Edit webhook"
-							class="p-1.5 text-gray-400 hover:text-brand dark:hover:text-brand-muted rounded transition-colors"
+							class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand dark:hover:text-brand-muted rounded transition-colors"
 						>
 							<Pencil size={14} />
 						</button>
@@ -75,7 +75,7 @@
 							onclick={() => onDelete(webhook.id)}
 							disabled={deletingId === webhook.id}
 							title="Delete webhook"
-							class="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors disabled:opacity-50"
+							class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors disabled:opacity-50"
 						>
 							<Trash2 size={14} />
 						</button>

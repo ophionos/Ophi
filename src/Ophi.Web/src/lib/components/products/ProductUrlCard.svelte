@@ -3,6 +3,7 @@
 	import type { ProductUrl } from '$lib/api/client';
 	import { formatPrice } from '$lib/format';
 	import { onDestroy } from 'svelte';
+	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 
 	interface Props {
 		productUrl: ProductUrl;
@@ -28,6 +29,7 @@
 	}: Props = $props();
 
 	let deleting = $state(false);
+	let confirmingDelete = $state(false);
 	let retrying = $state(false);
 	let resuming = $state(false);
 	let cooldownRemaining = $state(0);
@@ -69,12 +71,14 @@
 		}
 	}
 
-	async function handleDelete() {
+	// The button sits beside retry and open, so a mis-tap must not stop tracking the store.
+	async function handleConfirmDelete() {
 		deleting = true;
 		try {
 			await onDelete?.(productUrl.id);
 		} finally {
 			deleting = false;
+			confirmingDelete = false;
 		}
 	}
 
@@ -205,13 +209,14 @@
 			{/if}
 		</div>
 	</div>
-	<div class="flex gap-1 ml-2 shrink-0">
+	<div class="-my-2 -mr-2 flex ml-2 shrink-0">
 		{#if productUrl.status === 'paused' && onResume}
 			<button
 				onclick={handleResume}
 				disabled={resuming}
-				class="p-1.5 text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
 				title="Resume monitoring"
+				aria-label="Resume monitoring"
 				data-testid="resume-url-button"
 			>
 				{#if resuming}
@@ -224,7 +229,7 @@
 		{#if canSolveChallenge}
 			<button
 				onclick={() => onSolveChallenge?.(productUrl.id)}
-				class="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
 				title="Solve challenge"
 				aria-label="Solve challenge"
 				data-testid="solve-challenge-button"
@@ -236,8 +241,9 @@
 			<button
 				onclick={handleRetry}
 				disabled={retrying || cooldownRemaining > 0}
-				class="p-1.5 text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
 				title={cooldownRemaining > 0 ? `Retry available in ${cooldownRemaining}s` : 'Retry scraping'}
+				aria-label={cooldownRemaining > 0 ? `Retry available in ${cooldownRemaining}s` : 'Retry scraping'}
 				data-testid="retry-scrape-button"
 			>
 				{#if retrying}
@@ -253,26 +259,29 @@
 			href={productUrl.affiliateUrl ?? productUrl.url}
 			target="_blank"
 			rel="noopener noreferrer external"
-			class="p-1.5 text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
+			class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
 			title="Open in new tab"
+			aria-label="Open in new tab"
 		>
 			<ExternalLink size={16} />
 		</a>
 		{#if !isBuiltInStore}
 			<a
 				href={`/stores?edit=${encodeURIComponent(getDomain(productUrl.url))}`}
-				class="p-1.5 text-gray-400 hover:text-brand-secondary dark:hover:text-brand-secondary-dark hover:bg-brand-secondary/10 rounded"
+				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand-secondary dark:hover:text-brand-secondary-dark hover:bg-brand-secondary/10 rounded"
 				title="Store configuration"
+				aria-label="Store configuration"
 			>
 				<Settings size={16} />
 			</a>
 		{/if}
 		{#if canDelete}
 			<button
-				onclick={handleDelete}
+				onclick={() => (confirmingDelete = true)}
 				disabled={deleting}
-				class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50"
+				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50"
 				title="Remove URL"
+				aria-label="Remove URL"
 			>
 				{#if deleting}
 					<LoaderCircle size={16} class="animate-spin" />
@@ -283,3 +292,13 @@
 		{/if}
 	</div>
 </div>
+
+<ConfirmModal
+	isOpen={confirmingDelete}
+	title="Remove URL"
+	message="Stop tracking {getDomain(productUrl.url)} for this product? Its past prices stay in the price history."
+	confirmText="Remove"
+	loading={deleting}
+	onConfirm={handleConfirmDelete}
+	onCancel={() => (confirmingDelete = false)}
+/>

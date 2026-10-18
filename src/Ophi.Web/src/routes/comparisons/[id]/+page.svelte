@@ -149,7 +149,7 @@
 	<div class="mb-6">
 		<a
 			href={resolve('/comparisons')}
-			class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4"
+			class="inline-flex min-h-11 items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4"
 		>
 			<ArrowLeft size={16} />
 			Back to Comparisons
@@ -160,14 +160,14 @@
 				{#snippet actions()}
 					<button
 						onclick={handleOpenAddProduct}
-						class="whitespace-nowrap px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
+						class="whitespace-nowrap px-4 min-h-11 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
 					>
 						<Plus size={18} />
 						Add Product
 					</button>
 					<button
 						onclick={handleOpenDeleteGroup}
-						class="whitespace-nowrap px-4 py-2 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+						class="whitespace-nowrap px-4 min-h-11 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
 					>
 						<Trash2 size={18} />
 						Delete Group
@@ -211,11 +211,11 @@
 		<!-- Price Chart -->
 		<SectionCard title="Price Comparison" icon={TrendingUp}>
 			{#snippet action()}
-				<div class="flex gap-1">
+				<div class="-my-2 flex gap-1">
 					{#each [7, 30, 90, 365] as days (days)}
 						<button
 							onclick={() => handleDaysChange(days)}
-							class="px-3 py-1 text-sm rounded-md transition-colors {selectedDays === days
+							class="min-h-11 min-w-11 px-3 text-sm rounded-md transition-colors {selectedDays === days
 								? 'bg-brand text-white'
 								: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}"
 						>
@@ -353,14 +353,14 @@
 									href={product.affiliateUrl ?? product.url}
 									target="_blank"
 									rel="noopener noreferrer external"
-									class="p-2 text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
+									class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
 									title="Visit store"
 								>
 									<ExternalLink size={18} />
 								</a>
 								<button
 									onclick={() => handleOpenRemoveProduct(product.id)}
-									class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+									class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
 									title="Remove from group"
 								>
 									<Trash2 size={18} />

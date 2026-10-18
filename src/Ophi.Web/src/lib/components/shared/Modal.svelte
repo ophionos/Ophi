@@ -82,7 +82,7 @@
 					<button
 						onclick={onClose}
 						disabled={closeDisabled}
-						class="p-2 min-w-10 min-h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+						class="min-w-11 min-h-11 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
 						aria-label="Close"
 					>
 						<X size={20} />

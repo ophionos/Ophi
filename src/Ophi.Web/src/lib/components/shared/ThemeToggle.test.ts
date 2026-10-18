@@ -99,10 +99,10 @@ describe('ThemeToggle', () => {
 			expect(button.classList.contains('rounded-full')).toBe(true);
 		});
 
-		it('should have padding class', () => {
+		it('should have a 44px tap target', () => {
 			render(ThemeToggle);
 			const button = screen.getByRole('button');
-			expect(button.classList.contains('p-2')).toBe(true);
+			expect(button).toHaveClass('min-h-11', 'min-w-11');
 		});
 	});
 });

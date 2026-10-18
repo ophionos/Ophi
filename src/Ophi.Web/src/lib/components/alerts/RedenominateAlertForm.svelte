@@ -71,13 +71,13 @@
 				aria-label="New target price in {currency}"
 				bind:value={targetPrice}
 				disabled={loading}
-				class="block w-32 pl-11 pr-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="block w-32 pl-11 pr-2 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 			/>
 		</div>
 		<button
 			type="submit"
 			disabled={loading}
-			class="px-3 py-1 text-xs font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-1"
+			class="px-3 min-h-11 text-xs font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-1"
 		>
 			{#if loading}
 				<LoaderCircle size={14} class="animate-spin" />
@@ -88,7 +88,7 @@
 			type="button"
 			onclick={onCancel}
 			disabled={loading}
-			class="px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:underline disabled:opacity-50"
+			class="px-3 min-h-11 text-xs font-medium text-gray-700 dark:text-gray-300 hover:underline disabled:opacity-50"
 		>
 			Cancel
 		</button>

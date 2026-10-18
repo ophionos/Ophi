@@ -22,7 +22,7 @@
 		</div>
 		<button
 			onclick={onCreate}
-			class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md transition-colors"
+			class="flex items-center gap-1.5 px-3 min-h-11 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md transition-colors"
 		>
 			<Plus size={14} />
 			Create
@@ -63,7 +63,7 @@
 						onclick={() => onDelete(key.id)}
 						disabled={deletingId === key.id}
 						title="Revoke API key"
-						class="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors disabled:opacity-50 shrink-0"
+						class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors disabled:opacity-50 shrink-0"
 					>
 						<Trash2 size={14} />
 					</button>

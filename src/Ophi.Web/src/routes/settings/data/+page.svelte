@@ -63,7 +63,7 @@
 		<button
 			onclick={() => handleExportProducts('csv')}
 			disabled={exportLoading}
-			class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md disabled:opacity-50 transition-colors"
+			class="flex items-center gap-1.5 px-3 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md disabled:opacity-50 transition-colors"
 		>
 			{#if exportLoading}
 				<LoaderCircle size={14} class="animate-spin" />
@@ -75,7 +75,7 @@
 		<button
 			onclick={() => handleExportProducts('json')}
 			disabled={exportLoading}
-			class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md disabled:opacity-50 transition-colors"
+			class="flex items-center gap-1.5 px-3 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md disabled:opacity-50 transition-colors"
 		>
 			<Download size={14} />
 			Export JSON
@@ -83,7 +83,7 @@
 		<button
 			onclick={() => importFileInput?.click()}
 			disabled={importLoading}
-			class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md disabled:opacity-50 transition-colors"
+			class="flex items-center gap-1.5 px-3 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md disabled:opacity-50 transition-colors"
 		>
 			{#if importLoading}
 				<LoaderCircle size={14} class="animate-spin" />

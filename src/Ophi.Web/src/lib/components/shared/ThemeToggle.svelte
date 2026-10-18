@@ -5,7 +5,7 @@
 
 <button
 	onclick={() => theme.toggle()}
-	class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+	class="flex min-h-11 min-w-11 items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
 	title={theme.current === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
 	aria-label={theme.current === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
 >

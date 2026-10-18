@@ -212,14 +212,14 @@
 		{#snippet actions()}
 			<button
 				onclick={() => (importModalOpen = true)}
-				class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-2"
+				class="px-4 min-h-11 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-2"
 			>
 				<Upload size={18} />
 				Import
 			</button>
 			<button
 				onclick={handleOpenCreate}
-				class="whitespace-nowrap px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
+				class="whitespace-nowrap px-4 min-h-11 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
 			>
 				<Plus size={18} />
 				Add Store
@@ -232,7 +232,7 @@
 		{#each storeFilters as opt (opt.value)}
 			<button
 				onclick={() => (storeFilter = opt.value)}
-				class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors {storeFilter === opt.value
+				class="px-4 min-h-11 rounded-full text-sm font-medium transition-colors {storeFilter === opt.value
 					? 'bg-brand text-white'
 					: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}"
 				data-testid="store-filter-{opt.value}"
@@ -255,7 +255,7 @@
 			>
 				<button
 					onclick={handleOpenCreate}
-					class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover"
+					class="inline-flex items-center gap-2 px-4 min-h-11 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover"
 				>
 					<Plus size={16} />
 					Add your first store
