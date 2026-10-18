@@ -2,7 +2,8 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { api } from '$lib/api/client';
-	import { Package, LoaderCircle } from 'lucide-svelte';
+	import { LoaderCircle } from 'lucide-svelte';
+	import OphiLogo from '$lib/components/shared/OphiLogo.svelte';
 	import ThemeToggle from '$lib/components/shared/ThemeToggle.svelte';
 	import FormError from '$lib/components/shared/FormError.svelte';
 
@@ -42,7 +43,7 @@
 				href={resolve('/')}
 				class="inline-flex min-h-11 items-center gap-2 text-2xl font-bold text-brand dark:text-brand-muted"
 			>
-				<Package size={32} />
+				<OphiLogo size={32} class="rounded" />
 				Ophi
 			</a>
 			<h2 class="mt-4 text-2xl font-semibold text-gray-900 dark:text-white">
@@ -53,7 +54,7 @@
 		<div class="bg-white dark:bg-gray-800 py-8 px-6 shadow-sm rounded-lg space-y-6">
 			{#if confirmedEmail}
 				<div
-					class="p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-400"
+					class="p-4 bg-success/10 border border-success/30 rounded-lg text-sm text-success"
 					data-testid="success-message"
 				>
 					Your sign-in email is now <strong>{confirmedEmail}</strong>.
