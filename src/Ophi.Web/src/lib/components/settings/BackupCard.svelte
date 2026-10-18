@@ -59,13 +59,13 @@
 		<button
 			onclick={handleExport}
 			disabled={exporting}
-			class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md disabled:opacity-50"
+			class="inline-flex items-center gap-2 px-3 min-h-11 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md disabled:opacity-50"
 		>
 			{#if exporting}<LoaderCircle size={16} class="animate-spin" />{:else}<Download size={16} />{/if}
 			Download backup
 		</button>
 		<label
-			class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer {importing
+			class="inline-flex items-center gap-2 px-3 min-h-11 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer {importing
 				? 'opacity-50 pointer-events-none'
 				: ''}"
 		>

@@ -94,7 +94,7 @@
 		{#snippet actions()}
 			<button
 				onclick={handleOpenCreate}
-				class="whitespace-nowrap px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
+				class="whitespace-nowrap px-4 min-h-11 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
 				data-testid="create-tag-button"
 			>
 				<Plus size={18} />
@@ -120,7 +120,7 @@
 			>
 				<button
 					onclick={handleOpenCreate}
-					class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover"
+					class="inline-flex items-center gap-2 px-4 min-h-11 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover"
 				>
 					<Plus size={16} />
 					Create your first tag

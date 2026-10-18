@@ -347,7 +347,7 @@
 		>
 			<a
 				href={resolve('/dashboard')}
-				class="hover:text-brand dark:hover:text-brand-muted transition-colors">Dashboard</a
+				class="tap-area hover:text-brand dark:hover:text-brand-muted transition-colors">Dashboard</a
 			>
 			<ChevronRight size={14} />
 			<span class="text-gray-900 dark:text-white truncate max-w-xs">{product.name}</span>
@@ -407,7 +407,7 @@
 							href={product.affiliateUrl ?? product.url}
 							target="_blank"
 							rel="noopener noreferrer external"
-							class="text-sm font-medium text-brand dark:text-brand-muted hover:text-brand-hover dark:hover:text-brand-muted bg-brand-light dark:bg-brand-dark/20 px-3 py-1 rounded-full flex items-center gap-1.5 transition-colors"
+							class="text-sm font-medium text-brand dark:text-brand-muted hover:text-brand-hover dark:hover:text-brand-muted bg-brand-light dark:bg-brand-dark/20 px-3 py-1 rounded-full flex items-center gap-1.5 transition-colors tap-area"
 						>
 							View on store
 							<ExternalLink size={14} />
@@ -416,7 +416,8 @@
 					{#if product.status !== 'pending'}
 						<button
 							onclick={() => (showEditModal = true)}
-							class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+							class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+							aria-label="Edit product"
 							title="Edit product"
 						>
 							<Pencil size={18} />
@@ -445,11 +446,11 @@
 				<div in:fly={{ y: 20, duration: 500, delay: 400 }}>
 					<SectionCard title="Price History" icon={TrendIcon}>
 						{#snippet action()}
-							<div class="flex gap-2">
+							<div class="-my-2 flex gap-1">
 								{#each [7, 30, 90, 365] as days (days)}
 									<button
 										onclick={() => handleHistoryDaysChange(days)}
-										class="px-3 py-1 text-sm rounded-md {historyDays === days
+										class="min-h-11 min-w-11 px-3 text-sm rounded-md {historyDays === days
 											? 'bg-brand text-white'
 											: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}"
 									>
@@ -485,7 +486,7 @@
 							{#snippet action()}
 								<button
 									onclick={() => (showAddUrlModal = true)}
-									class="px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover flex items-center gap-1"
+									class="min-h-11 px-3 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover flex items-center gap-1"
 								>
 									<Plus size={16} />
 									Add URL
@@ -521,7 +522,7 @@
 						{#snippet action()}
 							<button
 								onclick={() => (showAlertModal = true)}
-								class="px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover flex items-center gap-1"
+								class="min-h-11 px-3 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover flex items-center gap-1"
 							>
 								<BellPlus size={16} />
 								Create Alert
@@ -592,7 +593,7 @@
 					</div>
 					<button
 						onclick={() => (showDeleteConfirm = true)}
-						class="shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+						class="shrink-0 whitespace-nowrap px-4 min-h-11 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
 					>
 						Delete Product
 					</button>

@@ -32,7 +32,7 @@
 			{@const active = currentPath.startsWith(section.href)}
 			<a
 				href={section.href}
-				class="flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors {active
+				class="flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap px-4 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors {active
 					? 'text-brand dark:text-brand-muted border-brand'
 					: 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200 hover:bg-surface-2'}"
 				aria-current={active ? 'page' : undefined}

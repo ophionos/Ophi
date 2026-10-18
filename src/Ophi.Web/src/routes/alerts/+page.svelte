@@ -222,7 +222,7 @@
 		>
 			<a
 				href={resolve('/dashboard')}
-				class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover"
+				class="inline-flex min-h-11 items-center px-4 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover"
 			>
 				Go to dashboard
 			</a>
@@ -234,7 +234,7 @@
 					<button
 						onclick={() => setStatus(f.key)}
 						aria-pressed={status === f.key}
-						class="px-3 py-1 text-sm rounded-full border transition-colors {status === f.key
+						class="inline-flex min-h-11 items-center gap-1 px-3 text-sm rounded-full border transition-colors {status === f.key
 							? 'bg-brand text-white border-brand'
 							: 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-surface-2'}"
 					>
@@ -247,7 +247,7 @@
 				<select
 					value={sort}
 					onchange={(e) => setSort(e.currentTarget.value as SortKey)}
-					class="form-select pl-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+					class="form-select min-h-11 pl-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 				>
 					{#each SORTS as s (s.key)}
 						<option value={s.key}>{s.label}</option>
@@ -257,13 +257,13 @@
 		</div>
 
 		{#if visible.length > 0}
-			<div class="flex items-center gap-3 mb-3 px-3 min-h-9">
-				<label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+			<div class="flex flex-wrap items-center gap-x-3 mb-3 px-3 min-h-11">
+				<label class="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
 					<input
 						type="checkbox"
 						checked={allVisibleSelected}
 						onchange={toggleSelectAll}
-						class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-brand focus:ring-brand"
+						class="h-4 w-4"
 					/>
 					Select all
 				</label>
@@ -274,21 +274,21 @@
 					<button
 						onclick={() => bulkSetActive(false)}
 						disabled={bulkBusy}
-						class="flex items-center gap-1 px-2.5 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
+						class="flex min-h-11 items-center gap-1 px-2.5 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
 					>
 						<Pause size={16} /> Pause selected
 					</button>
 					<button
 						onclick={() => bulkSetActive(true)}
 						disabled={bulkBusy}
-						class="flex items-center gap-1 px-2.5 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
+						class="flex min-h-11 items-center gap-1 px-2.5 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
 					>
 						<Play size={16} /> Resume selected
 					</button>
 					<button
 						onclick={() => (bulkDeleteConfirmOpen = true)}
 						disabled={bulkBusy}
-						class="flex items-center gap-1 px-2.5 py-1 text-sm rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
+						class="flex min-h-11 items-center gap-1 px-2.5 text-sm rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
 					>
 						<Trash2 size={16} /> Delete selected
 					</button>

@@ -125,8 +125,8 @@ describe('AlertModal', () => {
 		it('should have touch-friendly close button (min 40px)', () => {
 			render(AlertModal, { props: defaultProps });
 			const closeBtn = screen.getByLabelText('Close');
-			expect(closeBtn).toHaveClass('min-w-10');
-			expect(closeBtn).toHaveClass('min-h-10');
+			expect(closeBtn).toHaveClass('min-w-11');
+			expect(closeBtn).toHaveClass('min-h-11');
 		});
 
 		it('should have overscroll-contain on scrollable body', () => {

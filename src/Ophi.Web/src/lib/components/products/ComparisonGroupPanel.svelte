@@ -29,13 +29,13 @@
 		<div class="flex gap-2">
 			<a
 				href={resolve(`/comparisons/${currentGroup.id}`)}
-				class="px-3 py-1.5 text-sm font-medium text-brand dark:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded-md"
+				class="min-h-11 px-3 text-sm font-medium text-brand dark:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded-md"
 			>
 				View Group
 			</a>
 			<button
 				onclick={onRemove}
-				class="px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
+				class="min-h-11 px-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
 			>
 				Remove
 			</button>
@@ -49,7 +49,7 @@
 		<select
 			id="comparison-group-select"
 			onchange={(e) => onAdd(e.currentTarget.value)}
-			class="form-select pl-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+			class="form-select min-h-11 pl-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 		>
 			<option value="">Select a group...</option>
 			{#each availableGroups as group (group.id)}

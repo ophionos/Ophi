@@ -244,7 +244,7 @@
 									type="button"
 									aria-label="Toggle product status"
 									onclick={() => (status = status === 'active' ? 'paused' : 'active')}
-									class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {status ===
+									class="tap-area inline-flex h-6 w-11 items-center rounded-full transition-colors {status ===
 									'active'
 										? 'bg-green-500'
 										: 'bg-gray-300 dark:bg-gray-600'}"

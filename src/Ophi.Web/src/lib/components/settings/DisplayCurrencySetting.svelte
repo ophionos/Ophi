@@ -49,7 +49,7 @@
 			value={fx.displayCurrency ?? ''}
 			onchange={handleChange}
 			disabled={saving || supported.length === 0}
-			class="shrink-0 form-select pl-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+			class="shrink-0 form-select pl-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
 		>
 			<option value="">Off</option>
 			{#each supported as code (code)}

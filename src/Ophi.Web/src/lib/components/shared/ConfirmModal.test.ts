@@ -132,11 +132,11 @@ describe('ConfirmModal', () => {
 			expect(dialog).toHaveAttribute('aria-modal', 'true');
 		});
 
-		it('should have touch-friendly buttons (min-h-10)', () => {
+		it('should have touch-friendly buttons (min-h-11)', () => {
 			render(ConfirmModal, { props: defaultProps });
 			const buttons = screen.getAllByRole('button');
 			buttons.forEach((btn) => {
-				expect(btn).toHaveClass('min-h-10');
+				expect(btn).toHaveClass('min-h-11');
 			});
 		});
 	});

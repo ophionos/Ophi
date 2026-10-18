@@ -107,13 +107,15 @@
 >
 	<div class="flex items-center gap-3 min-w-0">
 		{#if onSelectChange}
-			<input
-				type="checkbox"
-				checked={selected}
-				onchange={(e) => onSelectChange(e.currentTarget.checked)}
-				aria-label="Select alert for {product?.name ?? 'this product'}"
-				class="h-4 w-4 shrink-0 rounded border-gray-300 dark:border-gray-600 text-brand focus:ring-brand"
-			/>
+			<label class="-my-2 -ml-2 flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center">
+				<input
+					type="checkbox"
+					checked={selected}
+					onchange={(e) => onSelectChange(e.currentTarget.checked)}
+					aria-label="Select alert for {product?.name ?? 'this product'}"
+					class="h-4 w-4"
+				/>
+			</label>
 		{/if}
 		{#if product}
 			<div data-testid="alert-thumbnail" class="shrink-0">
@@ -209,14 +211,14 @@
 			{/if}
 		</div>
 	</div>
-	<div class="flex items-center gap-1 shrink-0">
+	<div class="flex items-center gap-2 shrink-0">
 		{#if onToggleActive}
 			<button
 				onclick={handleToggle}
 				disabled={toggling}
 				aria-label={alert.active ? 'Pause alert' : 'Resume alert'}
 				title={alert.active ? 'Pause alert' : 'Resume alert'}
-				class="flex items-center gap-1 p-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50"
+				class="flex min-h-11 min-w-11 items-center justify-center gap-1 px-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50"
 			>
 				{#if toggling}
 					<LoaderCircle size={16} class="animate-spin" />
@@ -233,7 +235,7 @@
 			disabled={deleting}
 			aria-label="Delete alert"
 			title="Delete alert"
-			class="flex items-center gap-1 p-2 text-sm text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md disabled:opacity-50"
+			class="flex min-h-11 min-w-11 items-center justify-center gap-1 px-2 text-sm text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md disabled:opacity-50"
 		>
 			{#if deleting}
 				<LoaderCircle size={16} class="animate-spin" />

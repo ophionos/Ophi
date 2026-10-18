@@ -129,14 +129,14 @@
 <div class="relative" bind:this={dropdownEl} data-notification-bell>
 	<button
 		onclick={toggleDropdown}
-		class="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+		class="relative flex min-h-11 min-w-11 items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
 		aria-label="Notifications"
 		title="Notifications"
 	>
 		<Bell size={20} />
 		{#if notifications.unreadCount > 0}
 			<span
-				class="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-4.5 h-4.5 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full"
+				class="absolute top-1 right-1 flex items-center justify-center min-w-4.5 h-4.5 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full"
 				data-testid="unread-badge"
 			>
 				{notifications.unreadCount > 99 ? '99+' : notifications.unreadCount}

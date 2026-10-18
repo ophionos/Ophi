@@ -70,7 +70,7 @@
 		<div class="text-center mb-8">
 			<a
 				href={resolve('/')}
-				class="inline-flex items-center gap-2 text-2xl font-bold text-brand dark:text-brand-muted"
+				class="inline-flex min-h-11 items-center gap-2 text-2xl font-bold text-brand dark:text-brand-muted"
 			>
 				<Package size={32} />
 				Ophi
@@ -101,7 +101,7 @@
 							required
 							aria-invalid={getFieldError('name').length > 0}
 							aria-describedby={getFieldError('name').length > 0 ? 'name-errors' : undefined}
-							class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
+							class="w-full px-3 min-h-11 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 								'name'
 							).length > 0
 								? 'border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
@@ -132,7 +132,7 @@
 							required
 							aria-invalid={getFieldError('email').length > 0}
 							aria-describedby={getFieldError('email').length > 0 ? 'email-errors' : undefined}
-							class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
+							class="w-full px-3 min-h-11 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 								'email'
 							).length > 0
 								? 'border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
@@ -168,7 +168,7 @@
 								aria-describedby={getFieldError('password').length > 0
 									? 'password-errors'
 									: 'password-hint'}
-								class="w-full px-3 py-2 pr-10 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
+								class="w-full px-3 min-h-11 pr-12 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 									'password'
 								).length > 0
 									? 'border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
@@ -177,7 +177,7 @@
 							<button
 								type="button"
 								onclick={() => (showPassword = !showPassword)}
-								class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+								class="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
 								aria-label={showPassword ? 'Hide password' : 'Show password'}
 								data-testid="toggle-password"
 							>
@@ -221,7 +221,7 @@
 								aria-describedby={getFieldError('confirmPassword').length > 0
 									? 'confirmPassword-errors'
 									: undefined}
-								class="w-full px-3 py-2 pr-10 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
+								class="w-full px-3 min-h-11 pr-12 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 									'confirmPassword'
 								).length > 0
 									? 'border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
@@ -230,7 +230,7 @@
 							<button
 								type="button"
 								onclick={() => (showConfirmPassword = !showConfirmPassword)}
-								class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+								class="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
 								aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
 								data-testid="toggle-confirm-password"
 							>
@@ -255,7 +255,7 @@
 					<button
 						type="submit"
 						disabled={loading}
-						class="w-full py-2 px-4 bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+						class="w-full min-h-11 px-4 bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 					>
 						{#if loading}
 							<LoaderCircle size={18} class="animate-spin" />

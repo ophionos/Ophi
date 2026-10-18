@@ -129,7 +129,7 @@
 			<button
 				type="button"
 				onclick={() => (isEnabled = !isEnabled)}
-				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {isEnabled ? 'bg-brand' : 'bg-gray-300 dark:bg-gray-600'}"
+				class="tap-area inline-flex h-6 w-11 items-center rounded-full transition-colors {isEnabled ? 'bg-brand' : 'bg-gray-300 dark:bg-gray-600'}"
 				role="switch"
 				aria-checked={isEnabled}
 				aria-label="Toggle enabled"

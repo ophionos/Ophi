@@ -90,11 +90,34 @@ describe('ProductUrlCard', () => {
 	});
 
 	describe('interactions', () => {
-		it('should call onDelete when delete button is clicked', async () => {
+		it('should ask for confirmation when the remove button is clicked', async () => {
 			const onDelete = vi.fn();
 			render(ProductUrlCard, { props: { ...defaultProps, onDelete } });
 
-			await fireEvent.click(screen.getByTitle('Remove URL'));
+			await fireEvent.click(screen.getByLabelText('Remove URL'));
+
+			expect(screen.getByRole('dialog')).toHaveTextContent(/price history/);
+			expect(onDelete).not.toHaveBeenCalled();
+		});
+
+		it('should not remove the URL when the confirmation is cancelled', async () => {
+			const onDelete = vi.fn();
+			render(ProductUrlCard, { props: { ...defaultProps, onDelete } });
+
+			await fireEvent.click(screen.getByLabelText('Remove URL'));
+			await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+			expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+			expect(onDelete).not.toHaveBeenCalled();
+		});
+
+		it('should call onDelete when the removal is confirmed', async () => {
+			const onDelete = vi.fn();
+			render(ProductUrlCard, { props: { ...defaultProps, onDelete } });
+
+			await fireEvent.click(screen.getByLabelText('Remove URL'));
+			await fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
 			expect(onDelete).toHaveBeenCalledWith('url-1');
 		});
 

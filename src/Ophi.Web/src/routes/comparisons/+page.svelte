@@ -83,7 +83,7 @@
 		{#snippet actions()}
 			<button
 				onclick={handleOpenCreate}
-				class="whitespace-nowrap px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
+				class="whitespace-nowrap px-4 min-h-11 bg-brand text-white rounded-lg hover:bg-brand-hover flex items-center gap-2"
 			>
 				<Plus size={18} />
 				Create Comparison

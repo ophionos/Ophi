@@ -62,7 +62,7 @@
 						type="button"
 						onclick={onCancel}
 						disabled={loading}
-						class="px-4 py-2 min-h-10 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+						class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
 					>
 						{cancelText}
 					</button>
@@ -70,7 +70,7 @@
 						type="button"
 						onclick={onConfirm}
 						disabled={loading}
-						class="px-4 py-2 min-h-10 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+						class="px-4 min-h-11 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
 					>
 						{#if loading}
 							<LoaderCircle size={16} class="animate-spin" />

@@ -412,6 +412,11 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   `:root`/`.dark`, so a checkbox or radio adds no `accent-*` class. Number fields have no spinners. A
   `<select>` takes the `form-select` utility (chevron and right padding) and sets `pl-*`, never `px-*`,
   which would put the text under the chevron.
+- **Tap targets are 44 × 44 px at every width.** Buttons, links styled as buttons, selects and inputs
+  take `min-h-11` (an `<a>` also needs `inline-flex items-center`); icon-only buttons add `min-w-11`
+  and negative margins (`-my-2`) where the row must not grow; a checkbox sits in a 44 px `<label>`. A
+  control that must look smaller (switch track, pill link, breadcrumb) takes the `tap-area` utility. A
+  destructive button next to frequent ones opens `ConfirmModal`.
 
 ## Testing recipes
 

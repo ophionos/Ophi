@@ -186,7 +186,7 @@
 						<!-- Mobile menu button -->
 						<button
 							onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-							class="md:hidden p-2 -ml-2 mr-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+							class="md:hidden flex min-h-11 min-w-11 items-center justify-center -ml-2 mr-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
 							aria-label="Toggle menu"
 							aria-expanded={mobileMenuOpen}
 						>
@@ -198,7 +198,8 @@
 						</button>
 						<a
 							href={resolve('/dashboard')}
-							class="flex items-center gap-2 text-xl font-bold text-brand dark:text-brand-muted"
+							aria-label="Ophi dashboard"
+							class="flex min-h-11 min-w-11 items-center justify-center gap-2 text-xl font-bold text-brand dark:text-brand-muted"
 						>
 							<OphiLogo size={28} class="rounded" />
 						</a>
@@ -335,7 +336,7 @@
 						<a
 							href={resolve('/dashboard')}
 							onclick={() => (mobileMenuOpen = false)}
-							class="block px-3 py-2 text-base font-medium {navLinkClass(resolve('/dashboard'))} rounded-md"
+							class="flex min-h-11 items-center px-3 text-base font-medium {navLinkClass(resolve('/dashboard'))} rounded-md"
 							aria-current={isActive(resolve('/dashboard')) ? 'page' : undefined}
 						>
 							Dashboard
@@ -343,7 +344,7 @@
 						<a
 							href={resolve('/comparisons')}
 							onclick={() => (mobileMenuOpen = false)}
-							class="block px-3 py-2 text-base font-medium {navLinkClass(resolve('/comparisons'))} rounded-md"
+							class="flex min-h-11 items-center px-3 text-base font-medium {navLinkClass(resolve('/comparisons'))} rounded-md"
 							aria-current={isActive(resolve('/comparisons')) ? 'page' : undefined}
 						>
 							Comparisons
@@ -351,7 +352,7 @@
 						<a
 							href={resolve('/alerts')}
 							onclick={() => (mobileMenuOpen = false)}
-							class="block px-3 py-2 text-base font-medium {navLinkClass(resolve('/alerts'))} rounded-md"
+							class="flex min-h-11 items-center px-3 text-base font-medium {navLinkClass(resolve('/alerts'))} rounded-md"
 							aria-current={isActive(resolve('/alerts')) ? 'page' : undefined}
 						>
 							Alerts
@@ -361,7 +362,7 @@
 							<a
 								href={resolve('/tags')}
 								onclick={() => (mobileMenuOpen = false)}
-								class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/tags'))} rounded-md"
+								class="flex min-h-11 items-center gap-2.5 px-3 text-base font-medium {navLinkClass(resolve('/tags'))} rounded-md"
 								aria-current={isActive(resolve('/tags')) ? 'page' : undefined}
 							>
 								<Tag size={18} class="text-gray-400 dark:text-gray-500" />
@@ -370,7 +371,7 @@
 							<a
 								href={resolve('/stores')}
 								onclick={() => (mobileMenuOpen = false)}
-								class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/stores'))} rounded-md"
+								class="flex min-h-11 items-center gap-2.5 px-3 text-base font-medium {navLinkClass(resolve('/stores'))} rounded-md"
 								aria-current={isActive(resolve('/stores')) ? 'page' : undefined}
 							>
 								<Store size={18} class="text-gray-400 dark:text-gray-500" />
@@ -379,7 +380,7 @@
 							<a
 								href={resolve('/scrape-health')}
 								onclick={() => (mobileMenuOpen = false)}
-								class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/scrape-health'))} rounded-md"
+								class="flex min-h-11 items-center gap-2.5 px-3 text-base font-medium {navLinkClass(resolve('/scrape-health'))} rounded-md"
 								aria-current={isActive(resolve('/scrape-health')) ? 'page' : undefined}
 							>
 								<Activity size={18} class="text-gray-400 dark:text-gray-500" />
@@ -390,7 +391,7 @@
 							<a
 								href={resolve('/settings')}
 								onclick={() => (mobileMenuOpen = false)}
-								class="flex items-center gap-2.5 px-3 py-2 text-base font-medium {navLinkClass(resolve('/settings'))} rounded-md"
+								class="flex min-h-11 items-center gap-2.5 px-3 text-base font-medium {navLinkClass(resolve('/settings'))} rounded-md"
 								aria-current={isActive(resolve('/settings')) ? 'page' : undefined}
 							>
 								<SlidersHorizontal size={18} class="text-gray-400 dark:text-gray-500" />
@@ -413,7 +414,7 @@
 									mobileMenuOpen = false;
 									handleLogout();
 								}}
-								class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
+								class="flex min-h-11 items-center gap-2 px-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
 							>
 								<LogOut size={18} />
 								Logout

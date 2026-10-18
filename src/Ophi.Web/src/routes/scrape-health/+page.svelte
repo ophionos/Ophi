@@ -36,7 +36,7 @@
 			<button
 				onclick={handleRefresh}
 				disabled={refreshing}
-				class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
+				class="flex items-center gap-2 px-3 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
 			>
 				<RefreshCw size={14} class={refreshing ? 'animate-spin' : ''} />
 				Refresh

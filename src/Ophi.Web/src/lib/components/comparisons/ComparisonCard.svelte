@@ -56,7 +56,7 @@
 		{#if onDelete}
 			<button
 				onclick={() => onDelete?.(group)}
-				class="relative p-2 text-gray-400 hover:text-danger hover:bg-danger/10 rounded"
+				class="relative flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-danger hover:bg-danger/10 rounded"
 				title="Delete"
 				aria-label="Delete {group.name}"
 			>

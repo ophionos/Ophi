@@ -36,7 +36,7 @@
 			<div class="flex items-center gap-1">
 				<button
 					onclick={() => onEdit(tag)}
-					class="p-1.5 text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
 					title="Edit tag"
 					data-testid="tag-edit-button"
 				>
@@ -44,7 +44,7 @@
 				</button>
 				<button
 					onclick={() => onDelete(tag)}
-					class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
 					title="Delete tag"
 					data-testid="tag-delete-button"
 				>

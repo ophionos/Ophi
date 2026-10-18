@@ -45,7 +45,7 @@
 	>
 		<a
 			href={resolve('/dashboard')}
-			class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover"
+			class="inline-flex min-h-11 items-center px-4 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover"
 		>
 			Go to dashboard
 		</a>
