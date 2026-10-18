@@ -19,6 +19,8 @@
 	import DensityToggle from '$lib/components/products/DensityToggle.svelte';
 	import DashboardPagination from '$lib/components/products/DashboardPagination.svelte';
 	import ActivityFeed from '$lib/components/products/ActivityFeed.svelte';
+	import NeedsActionCard from '$lib/components/products/NeedsActionCard.svelte';
+	import ChallengeModal from '$lib/components/products/ChallengeModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ListChecks, Pause, Play, Trash2, ShoppingBag, TrendingDown } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
@@ -46,12 +48,18 @@
 	let productCount = $state(0);
 	let urlCount = $state(0);
 	let stores = $state<{ storeId: string; name: string }[]>([]);
+	// The action card's own query (see +page.ts): it does not follow the table's filters.
+	let actionProducts = $state<Product[]>([]);
+	let needsActionCount = $state(0);
+	let challengeTarget = $state<{ productId: string; urlId: string } | null>(null);
 
 	// Filter state — initialized from the URL so refreshes and shared links land on the same
 	// view; every change is mirrored back via syncUrl() (shallow replaceState, no loader re-run).
 	const initParams = page.url.searchParams;
+	// `filter` holds one quick filter: an opportunity chip, or the action card's "Show in table".
+	type QuickFilter = Opportunity | 'action';
 	const initFilter = initParams.get('filter');
-	let opportunity = $state<Opportunity | null>(initFilter === 'lowest' || initFilter === 'near' ? initFilter : null);
+	let opportunity = $state<QuickFilter | null>(initFilter === 'lowest' || initFilter === 'near' || initFilter === 'action' ? initFilter : null);
 	let search = $state(initParams.get('search') ?? '');
 	let status = $state<ProductStatus | ''>((initParams.get('status') as ProductStatus) ?? '');
 	let sortBy = $state(initParams.get('sortBy') ?? '');
@@ -104,17 +112,15 @@
 			includeSparkline: true,
 			atLowest: opportunity === 'lowest' ? true : undefined,
 			nearTarget: opportunity === 'near' ? true : undefined,
+			needsAction: opportunity === 'action' ? true : undefined,
 			favourite: favouriteOnly ? true : undefined
 		};
 	}
 
-	// Applied once per page load, not on every hydrate: `total` narrows as filters are applied,
-	// and searching down to three results shouldn't flip the view back to grid.
-	let viewDefaultApplied = false;
-
 	function applyCounts(p: ProductListResponse) {
 		atLowestCount = p.atLowestCount;
 		nearTargetCount = p.nearTargetCount;
+		needsActionCount = p.needsActionCount;
 		productCount = p.productCount;
 		urlCount = p.urlCount;
 		stores = p.stores;
@@ -124,11 +130,8 @@
 	$effect(() => {
 		const p = pageData.products;
 		products.setPage(p.items, p.total, p.page, p.pageSize);
-		if (!viewDefaultApplied) {
-			viewDefaultApplied = true;
-			viewMode.applyCountDefault(p.total);
-		}
 		applyCounts(p);
+		actionProducts = pageData.actionProducts.items;
 		tags.set(pageData.tags);
 	});
 
@@ -147,10 +150,14 @@
 		const controller = new AbortController();
 		inFlight = controller;
 		try {
-			const productsResult = await api.getProducts(buildParams());
+			const [productsResult, actionResult] = await Promise.all([
+				api.getProducts(buildParams()),
+				api.getProducts({ needsAction: true, pageSize: ACTION_CARD_SIZE })
+			]);
 			if (controller.signal.aborted) return;
 			products.setPage(productsResult.items, productsResult.total, productsResult.page, productsResult.pageSize);
 			applyCounts(productsResult);
+			actionProducts = actionResult.items;
 		} catch (error) {
 			if (controller.signal.aborted) return;
 			console.error('Failed to refresh products:', error);
@@ -210,6 +217,27 @@
 
 	function setViewMode(mode: ViewMode) {
 		viewMode.set(mode);
+	}
+
+	// --- Needs your action ---
+	async function retryAttention(product: Product) {
+		if (!product.attention) return;
+		try {
+			await api.retryScrapeProductUrl(product.id, product.attention.productUrlId);
+			toast.success(`Check queued for ${product.name}`);
+			await refreshProducts();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Failed to queue the check');
+		}
+	}
+
+	function solveCheck(product: Product) {
+		if (product.attention) challengeTarget = { productId: product.id, urlId: product.attention.productUrlId };
+	}
+
+	function showActionInTable() {
+		viewMode.set('list');
+		applyFilters(() => (opportunity = 'action'));
 	}
 
 	// --- Bulk selection ---
@@ -341,7 +369,8 @@
 	}
 
 	const STATUS_LABELS: Record<string, string> = { active: 'Active', paused: 'Paused', error: 'Error' };
-	const OPPORTUNITY_LABELS: Record<Opportunity, string> = { lowest: 'At their 90-day low', near: 'Alert near target' };
+	const OPPORTUNITY_LABELS: Record<QuickFilter, string> = { lowest: 'At their 90-day low', near: 'Alert near target', action: 'Needs your action' };
+	const ACTION_CARD_SIZE = 10;
 
 	// Every filter in effect, in the order of the bar. The sort is not a filter: it hides nothing.
 	const activeFilters = $derived.by(() => {
@@ -379,37 +408,47 @@
 </svelte:head>
 
 <div>
-	<PageHeader
-		title="Watchlist"
-		description={isEmptyAccount
-			? 'Paste a product URL to start tracking its price'
-			: `${productCount} ${productCount === 1 ? 'product' : 'products'} · ${urlCount} ${urlCount === 1 ? 'URL' : 'URLs'}`}
-	/>
-
-	<!-- Slim inline add product bar — the "create from scratch" affordance sits on the same row
-	     as the paste-URL input (instead of a separate line below) to keep the header compact. -->
-	<div
-		class="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
-		data-onboarding="add-product"
-	>
-		<div class="w-full flex-1">
-			<AddProductForm onSubmit={handleAddProduct} />
+	<!-- The paste-URL field: a compact field in the header once products exist; the whole row
+	     while the account is empty, where it is the only thing to do. -->
+	{#snippet addProduct()}
+		<div class="flex flex-col gap-1 {isEmptyAccount ? 'mb-3 sm:flex-row sm:items-center sm:gap-3' : 'w-[min(28rem,calc(100vw-2rem))]'}" data-onboarding="add-product">
+			<div class="w-full flex-1">
+				<AddProductForm onSubmit={handleAddProduct} />
+			</div>
+			<button
+				type="button"
+				onclick={() => (showCreateModal = true)}
+				class="min-h-11 shrink-0 self-start whitespace-nowrap text-xs text-brand dark:text-brand-muted hover:text-brand-hover dark:hover:text-brand-muted hover:underline sm:self-auto {isEmptyAccount ? '' : 'sm:self-end'}"
+				data-testid="create-from-scratch"
+			>
+				or create from scratch
+			</button>
 		</div>
-		<button
-			type="button"
-			onclick={() => (showCreateModal = true)}
-			class="shrink-0 whitespace-nowrap text-xs text-brand dark:text-brand-muted hover:text-brand-hover dark:hover:text-brand-muted hover:underline"
-			data-testid="create-from-scratch"
-		>
-			or create from scratch
-		</button>
-	</div>
+	{/snippet}
 
-	{#if !isEmptyAccount}
+	{#if isEmptyAccount}
+		<PageHeader title="Watchlist" description="Paste a product URL to start tracking its price" />
+		{@render addProduct()}
+	{:else}
+		<PageHeader
+			title="Watchlist"
+			description={`${productCount} ${productCount === 1 ? 'product' : 'products'} · ${urlCount} ${urlCount === 1 ? 'URL' : 'URLs'}`}
+			actions={addProduct}
+		/>
+
+		<NeedsActionCard
+			products={actionProducts}
+			count={needsActionCount}
+			challengeAvailable={pageData.challengeAvailable}
+			onRetry={retryAttention}
+			onSolveCheck={solveCheck}
+			onShowInTable={showActionInTable}
+		/>
+
 		<OpportunityChips
 			{atLowestCount}
 			{nearTargetCount}
-			active={opportunity}
+			active={opportunity === 'action' ? null : opportunity}
 			onSelect={(next) => applyFilters(() => (opportunity = next))}
 		/>
 	{/if}
@@ -437,10 +476,9 @@
 		>
 			{#snippet trailing()}
 				<div class="flex items-center gap-2">
-					{#if viewMode.current !== 'feed'}
 						<button
 							onclick={toggleSelectionMode}
-							class="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg border transition-colors {selectionMode
+							class="flex min-h-11 items-center gap-1.5 px-3 text-sm rounded-lg border transition-colors {selectionMode
 								? 'bg-brand text-white border-brand'
 								: 'text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-surface-2'}"
 							data-testid="bulk-select-toggle"
@@ -449,7 +487,6 @@
 							<ListChecks size={15} />
 							{selectionMode ? 'Done' : 'Select'}
 						</button>
-					{/if}
 					{#if viewMode.current === 'list'}
 						<!-- Desktop table only; the mobile card stack ignores density. -->
 						<div class="hidden md:flex">
@@ -473,7 +510,7 @@
 				</span>
 				<button
 					onclick={selectPage}
-					class="text-sm text-brand dark:text-brand-muted hover:underline"
+					class="min-h-11 text-sm text-brand dark:text-brand-muted hover:underline"
 					data-testid="bulk-select-page"
 				>
 					Select page
@@ -482,7 +519,7 @@
 				<button
 					onclick={() => bulkSetStatus('paused')}
 					disabled={bulkBusy || selectedIds.size === 0}
-					class="flex items-center gap-1 px-2.5 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
+					class="flex min-h-11 items-center gap-1 px-3 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
 					data-testid="bulk-pause"
 				>
 					<Pause size={14} />
@@ -491,7 +528,7 @@
 				<button
 					onclick={() => bulkSetStatus('active')}
 					disabled={bulkBusy || selectedIds.size === 0}
-					class="flex items-center gap-1 px-2.5 py-1 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
+					class="flex min-h-11 items-center gap-1 px-3 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
 					data-testid="bulk-resume"
 				>
 					<Play size={14} />
@@ -500,7 +537,7 @@
 				<button
 					onclick={() => (bulkDeleteConfirmOpen = true)}
 					disabled={bulkBusy || selectedIds.size === 0}
-					class="flex items-center gap-1 px-2.5 py-1 text-sm rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
+					class="flex min-h-11 items-center gap-1 px-3 text-sm rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
 					data-testid="bulk-delete"
 				>
 					<Trash2 size={14} />
@@ -509,6 +546,9 @@
 			</div>
 		{/if}
 
+		<!-- min-w-0: the table scrolls inside its own column instead of pushing the rail away. -->
+		<div class="grid gap-6 {isEmptyAccount ? '' : 'lg:grid-cols-[minmax(0,1fr)_20rem]'}">
+		<div class="min-w-0">
 		{#if loadError}
 			<div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-red-200 dark:border-red-800" data-testid="load-error">
 				<p role="alert" class="text-red-600 dark:text-red-400 mb-2">{loadError}</p>
@@ -545,7 +585,7 @@
 				<p class="text-sm text-gray-400 dark:text-gray-500">Paste a product URL above to get started</p>
 			</EmptyState>
 		{:else if viewMode.current === 'grid'}
-			<div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" in:fade={{ duration: 150 }}>
+			<div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4" in:fade={{ duration: 150 }}>
 				{#each products.items as product (product.id)}
 					<div animate:flip={{ duration: 400 }} in:fly={{ y: 20, duration: 400, delay: 50 }} out:fade={{ duration: 200 }}>
 						<ProductCard
@@ -561,10 +601,6 @@
 						/>
 					</div>
 				{/each}
-			</div>
-		{:else if viewMode.current === 'feed'}
-			<div in:fade={{ duration: 150 }}>
-				<ActivityFeed products={products.items} />
 			</div>
 		{:else}
 			<div in:fade={{ duration: 150 }}>
@@ -588,8 +624,29 @@
 		{#if totalPages > 1 && products.items.length > 0}
 			<DashboardPagination {currentPage} {totalPages} onPageChange={setPage} />
 		{/if}
+		</div>
+
+		{#if !isEmptyAccount}
+			<aside class="min-w-0">
+				<ActivityFeed products={products.items} />
+			</aside>
+		{/if}
+		</div>
 	</div>
 </div>
+
+{#if challengeTarget}
+	<ChallengeModal
+		isOpen
+		productId={challengeTarget.productId}
+		urlId={challengeTarget.urlId}
+		onClose={() => (challengeTarget = null)}
+		onSolved={() => {
+			challengeTarget = null;
+			refreshProducts();
+		}}
+	/>
+{/if}
 
 <ConfirmModal
 	isOpen={deleteProductId !== null}

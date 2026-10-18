@@ -146,7 +146,6 @@ test.describe('Dashboard Features', () => {
 
 			await expect(dashboard.viewToggleGrid).toBeVisible();
 			await expect(dashboard.viewToggleList).toBeVisible();
-			await expect(dashboard.viewToggleFeed).toBeVisible();
 		});
 
 		test('should switch to list view', async () => {
@@ -176,18 +175,15 @@ test.describe('Dashboard Features', () => {
 			await expect(dashboard.productTable).not.toBeVisible();
 		});
 
-		test('should switch to feed view', async () => {
+		test('should show the activity rail next to the table', async () => {
 			await createTestProduct(`E2E View Product ${Date.now()}`);
 
 			await dashboard.goto();
 			await dashboard.waitForDashboardLoaded();
 
-			await dashboard.switchToFeedView();
-
-			// Grid and table should not be visible
-			await expect(dashboard.productTable).not.toBeVisible();
-			// Feed view is now active (aria-pressed)
-			await expect(dashboard.viewToggleFeed).toHaveAttribute('aria-pressed', 'true');
+			// The feed is no longer a view mode: it is always on the page.
+			await expect(dashboard.activityRail).toBeVisible();
+			await expect(dashboard.productTable).toBeVisible();
 		});
 
 		test('should have correct aria-pressed on active view toggle', async () => {
@@ -195,14 +191,13 @@ test.describe('Dashboard Features', () => {
 			await dashboard.goto();
 			await dashboard.waitForDashboardLoaded();
 
-			// Default is grid
-			await expect(dashboard.viewToggleGrid).toHaveAttribute('aria-pressed', 'true');
-			await expect(dashboard.viewToggleList).toHaveAttribute('aria-pressed', 'false');
-			await expect(dashboard.viewToggleFeed).toHaveAttribute('aria-pressed', 'false');
-
-			await dashboard.switchToListView();
-			await expect(dashboard.viewToggleGrid).toHaveAttribute('aria-pressed', 'false');
+			// Default is the table
 			await expect(dashboard.viewToggleList).toHaveAttribute('aria-pressed', 'true');
+			await expect(dashboard.viewToggleGrid).toHaveAttribute('aria-pressed', 'false');
+
+			await dashboard.switchToGridView();
+			await expect(dashboard.viewToggleList).toHaveAttribute('aria-pressed', 'false');
+			await expect(dashboard.viewToggleGrid).toHaveAttribute('aria-pressed', 'true');
 		});
 	});
 

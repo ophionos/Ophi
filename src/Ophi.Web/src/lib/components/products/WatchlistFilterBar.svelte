@@ -208,7 +208,7 @@
 					<button
 						type="button"
 						onclick={filter.onRemove}
-						class="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-surface-3"
+						class="relative inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-surface-3 after:absolute after:-inset-2 after:content-['']"
 						aria-label="Remove filter: {filter.label}"
 					>
 						<X size={14} />

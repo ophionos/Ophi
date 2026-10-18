@@ -126,8 +126,7 @@ other kind of fact. Link to owners; don't restate them here.
   a group can be a wishlist of different products, where the cheapest saves nothing on the others.
   - **Read paths obey the same rule.** History may hold other currencies (a URL that changed
     currency, a re-anchor), so the at-lowest flag, the product statistics, the sparklines and the
-    comparison history filter price points to the product's (or URL's) currency. The deal score
-    ignores alerts with `HasCurrencyMismatch`. A sparkline point is the day's MIN, not the last scrape.
+    comparison history filter price points to the product's (or URL's) currency. A sparkline point is the day's MIN, not the last scrape.
     The product page's best-price highlight (`$lib/utils/bestPrice.ts`) also skips paused URLs.
   - **A re-anchor clears `PreviousPrice`.** It has no currency of its own, so a USD baseline next to a
     EUR price showed USD 100 → EUR 92 as an 8 % drop (dashboard, price-drop filter, webhook `OldPrice`).

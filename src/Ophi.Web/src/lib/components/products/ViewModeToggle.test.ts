@@ -7,13 +7,18 @@ describe('ViewModeToggle', () => {
 		render(ViewModeToggle, { props: { mode: 'list', onModeChange: vi.fn() } });
 		expect(screen.getByTestId('view-toggle-list')).toHaveAttribute('aria-pressed', 'true');
 		expect(screen.getByTestId('view-toggle-grid')).toHaveAttribute('aria-pressed', 'false');
-		expect(screen.getByTestId('view-toggle-feed')).toHaveAttribute('aria-pressed', 'false');
+	});
+
+	it('names the views Table and Gallery', () => {
+		render(ViewModeToggle, { props: { mode: 'list', onModeChange: vi.fn() } });
+		expect(screen.getByRole('button', { name: 'Table' })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'Gallery' })).toBeInTheDocument();
 	});
 
 	it('invokes onModeChange when a new mode is clicked', async () => {
 		const onModeChange = vi.fn();
-		render(ViewModeToggle, { props: { mode: 'grid', onModeChange } });
-		await fireEvent.click(screen.getByTestId('view-toggle-feed'));
-		expect(onModeChange).toHaveBeenCalledWith('feed');
+		render(ViewModeToggle, { props: { mode: 'list', onModeChange } });
+		await fireEvent.click(screen.getByTestId('view-toggle-grid'));
+		expect(onModeChange).toHaveBeenCalledWith('grid');
 	});
 });

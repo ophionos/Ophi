@@ -53,11 +53,11 @@ test.describe('User Journey', () => {
 				expect(productId).toBeTruthy();
 
 				// Reload the dashboard to see the new product. Use the auto-retrying
-				// toHaveCount — a bare .count() races the client-side grid render.
+				// toHaveCount — a bare .count() races the client-side render.
 				await page.reload();
 				await dashboardPage.waitForDashboardLoaded();
 
-				await expect(dashboardPage.productCards).toHaveCount(1, { timeout: 10000 });
+				await expect(dashboardPage.productRows).toHaveCount(1, { timeout: 10000 });
 			});
 
 			await test.step('Navigate to product detail', async () => {

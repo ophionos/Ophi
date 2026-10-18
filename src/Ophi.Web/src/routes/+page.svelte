@@ -217,9 +217,9 @@
 					>
 						<Gauge class="text-amber-600 dark:text-amber-400" size={20} />
 					</div>
-					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Deal Score</h3>
+					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Price in Context</h3>
 					<p class="text-sm text-gray-500 dark:text-gray-400">
-						A 0-100 score weighing how close the price sits to its own low, which way it's trending, and how near it is to your target. Open maths on your own history — no black box.
+						Each product shows a 30-day sparkline and where today's price sits in its 90-day range, so a real low is easy to spot.
 					</p>
 				</div>
 

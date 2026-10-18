@@ -13,7 +13,7 @@
 		{
 			targetSelector: '[data-onboarding="view-toggles"]',
 			title: 'Switch views',
-			description: 'Toggle between grid, list, and activity feed to view your products the way you prefer.',
+			description: 'Switch between the table and the gallery. Recent price changes stay in the side rail.',
 			position: 'bottom' as const
 		},
 		{

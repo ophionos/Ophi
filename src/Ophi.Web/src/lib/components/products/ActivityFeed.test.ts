@@ -100,10 +100,11 @@ describe('ActivityFeed', () => {
 		expect(container.textContent).toMatch(/ago|just now|seconds|minutes|hours/i);
 	});
 
-	it('should show deal score badge when available', () => {
-		const products = [makeProduct({ priceChange: -10, dealScore: 85 })];
-		const { container } = render(ActivityFeed, { props: { products } });
-		expect(container.querySelector('[aria-label*="Deal score"]')).toBeTruthy();
+	it('should show the latest events only, under a heading', () => {
+		const products = Array.from({ length: 10 }, (_, i) => makeProduct({ name: `Item ${i}` }));
+		render(ActivityFeed, { props: { products, limit: 3 } });
+		expect(screen.getByRole('heading', { name: 'Recent activity' })).toBeTruthy();
+		expect(screen.getAllByTestId('event-product-name')).toHaveLength(3);
 	});
 
 	it('should handle products with a single alert using singular label', () => {

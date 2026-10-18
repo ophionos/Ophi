@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { LayoutGrid, List, Activity } from 'lucide-svelte';
-
-	type ViewMode = 'grid' | 'list' | 'feed';
+	import { LayoutGrid, Table2 } from 'lucide-svelte';
+	import type { ViewMode } from '$lib/stores/viewMode.svelte';
 
 	interface Props {
 		mode: ViewMode;
@@ -9,34 +8,28 @@
 	}
 
 	let { mode, onModeChange }: Props = $props();
+
+	const MODES = [
+		{ value: 'list' as const, label: 'Table', icon: Table2 },
+		{ value: 'grid' as const, label: 'Gallery', icon: LayoutGrid }
+	];
 </script>
 
-<div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5" data-onboarding="view-toggles">
-	<button
-		onclick={() => onModeChange('grid')}
-		class="p-1.5 rounded-md transition-colors {mode === 'grid' ? 'bg-white dark:bg-gray-600 text-brand dark:text-brand-muted shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-		aria-label="Grid view"
-		aria-pressed={mode === 'grid'}
-		data-testid="view-toggle-grid"
-	>
-		<LayoutGrid size={16} />
-	</button>
-	<button
-		onclick={() => onModeChange('list')}
-		class="p-1.5 rounded-md transition-colors {mode === 'list' ? 'bg-white dark:bg-gray-600 text-brand dark:text-brand-muted shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-		aria-label="List view"
-		aria-pressed={mode === 'list'}
-		data-testid="view-toggle-list"
-	>
-		<List size={16} />
-	</button>
-	<button
-		onclick={() => onModeChange('feed')}
-		class="p-1.5 rounded-md transition-colors {mode === 'feed' ? 'bg-white dark:bg-gray-600 text-brand dark:text-brand-muted shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-		aria-label="Activity feed"
-		aria-pressed={mode === 'feed'}
-		data-testid="view-toggle-feed"
-	>
-		<Activity size={16} />
-	</button>
+<div class="flex items-center gap-0.5 rounded-lg bg-surface-2 p-0.5" role="group" aria-label="View" data-onboarding="view-toggles">
+	{#each MODES as item (item.value)}
+		{@const Icon = item.icon}
+		<button
+			type="button"
+			onclick={() => onModeChange(item.value)}
+			class="inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm transition-colors {mode === item.value
+				? 'bg-surface-1 text-brand shadow-sm dark:text-brand-muted'
+				: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
+			aria-pressed={mode === item.value}
+			aria-label={item.label}
+			data-testid="view-toggle-{item.value}"
+		>
+			<Icon size={16} aria-hidden="true" />
+			<span class="hidden sm:inline" aria-hidden="true">{item.label}</span>
+		</button>
+	{/each}
 </div>

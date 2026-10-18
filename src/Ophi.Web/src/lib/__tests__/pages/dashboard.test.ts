@@ -17,7 +17,8 @@ vi.mock('$lib/api/client', async () => {
 			deleteProduct: vi.fn(),
 			addProduct: vi.fn(),
 			createProduct: vi.fn(),
-			updateProduct: vi.fn()
+			updateProduct: vi.fn(),
+			retryScrapeProductUrl: vi.fn()
 		}
 	};
 });
@@ -56,7 +57,11 @@ const emptyPage: ProductListResponse = {
 	stores: []
 };
 
-function renderDashboard(url = 'http://localhost/dashboard', products: Partial<typeof emptyPage> = {}) {
+function renderDashboard(
+	url = 'http://localhost/dashboard',
+	products: Partial<typeof emptyPage> = {},
+	extra: { actionProducts?: ProductListResponse; challengeAvailable?: boolean } = {}
+) {
 	page.url = new URL(url) as unknown as typeof page.url;
 	return render(DashboardPage, {
 		props: {
@@ -77,7 +82,10 @@ function renderDashboard(url = 'http://localhost/dashboard', products: Partial<t
 					stores: [],
 					...products
 				},
-				tags: []
+				tags: [],
+				actionProducts: emptyPage,
+				challengeAvailable: false,
+				...extra
 			} as unknown as PageData
 		}
 	});
@@ -108,13 +116,14 @@ describe('Dashboard Page — delete', () => {
 	it('should remove the product and re-pull from the server after delete', async () => {
 		renderDashboard();
 
-		expect(screen.getByText('Test Headphones')).toBeInTheDocument();
+		expect(screen.getAllByText('Test Headphones').length).toBeGreaterThan(0);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Delete product' }));
+		await fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Test Headphones' })[0]);
+		await fireEvent.click(screen.getByRole('menuitem', { name: /Delete/ }));
 		await fireEvent.click(screen.getByRole('button', { name: /^Delete$/ }));
 
 		await waitFor(() => {
-			expect(screen.queryByText('Test Headphones')).not.toBeInTheDocument();
+			expect(screen.queryAllByText('Test Headphones')).toHaveLength(0);
 		});
 
 		// The reconciliation refresh is what defeats the in-flight-poll race and refreshes
@@ -236,6 +245,60 @@ describe('Dashboard Page — active filters', () => {
 	});
 });
 
+describe('Dashboard Page — needs your action', () => {
+	const blocked: Product = {
+		...mockProduct,
+		id: 'product-blocked',
+		name: 'Blocked Speaker',
+		attention: { kind: 'blocked', isAction: true, productUrlId: 'url-9', url: 'https://shop.example/x', consecutiveFailures: 4 }
+	};
+	const actionPage: ProductListResponse = { ...emptyPage, items: [blocked], total: 1 };
+
+	it('should hide the action card when nothing needs the user', () => {
+		renderDashboard();
+		expect(screen.queryByTestId('needs-action-card')).not.toBeInTheDocument();
+	});
+
+	it('should list the products that need action from the loader', () => {
+		renderDashboard('http://localhost/dashboard', { needsActionCount: 1 }, { actionProducts: actionPage });
+
+		const card = screen.getByTestId('needs-action-card');
+		expect(card).toHaveTextContent('Needs your action · 1');
+		expect(within(card).getByText('Blocked Speaker')).toBeInTheDocument();
+	});
+
+	it('should retry the URL to act on and re-pull when Retry now is clicked', async () => {
+		vi.mocked(api.retryScrapeProductUrl).mockResolvedValue(undefined as never);
+		renderDashboard('http://localhost/dashboard', { needsActionCount: 1 }, { actionProducts: actionPage });
+
+		await fireEvent.click(within(screen.getByTestId('needs-action-card')).getByRole('button', { name: 'Retry now' }));
+
+		await waitFor(() => {
+			expect(api.retryScrapeProductUrl).toHaveBeenCalledWith('product-blocked', 'url-9');
+		});
+		expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ needsAction: true }));
+	});
+
+	it('should filter the table to the action rows when Show in table is clicked', async () => {
+		vi.mocked(api.getProducts).mockResolvedValue({ ...actionPage, productCount: 3, needsActionCount: 1 });
+		renderDashboard('http://localhost/dashboard', { needsActionCount: 1 }, { actionProducts: actionPage });
+
+		await fireEvent.click(screen.getByTestId('needs-action-show'));
+
+		await waitFor(() => {
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ needsAction: true, page: 1 }));
+		});
+		const url = vi.mocked(replaceState).mock.calls.at(-1)![0] as URL;
+		expect(url.searchParams.get('filter')).toBe('action');
+		expect(screen.getByTestId('active-filter-opportunity')).toHaveTextContent('Needs your action');
+	});
+
+	it('should restore the action filter from the URL', async () => {
+		renderDashboard('http://localhost/dashboard?filter=action', { needsActionCount: 1 }, { actionProducts: actionPage });
+		expect(screen.getByTestId('active-filter-opportunity')).toHaveTextContent('Needs your action');
+	});
+});
+
 describe('Dashboard Page — empty account', () => {
 	it('should show only the URL field and the empty state', () => {
 		renderDashboard('http://localhost/dashboard', { items: [], total: 0, productCount: 0 });
@@ -250,7 +313,7 @@ describe('Dashboard Page — bulk actions', () => {
 	async function enterSelectionAndPick() {
 		renderDashboard();
 		await fireEvent.click(screen.getByTestId('bulk-select-toggle'));
-		await fireEvent.click(screen.getByLabelText('Select Test Headphones'));
+		await fireEvent.click(screen.getAllByLabelText('Select Test Headphones')[0]);
 	}
 
 	it('should show the bulk bar with a count once a product is selected', async () => {
@@ -312,7 +375,7 @@ describe('Dashboard Page — bulk actions', () => {
 		await fireEvent.click(screen.getByTestId('bulk-select-toggle'));
 
 		expect(screen.queryByText('1 selected')).not.toBeInTheDocument();
-		expect(screen.queryByLabelText('Select Test Headphones')).not.toBeInTheDocument();
+		expect(screen.queryAllByLabelText('Select Test Headphones')).toHaveLength(0);
 	});
 });
 
