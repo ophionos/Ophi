@@ -1,0 +1,102 @@
+import { describe, it, expect } from 'vitest';
+import type { AlertTarget, Product } from '$lib/api/client';
+import {
+	attentionLabel,
+	storeLabel,
+	isPriceOld,
+	alertTargetText,
+	alertDistanceText,
+	productInitial,
+	STALE_AFTER_HOURS
+} from './watchlist';
+
+const base: Product = {
+	id: 'p1',
+	name: 'Desk Lamp',
+	url: 'https://www.shop.example/lamp',
+	currency: 'USD',
+	status: 'active',
+	isFavourite: false,
+	isOutOfStock: false,
+	storeCount: 1,
+	alertCount: 0,
+	tags: [],
+	customFields: []
+};
+
+const target = (overrides: Partial<AlertTarget>): AlertTarget => ({
+	alertId: 'a1',
+	condition: 'below',
+	targetPrice: 100,
+	gap: 4,
+	isNear: true,
+	...overrides
+});
+
+describe('attentionLabel', () => {
+	it('should name every attention kind in plain words', () => {
+		expect(attentionLabel('blocked')).toBe('Blocked');
+		expect(attentionLabel('priceNotFound')).toBe('Price not found');
+		expect(attentionLabel('failing')).toBe('Failing');
+		expect(attentionLabel('priceAnomaly')).toBe('Check price');
+		expect(attentionLabel('outOfStock')).toBe('Out of stock');
+		expect(attentionLabel('paused')).toBe('Paused by you');
+	});
+});
+
+describe('storeLabel', () => {
+	it('should use the configured store name when there is one', () => {
+		expect(storeLabel({ ...base, bestStoreName: 'The Shop' })).toBe('The Shop');
+	});
+
+	it('should fall back to the host of the best URL without www', () => {
+		expect(storeLabel({ ...base, bestUrl: 'https://www.cheaper.example/x' })).toBe('cheaper.example');
+		expect(storeLabel(base)).toBe('shop.example');
+	});
+
+	it('should return an empty label when the URL cannot be parsed', () => {
+		expect(storeLabel({ ...base, url: '' })).toBe('');
+	});
+});
+
+describe('isPriceOld', () => {
+	const now = new Date('2026-10-18T12:00:00Z');
+
+	it('should be true when the last success is older than the stale limit', () => {
+		const at = new Date(now.getTime() - (STALE_AFTER_HOURS + 1) * 3_600_000).toISOString();
+		expect(isPriceOld({ ...base, currentPrice: 10, lastSucceededAt: at }, now)).toBe(true);
+	});
+
+	it('should be false for a recent success, no price, or no recorded success', () => {
+		const recent = new Date(now.getTime() - 3_600_000).toISOString();
+		expect(isPriceOld({ ...base, currentPrice: 10, lastSucceededAt: recent }, now)).toBe(false);
+		expect(isPriceOld({ ...base, lastSucceededAt: '2020-01-01T00:00:00Z' }, now)).toBe(false);
+		expect(isPriceOld({ ...base, currentPrice: 10 }, now)).toBe(false);
+	});
+});
+
+describe('alertTargetText', () => {
+	it('should show the direction of the target', () => {
+		expect(alertTargetText(target({}), 'USD')).toBe('≤ $100.00');
+		expect(alertTargetText(target({ condition: 'above' }), 'USD')).toBe('≥ $100.00');
+	});
+});
+
+describe('alertDistanceText', () => {
+	it('should say how far the price still has to move', () => {
+		expect(alertDistanceText(target({ gap: 4 }), 'USD')).toBe('$4.00 away');
+	});
+
+	it('should say reached instead of a negative distance', () => {
+		expect(alertDistanceText(target({ gap: 0 }), 'USD')).toBe('Reached');
+		expect(alertDistanceText(target({ gap: -5.01 }), 'USD')).toBe('Reached');
+	});
+});
+
+describe('productInitial', () => {
+	it('should use the first letter or digit of the name', () => {
+		expect(productInitial('desk lamp')).toBe('D');
+		expect(productInitial('  "4K" monitor')).toBe('4');
+		expect(productInitial('')).toBe('?');
+	});
+});

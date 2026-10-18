@@ -191,7 +191,10 @@ describe('CommandPalette', () => {
 				priceDropCount: 0,
 				withAlertsCount: 0,
 				needsActionCount: 0,
-				nearTargetCount: 0
+				nearTargetCount: 0,
+				productCount: 0,
+				urlCount: 0,
+				stores: []
 			});
 
 			render(CommandPalette, { props: defaultProps });
@@ -284,7 +287,10 @@ describe('CommandPalette', () => {
 				priceDropCount: 0,
 				withAlertsCount: 0,
 				needsActionCount: 0,
-				nearTargetCount: 0
+				nearTargetCount: 0,
+				productCount: 0,
+				urlCount: 0,
+				stores: []
 			});
 			vi.mocked(api.getTags).mockRejectedValueOnce(new Error('Tags service down'));
 			// getStores uses the default mock (returns empty)
@@ -326,7 +332,10 @@ describe('CommandPalette', () => {
 				priceDropCount: 0,
 				withAlertsCount: 0,
 				needsActionCount: 0,
-				nearTargetCount: 0
+				nearTargetCount: 0,
+				productCount: 0,
+				urlCount: 0,
+				stores: []
 			});
 
 			render(CommandPalette, { props: { ...defaultProps, onClose } });

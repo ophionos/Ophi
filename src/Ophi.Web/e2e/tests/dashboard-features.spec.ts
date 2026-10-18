@@ -31,14 +31,14 @@ test.describe('Dashboard Features', () => {
 		createdProductIds.length = 0;
 	});
 
-	test.describe('Stats Bar', () => {
-		test('should display stats bar with counts', async () => {
-			await createTestProduct(`E2E Stats Product ${Date.now()}`);
+	test.describe('Header', () => {
+		test('should count the products and URLs of the account', async () => {
+			await createTestProduct(`E2E Header Product ${Date.now()}`);
 
 			await dashboard.goto();
 			await dashboard.waitForDashboardLoaded();
 
-			await expect(dashboard.statsBar).toBeVisible();
+			await expect(dashboard.pageHeader).toContainText(/\d+ products? · \d+ URLs?/);
 		});
 	});
 
@@ -64,12 +64,16 @@ test.describe('Dashboard Features', () => {
 			await dashboard.waitForDashboardLoaded();
 
 			await dashboard.search('nonexistentrandomquery99999');
-			await dashboard.expectEmptyFilterResult('No products matching');
+			await dashboard.expectEmptyFilterResult(
+				'No products match: Text: "nonexistentrandomquery99999"'
+			);
 		});
 	});
 
 	test.describe('Sort', () => {
 		test('should display sort dropdown', async () => {
+			// The filter bar is hidden while the account has no products.
+			await createTestProduct(`E2E Sort Product ${Date.now()}`);
 			await dashboard.goto();
 			await dashboard.waitForDashboardLoaded();
 
@@ -92,15 +96,17 @@ test.describe('Dashboard Features', () => {
 	});
 
 	test.describe('Status Filters', () => {
-		test('should display status filter chips', async () => {
+		test('should offer every status in the status select', async () => {
+			await createTestProduct(`E2E Status Product ${Date.now()}`);
 			await dashboard.goto();
 			await dashboard.waitForDashboardLoaded();
 
-			await expect(dashboard.statusFilters).toBeVisible();
-			await expect(dashboard.page.locator('[data-testid="status-chip-all"]')).toBeVisible();
-			await expect(dashboard.page.locator('[data-testid="status-chip-active"]')).toBeVisible();
-			await expect(dashboard.page.locator('[data-testid="status-chip-paused"]')).toBeVisible();
-			await expect(dashboard.page.locator('[data-testid="status-chip-error"]')).toBeVisible();
+			await expect(dashboard.statusSelect.locator('option')).toHaveText([
+				'Any status',
+				'Active',
+				'Paused',
+				'Error'
+			]);
 		});
 
 		test('should filter by active status', async ({ page }) => {
@@ -112,7 +118,7 @@ test.describe('Dashboard Features', () => {
 			const responsePromise = page.waitForResponse(
 				(resp) => resp.url().includes('/api/v1/products') && resp.url().includes('status=active')
 			);
-			await dashboard.clickStatusFilter('active');
+			await dashboard.selectStatusFilter('active');
 			await responsePromise;
 		});
 
@@ -125,15 +131,16 @@ test.describe('Dashboard Features', () => {
 			const responsePromise = page.waitForResponse(
 				(resp) => resp.url().includes('/api/v1/products') && resp.url().includes('status=error')
 			);
-			await dashboard.clickStatusFilter('error');
+			await dashboard.selectStatusFilter('error');
 			await responsePromise;
 
-			await dashboard.expectEmptyFilterResult('No products with errors');
+			await dashboard.expectEmptyFilterResult('No products match: Status: Error');
 		});
 	});
 
 	test.describe('View Modes', () => {
 		test('should display view mode toggle buttons', async () => {
+			await createTestProduct(`E2E View Product ${Date.now()}`);
 			await dashboard.goto();
 			await dashboard.waitForDashboardLoaded();
 
@@ -184,6 +191,7 @@ test.describe('Dashboard Features', () => {
 		});
 
 		test('should have correct aria-pressed on active view toggle', async () => {
+			await createTestProduct(`E2E View Product ${Date.now()}`);
 			await dashboard.goto();
 			await dashboard.waitForDashboardLoaded();
 
@@ -264,6 +272,7 @@ test.describe('Dashboard Features', () => {
 
 	test.describe('Favourite Filter', () => {
 		test('should display favourite filter button', async () => {
+			await createTestProduct(`E2E Favourite Product ${Date.now()}`);
 			await dashboard.goto();
 			await dashboard.waitForDashboardLoaded();
 
@@ -279,7 +288,7 @@ test.describe('Dashboard Features', () => {
 			// Click favourite filter — should show empty since no products are favourited
 			await dashboard.clickFavouriteFilter();
 
-			await dashboard.expectEmptyFilterResult('No favourite products');
+			await dashboard.expectEmptyFilterResult('No products match: Favourites');
 		});
 	});
 });

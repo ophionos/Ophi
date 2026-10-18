@@ -8,6 +8,7 @@ public class ProductUrl : BaseEntity
     // construction (and test arrange) only. EF Core maps each property through its _camelCase
     // backing field by convention.
     private DateTime? _lastCheckedAt;
+    private DateTime? _lastSucceededAt;
     private string? _lastError;
     private ScrapeErrorCategory? _lastErrorCategory;
     private int _failureCount;
@@ -29,6 +30,13 @@ public class ProductUrl : BaseEntity
     public string Currency { get; set; } = "USD";
     public DateTime? LastCheckedAt { get => _lastCheckedAt; init => _lastCheckedAt = value; }
     public string? LastError { get => _lastError; init => _lastError = value; }
+
+    /// <summary>
+    /// When a scrape last read a price here. <see cref="LastCheckedAt"/> also moves on a failure,
+    /// and price points are written only when the price changes, so neither says how old
+    /// <see cref="CurrentPrice"/> is. Null on rows written before the column existed.
+    /// </summary>
+    public DateTime? LastSucceededAt { get => _lastSucceededAt; init => _lastSucceededAt = value; }
     public int FailureCount { get => _failureCount; init => _failureCount = value; }
 
     /// <summary>
@@ -109,6 +117,7 @@ public class ProductUrl : BaseEntity
         CurrentPrice = price;
         Currency = currency ?? Currency;
         _lastCheckedAt = now;
+        _lastSucceededAt = now;
         _lastError = null;
         _lastErrorCategory = null;
         _failureCount = 0;

@@ -357,4 +357,61 @@ public class ProviderSensitiveTests(PostgresFixture fixture)
             nearTarget.Items.Select(i => i.Name).Should().Equal("Near");
         }
     }
+
+    [Fact]
+    public async Task GetProducts_RangeLowestStoresAndCounts_TranslateAndRunOnPostgres()
+    {
+        // The 90-day range is a GROUP BY with MIN/MAX, "at lowest" a correlated MIN with a
+        // timestamptz cutoff, and the store list a DISTINCT over a join: none of it runs for real
+        // on SQLite.
+        var userId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        await using (var ctx = fixture.CreateContext())
+        {
+            ctx.Users.Add(TestEntityFactory.User(userId).Build());
+            var product = TestEntityFactory.Product(userId).Named("Lamp").Priced(50m).Build();
+            var url = new ProductUrl
+            {
+                Id = Guid.NewGuid(), ProductId = product.Id, Url = "https://shop.example/lamp", StoreId = "shop"
+            };
+            url.RecordSuccessfulScrape(50m, "USD", now);
+            ctx.Products.Add(product);
+            ctx.ProductUrls.Add(url);
+            ctx.StoreConfigurations.Add(new StoreConfiguration
+            {
+                Id = Guid.NewGuid(), UserId = userId, StoreId = "shop", Name = "The Shop"
+            });
+            ctx.PricePoints.AddRange(
+                new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 30m, Currency = "USD", RecordedAt = now.AddDays(-120) },
+                new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 80m, Currency = "USD", RecordedAt = now.AddDays(-60) },
+                new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 50m, Currency = "USD", RecordedAt = now.AddDays(-5) });
+            await ctx.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using (var ctx = fixture.CreateContext())
+        {
+            var handler = new Ophi.Api.Features.Products.GetProducts.Handler(
+                ctx, TimeProvider.System, NullLogger<Ophi.Api.Features.Products.GetProducts.Handler>.Instance);
+
+            var all = await handler.Handle(
+                new Ophi.Api.Features.Products.GetProducts.Query(userId, IncludeSparkline: true),
+                TestContext.Current.CancellationToken);
+            var atStore = await handler.Handle(
+                new Ophi.Api.Features.Products.GetProducts.Query(userId, AtLowest: true, StoreId: "shop", SortBy: "favourites"),
+                TestContext.Current.CancellationToken);
+
+            var item = all.Items.Should().ContainSingle().Subject;
+            item.PriceMin.Should().Be(50m);
+            item.PriceMax.Should().Be(80m);
+            item.Sparkline!.Select(sp => sp.Price).Should().Equal(50m);
+            item.BestStoreName.Should().Be("The Shop");
+            item.LastSucceededAt.Should().NotBeNull();
+            all.AtLowestCount.Should().Be(1);
+            all.ProductCount.Should().Be(1);
+            all.UrlCount.Should().Be(1);
+            all.Stores.Should().Equal(new Ophi.Api.Features.Products.GetProducts.StoreOptionDto("shop", "The Shop"));
+            atStore.Items.Should().ContainSingle();
+        }
+    }
 }

@@ -389,6 +389,9 @@ namespace Ophi.Infrastructure.Migrations
                     b.Property<int?>("LastErrorCategory")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("LastSucceededAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid");
 

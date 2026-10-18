@@ -30,6 +30,21 @@ public class ProductUrlTests
     }
 
     [Fact]
+    public void LastSucceededAt_MovesOnlyOnASuccessfulScrape()
+    {
+        // LastCheckedAt also moves on a failure, so it cannot say how old the price is.
+        var url = new ProductUrl();
+        url.RecordSuccessfulScrape(10m, "USD", Now);
+
+        url.RecordFailure("HTTP 500", Now.AddHours(1), ScrapeErrorCategory.ServerError);
+        url.RecordTransientFailure("429", Now.AddHours(2));
+        url.MarkOutOfStock(Now.AddHours(3));
+
+        url.LastSucceededAt.Should().Be(Now);
+        url.LastCheckedAt.Should().Be(Now.AddHours(3));
+    }
+
+    [Fact]
     public void RecordSuccessfulScrape_KeepsExistingCurrencyWhenResultCurrencyIsNull()
     {
         var url = new ProductUrl { Currency = "GBP" };

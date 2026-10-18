@@ -646,7 +646,7 @@ public class GetProductsHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_DefaultsToFavouritesFirst_WhenNoSortSpecified()
+    public async Task Handle_DefaultSort_DoesNotPinFavourites()
     {
         // Arrange
         var regular1 = CreateProduct("Regular A", "https://example.com/1");
@@ -673,12 +673,16 @@ public class GetProductsHandlerTests : IDisposable
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
-        // Assert - favourite should be first despite older UpdatedAt
-        result.Items[0].Name.Should().Be("Favourite B");
+        // Assert - newest first; a favourite is not pinned unless the favourites sort is asked for
+        result.Items.Select(i => i.Name).Should().Equal("Regular A", "Favourite B", "Regular C");
+
+        var favouritesFirst = await _handler.Handle(
+            new GetProducts.Query(_testUserId, SortBy: "favourites"), TestContext.Current.CancellationToken);
+        favouritesFirst.Items.Select(i => i.Name).Should().Equal("Favourite B", "Regular A", "Regular C");
     }
 
     [Fact]
-    public async Task Handle_WithSortByName_FavouritesStillFirst()
+    public async Task Handle_WithSortByName_IgnoresFavourites()
     {
         // Arrange
         var regularA = CreateProduct("A Product", "https://example.com/1");
@@ -693,9 +697,8 @@ public class GetProductsHandlerTests : IDisposable
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
-        // Assert - favourite Z should come before regular A due to favourite priority
-        result.Items[0].Name.Should().Be("Z Product");
-        result.Items[1].Name.Should().Be("A Product");
+        // Assert
+        result.Items.Select(i => i.Name).Should().Equal("A Product", "Z Product");
     }
 
     // Pagination tests
@@ -1673,6 +1676,139 @@ public class GetProductsHandlerTests : IDisposable
         result.Items.Should().ContainSingle(p => p.Name == "Active Plain");
         result.PriceDropCount.Should().Be(1); // global, ignores the status filter
         result.WithAlertsCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WithIncludeSparkline_SparklineCovers30DaysAndTheRange90Days()
+    {
+        var product = CreateProduct("Windows", "https://example.com/w", currentPrice: 90m);
+        _dbContext.Products.Add(product);
+        _dbContext.PricePoints.AddRange(
+            CreatePricePoint(product, 10m, daysAgo: 100), // outside both windows
+            CreatePricePoint(product, 40m, daysAgo: 60),  // in the range only
+            CreatePricePoint(product, 100m, daysAgo: 10));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(
+            new GetProducts.Query(_testUserId, IncludeSparkline: true), TestContext.Current.CancellationToken);
+
+        var item = result.Items.Single();
+        item.Sparkline!.Select(sp => sp.Price).Should().Equal(100m);
+        item.PriceMin.Should().Be(40m);
+        item.PriceMax.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task Handle_WithIncludeSparkline_RangeIncludesTheCurrentPrice()
+    {
+        // Points are written only when the price changes, so a price unchanged since before the
+        // window has no point in it; the range must still contain it.
+        var product = CreateProduct("Stable", "https://example.com/s", currentPrice: 150m);
+        _dbContext.Products.Add(product);
+        _dbContext.PricePoints.AddRange(CreatePricePoint(product, 100m, daysAgo: 20));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(
+            new GetProducts.Query(_testUserId, IncludeSparkline: true), TestContext.Current.CancellationToken);
+
+        result.Items.Single().PriceMax.Should().Be(150m);
+    }
+
+    [Fact]
+    public async Task Handle_AtLowest_IgnoresALowerPriceOlderThan90Days()
+    {
+        var product = CreateProduct("Low in the window", "https://example.com/l", currentPrice: 50m);
+        var above = CreateProduct("Above its low", "https://example.com/a", currentPrice: 70m);
+        _dbContext.Products.AddRange(product, above);
+        _dbContext.PricePoints.AddRange(
+            CreatePricePoint(product, 30m, daysAgo: 120),
+            CreatePricePoint(product, 80m, daysAgo: 10),
+            CreatePricePoint(product, 50m, daysAgo: 5),
+            CreatePricePoint(above, 60m, daysAgo: 10),
+            CreatePricePoint(above, 70m, daysAgo: 5));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var all = await _handler.Handle(
+            new GetProducts.Query(_testUserId, IncludeSparkline: true), TestContext.Current.CancellationToken);
+        var filtered = await _handler.Handle(
+            new GetProducts.Query(_testUserId, AtLowest: true), TestContext.Current.CancellationToken);
+
+        filtered.Items.Select(i => i.Name).Should().Equal("Low in the window");
+        all.AtLowestCount.Should().Be(1);
+        // The chip and the range bar agree: the product in the chip sits at the left end of its range.
+        all.Items.Single(i => i.Name == "Low in the window").PriceMin.Should().Be(50m);
+    }
+
+    [Fact]
+    public async Task Handle_WithStoreId_ReturnsOnlyProductsWithAUrlAtThatStore()
+    {
+        _dbContext.Products.AddRange(
+            CreateProduct("At Amazon", "https://amazon.example/1", storeId: "amazon"),
+            CreateProduct("Elsewhere", "https://shop.example/2", storeId: "shop"));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(
+            new GetProducts.Query(_testUserId, StoreId: "amazon"), TestContext.Current.CancellationToken);
+
+        result.Items.Select(i => i.Name).Should().Equal("At Amazon");
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsAccountWideCountsAndTheStoresInUse()
+    {
+        var twoUrls = CreateProduct("Two URLs", "https://amazon.example/1", storeId: "amazon", status: ProductStatus.Paused);
+        var second = new ProductUrl
+        {
+            Id = Guid.NewGuid(), ProductId = twoUrls.Id, Url = "https://shop.example/1", Currency = "USD", StoreId = "shop"
+        };
+        twoUrls.ProductUrls.Add(second);
+        _dbContext.ProductUrls.Add(second);
+        _dbContext.Products.AddRange(twoUrls, CreateProduct("Active", "https://amazon.example/2", storeId: "amazon"));
+        _dbContext.StoreConfigurations.Add(new StoreConfiguration
+        {
+            Id = Guid.NewGuid(), UserId = _testUserId, StoreId = "amazon", Name = "Amazon"
+        });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(
+            new GetProducts.Query(_testUserId, Status: "active"), TestContext.Current.CancellationToken);
+
+        result.Total.Should().Be(1);
+        result.ProductCount.Should().Be(2);
+        result.UrlCount.Should().Be(3);
+        // A store without a configuration falls back to its id.
+        result.Stores.Should().Equal(
+            new GetProducts.StoreOptionDto("amazon", "Amazon"),
+            new GetProducts.StoreOptionDto("shop", "shop"));
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheStoreWithTheCurrentPriceAndTheLastSuccess()
+    {
+        var now = DateTime.UtcNow;
+        var product = CreateProduct("Two stores", "https://amazon.example/1", storeId: "amazon", currentPrice: 100m);
+        var first = product.ProductUrls.First();
+        first.RecordSuccessfulScrape(120m, "USD", now.AddHours(-1));
+        var cheaper = new ProductUrl
+        {
+            Id = Guid.NewGuid(), ProductId = product.Id, Url = "https://shop.example/1", Currency = "USD", StoreId = "shop"
+        };
+        cheaper.RecordSuccessfulScrape(100m, "USD", now.AddHours(-3));
+        product.ProductUrls.Add(cheaper);
+        _dbContext.ProductUrls.Add(cheaper);
+        _dbContext.Products.Add(product);
+        _dbContext.StoreConfigurations.Add(new StoreConfiguration
+        {
+            Id = Guid.NewGuid(), UserId = _testUserId, StoreId = "shop", Name = "The Shop"
+        });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var item = (await _handler.Handle(new GetProducts.Query(_testUserId), TestContext.Current.CancellationToken))
+            .Items.Single();
+
+        item.BestUrl.Should().Be("https://shop.example/1");
+        item.BestStoreName.Should().Be("The Shop");
+        item.LastSucceededAt.Should().BeCloseTo(now.AddHours(-1), TimeSpan.FromSeconds(1));
     }
 
     [Fact]

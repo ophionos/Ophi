@@ -285,7 +285,7 @@ describe('Comparison Detail Page', () => {
 
 	describe('add products', () => {
 		it('should open the add products modal on button click', async () => {
-			vi.mocked(api.getProducts).mockResolvedValue({ items: mockUserProducts, total: 3, page: 1, pageSize: 10, atLowestCount: 0, priceDropCount: 0, withAlertsCount: 0, needsActionCount: 0, nearTargetCount: 0 });
+			vi.mocked(api.getProducts).mockResolvedValue({ items: mockUserProducts, total: 3, page: 1, pageSize: 10, atLowestCount: 0, priceDropCount: 0, withAlertsCount: 0, needsActionCount: 0, nearTargetCount: 0, productCount: 0, urlCount: 0, stores: [] });
 			renderPage();
 
 			await fireEvent.click(screen.getByText('Add Product'));
@@ -298,7 +298,7 @@ describe('Comparison Detail Page', () => {
 
 		it('should call the batch API and refresh data when products are added', async () => {
 			vi.mocked(api.getComparisonGroup).mockResolvedValue(mockGroupDetail);
-			vi.mocked(api.getProducts).mockResolvedValue({ items: mockUserProducts, total: 3, page: 1, pageSize: 10, atLowestCount: 0, priceDropCount: 0, withAlertsCount: 0, needsActionCount: 0, nearTargetCount: 0 });
+			vi.mocked(api.getProducts).mockResolvedValue({ items: mockUserProducts, total: 3, page: 1, pageSize: 10, atLowestCount: 0, priceDropCount: 0, withAlertsCount: 0, needsActionCount: 0, nearTargetCount: 0, productCount: 0, urlCount: 0, stores: [] });
 			vi.mocked(api.addProductsToComparisonGroup).mockResolvedValue(undefined as never);
 			renderPage();
 
@@ -333,7 +333,7 @@ describe('Comparison Detail Page', () => {
 
 		it('should call API and refresh data on confirm remove', async () => {
 			vi.mocked(api.getComparisonGroup).mockResolvedValue(mockGroupDetail);
-			vi.mocked(api.getProducts).mockResolvedValue({ items: mockUserProducts, total: 3, page: 1, pageSize: 24, atLowestCount: 0, priceDropCount: 0, withAlertsCount: 0, needsActionCount: 0, nearTargetCount: 0 });
+			vi.mocked(api.getProducts).mockResolvedValue({ items: mockUserProducts, total: 3, page: 1, pageSize: 24, atLowestCount: 0, priceDropCount: 0, withAlertsCount: 0, needsActionCount: 0, nearTargetCount: 0, productCount: 0, urlCount: 0, stores: [] });
 			vi.mocked(api.removeProductFromComparisonGroup).mockResolvedValue(undefined as never);
 			renderPage();
 
