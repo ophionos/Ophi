@@ -68,7 +68,7 @@
 						checked={selected}
 						onchange={() => onSelectToggle?.(product.id)}
 						aria-label="Select {product.name}"
-						class="h-4 w-4 cursor-pointer accent-brand"
+						class="h-4 w-4 cursor-pointer"
 					/>
 				</label>
 			{/if}

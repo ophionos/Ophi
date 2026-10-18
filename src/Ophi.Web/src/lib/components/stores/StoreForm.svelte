@@ -439,7 +439,7 @@
 				data-testid="store-price-locale"
 				bind:value={priceLocale}
 				disabled={loading}
-				class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent"
+				class="mt-1 w-full form-select pl-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent"
 			>
 				<option value="en-US">English - US (1,234.56)</option>
 				<option value="en-GB">English - UK (1,234.56)</option>

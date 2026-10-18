@@ -21,7 +21,7 @@
 </script>
 
 <script lang="ts">
-	import { Search, X, Star, ChevronDown } from 'lucide-svelte';
+	import { Search, X, Star } from 'lucide-svelte';
 	import type { Snippet } from 'svelte';
 	import type { ProductStatus, Tag } from '$lib/api/client';
 
@@ -77,7 +77,7 @@
 	}
 
 	const selectClass =
-		'min-h-11 w-full appearance-none rounded-lg border border-gray-300 bg-surface-1 py-2 pr-9 pl-3 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-brand dark:border-gray-600 dark:text-white';
+		'form-select min-h-11 w-full rounded-lg border border-gray-300 bg-surface-1 py-2 pl-3 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-brand dark:border-gray-600 dark:text-white';
 </script>
 
 <div class="mb-4" data-testid="filter-bar" data-onboarding="filter-bar">
@@ -118,7 +118,7 @@
 			options: { value: string; label: string }[],
 			testid: string
 		)}
-			<div class="relative">
+			<div>
 				<label for={id} class="sr-only">{label}</label>
 				<select
 					{id}
@@ -131,11 +131,6 @@
 						<option value={option.value}>{option.label}</option>
 					{/each}
 				</select>
-				<ChevronDown
-					size={16}
-					class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400"
-					aria-hidden="true"
-				/>
 			</div>
 		{/snippet}
 

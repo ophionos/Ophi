@@ -183,7 +183,7 @@
 			value={defaultCheckInterval}
 			onchange={handleCheckIntervalChange}
 			disabled={checkIntervalLoading}
-			class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+			class="form-select pl-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
 			data-testid="default-check-interval"
 		>
 			{#each SETTINGS_INTERVAL_OPTIONS as option (option.value)}

@@ -214,7 +214,7 @@
 									checked={selectedIds?.has(product.id) ?? false}
 									onchange={() => onSelectToggle?.(product.id)}
 									aria-label="Select {product.name}"
-									class="w-4 h-4 accent-brand cursor-pointer"
+									class="w-4 h-4 cursor-pointer"
 								/>
 							</td>
 						{/if}
