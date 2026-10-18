@@ -37,7 +37,7 @@ export class ApiKeysPage extends BasePage {
 		this.writeScope = page.getByTestId('scope-write');
 		this.expiresSelect = page.locator('#key-expires');
 		this.createSubmit = page.getByRole('button', { name: 'Create Key' });
-		this.modalError = page.locator('.bg-red-50, .dark\\:bg-red-900\\/30').first();
+		this.modalError = page.locator('[data-form-error="box"]').first();
 		this.createdKey = page.locator('code.select-all');
 		this.copyButton = page.getByRole('button', { name: 'Copy to clipboard' });
 		this.doneButton = page.getByRole('button', { name: 'Done' });

@@ -21,12 +21,19 @@ describe('FormError', () => {
 
 	it('should render the boxed style when variant is box', () => {
 		render(FormError, { props: { message: 'Bad', variant: 'box', testid: 'err' } });
-		expect(screen.getByTestId('err')).toHaveClass('bg-red-50');
+		expect(screen.getByTestId('err')).toHaveClass('bg-danger/10');
+		expect(screen.getByTestId('err')).toHaveAttribute('data-form-error', 'box');
 	});
 
 	it('should render the inline style by default', () => {
 		render(FormError, { props: { message: 'Bad', testid: 'err' } });
-		expect(screen.getByTestId('err')).not.toHaveClass('bg-red-50');
+		expect(screen.getByTestId('err')).not.toHaveClass('bg-danger/10');
+		expect(screen.getByTestId('err')).toHaveAttribute('data-form-error', 'inline');
+	});
+
+	it('should use the danger token for the message text', () => {
+		render(FormError, { props: { message: 'Bad' } });
+		expect(screen.getByRole('alert')).toHaveClass('text-danger');
 	});
 
 	it('should render extra content outside the alert region when children are given', () => {

@@ -13,7 +13,7 @@ export class ComparisonModalPage extends BaseModalPage {
 		// Scope form fields to the modal
 		this.nameInput = this.modal.locator('#name');
 		this.descriptionInput = this.modal.locator('textarea');
-		this.errorMessage = this.modal.locator('.bg-red-50');
+		this.errorMessage = this.modal.locator('[data-form-error="box"]');
 	}
 
 	async expectCreateMode() {

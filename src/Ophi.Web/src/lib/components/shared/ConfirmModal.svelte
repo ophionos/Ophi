@@ -44,12 +44,12 @@
 			></div>
 
 			<!-- Modal -->
-			<div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-desc" use:focusTrap>
+			<div class="relative bg-surface-1 rounded-lg shadow-xl max-w-md w-full p-6" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-desc" use:focusTrap>
 				<div class="flex items-start gap-4">
 					<div
-						class="shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center"
+						class="shrink-0 w-10 h-10 rounded-full bg-danger/15 flex items-center justify-center"
 					>
-						<TriangleAlert size={20} class="text-red-600 dark:text-red-400" />
+						<TriangleAlert size={20} class="text-danger" />
 					</div>
 					<div class="flex-1">
 						<h3 id="confirm-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
@@ -62,7 +62,7 @@
 						type="button"
 						onclick={onCancel}
 						disabled={loading}
-						class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+						class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-surface-1 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-surface-2 disabled:opacity-50"
 					>
 						{cancelText}
 					</button>

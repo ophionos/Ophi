@@ -17,7 +17,7 @@ export class RegisterPage extends BasePage {
 		this.passwordInput = page.getByLabel('Password', { exact: true });
 		this.confirmPasswordInput = page.getByLabel('Confirm Password');
 		this.submitButton = page.getByRole('button', { name: 'Create account' });
-		this.errorMessage = page.locator('.bg-red-50');
+		this.errorMessage = page.locator('[data-form-error="box"]');
 		this.loginLink = page.getByRole('link', { name: 'Sign in' });
 	}
 

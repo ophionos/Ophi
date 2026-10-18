@@ -259,7 +259,7 @@
 		<!-- Palette -->
 		<div class="relative flex justify-center pt-[15vh] px-4">
 			<div
-				class="w-full max-w-xl bg-white/95 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden ring-1 ring-black/5"
+				class="w-full max-w-xl bg-surface-1/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden ring-1 ring-black/5"
 				in:fly={{ y: 10, duration: 300, delay: 50 }}
 				out:fade={{ duration: 150 }}
 				role="dialog"
@@ -290,7 +290,7 @@
 				<!-- Results -->
 				<div class="max-h-72 overflow-y-auto py-2" role="listbox" aria-label="Search results">
 					{#if searchError && query.trim().length >= 2}
-						<div role="status" class="px-4 py-8 text-center text-sm text-red-500 dark:text-red-400">
+						<div role="status" class="px-4 py-8 text-center text-sm text-danger">
 							Search unavailable — check your connection
 						</div>
 					{:else if allItems.length === 0 && !searching}

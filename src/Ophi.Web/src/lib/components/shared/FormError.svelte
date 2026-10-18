@@ -29,7 +29,7 @@
 
 	const variantClass = $derived(
 		variant === 'box'
-			? 'p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md'
+			? 'p-3 bg-danger/10 border border-danger/30 rounded-md'
 			: ''
 	);
 </script>
@@ -37,9 +37,10 @@
 <div
 	bind:this={element}
 	data-testid={testid}
+	data-form-error={variant}
 	class="{variantClass} {children ? 'flex items-center gap-2' : ''} {className}"
 >
-	<p role="alert" {id} class="{size === 'xs' ? 'text-xs' : 'text-sm'} text-red-600 dark:text-red-400">
+	<p role="alert" {id} class="{size === 'xs' ? 'text-xs' : 'text-sm'} text-danger">
 		{message}
 	</p>
 	{@render children?.()}

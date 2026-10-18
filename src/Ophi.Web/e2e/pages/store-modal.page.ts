@@ -30,7 +30,7 @@ export class StoreModalPage extends BasePage {
 			.locator('button')
 			.filter({ has: page.locator('svg') })
 			.first();
-		this.errorMessage = this.modal.locator('.bg-red-50');
+		this.errorMessage = this.modal.locator('[data-form-error="box"]');
 	}
 
 	async expectOpen() {

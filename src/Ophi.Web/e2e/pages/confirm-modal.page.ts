@@ -10,11 +10,9 @@ export class ConfirmModalPage extends BasePage {
 
 	constructor(page: Page, filterText?: string) {
 		super(page);
-		// Find the modal - it's a div inside the fixed overlay that contains the alert icon
-		const baseModal = page.locator('.fixed.inset-0 .bg-white.rounded-lg.shadow-xl');
-		this.modal = filterText
-			? baseModal.filter({ hasText: filterText })
-			: baseModal.filter({ has: page.locator('svg.lucide-alert-triangle') });
+		// Only ConfirmModal labels its dialog with confirm-modal-title; a Modal.svelte dialog may be open below it.
+		const baseModal = page.locator('[role="dialog"][aria-labelledby="confirm-modal-title"]');
+		this.modal = filterText ? baseModal.filter({ hasText: filterText }) : baseModal;
 		this.title = this.modal.locator('h3');
 		this.message = this.modal.locator('p.text-sm.text-gray-600');
 		this.confirmButton = this.modal.getByRole('button', { name: 'Delete' });

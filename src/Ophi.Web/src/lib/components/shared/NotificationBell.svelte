@@ -146,7 +146,7 @@
 
 	{#if isOpen}
 		<div
-			class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-96 overflow-hidden"
+			class="absolute right-0 mt-2 w-80 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-96 overflow-hidden"
 			role="menu"
 			aria-label="Notifications panel"
 		>
@@ -166,7 +166,7 @@
 
 			{#if error}
 				<div class="px-4 py-3 text-center">
-					<p role="alert" class="text-xs text-red-500 dark:text-red-400">{error}</p>
+					<p role="alert" class="text-xs text-danger">{error}</p>
 					<button
 						onclick={loadNotifications}
 						class="mt-1 text-xs text-brand dark:text-brand-muted hover:underline"
