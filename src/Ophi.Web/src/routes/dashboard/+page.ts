@@ -8,7 +8,12 @@ const EMPTY_PAGE = {
 	pageSize: 24,
 	atLowestCount: 0,
 	priceDropCount: 0,
-	withAlertsCount: 0
+	withAlertsCount: 0,
+	needsActionCount: 0,
+	nearTargetCount: 0,
+	productCount: 0,
+	urlCount: 0,
+	stores: []
 };
 
 /**
@@ -18,22 +23,22 @@ const EMPTY_PAGE = {
  * refetch client-side without re-running it.
  */
 function parseProductParams(searchParams: URLSearchParams): GetProductsParams {
-	const statsFilter = searchParams.get('filter');
+	const opportunity = searchParams.get('filter');
 	const sortBy = searchParams.get('sortBy') ?? undefined;
 	const pageNum = parseInt(searchParams.get('page') ?? '', 10);
 
 	return {
 		tagId: searchParams.get('tag') ?? undefined,
+		storeId: searchParams.get('store') ?? undefined,
 		search: searchParams.get('search') ?? undefined,
 		status: (searchParams.get('status') as ProductStatus) || undefined,
 		sortBy,
 		sortDirection: sortBy ? (searchParams.get('sortDirection') ?? undefined) : undefined,
 		page: Number.isFinite(pageNum) && pageNum > 1 ? pageNum : undefined,
 		includeSparkline: true,
-		atLowest: statsFilter === 'lowest' || undefined,
-		favourite: searchParams.get('favourite') === 'true' || undefined,
-		priceDrop: statsFilter === 'drops' || undefined,
-		hasAlerts: statsFilter === 'alerts' || undefined
+		atLowest: opportunity === 'lowest' || undefined,
+		nearTarget: opportunity === 'near' || undefined,
+		favourite: searchParams.get('favourite') === 'true' || undefined
 	};
 }
 

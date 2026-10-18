@@ -3,7 +3,7 @@
 	import { goto, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { api, type Product, type GetProductsParams, type ProductStatus } from '$lib/api/client';
+	import { api, type Product, type GetProductsParams, type ProductListResponse, type ProductStatus } from '$lib/api/client';
 	import { products } from '$lib/stores/products.svelte';
 	import { viewMode, type ViewMode } from '$lib/stores/viewMode.svelte';
 	import { liveRefresh } from '$lib/utils/liveRefresh';
@@ -11,10 +11,10 @@
 	import ProductCard from '$lib/components/products/ProductCard.svelte';
 	import ProductTable from '$lib/components/products/ProductTable.svelte';
 	import AddProductForm from '$lib/components/products/AddProductForm.svelte';
-	import ProductFilters from '$lib/components/products/ProductFilters.svelte';
+	import WatchlistFilterBar, { SORT_OPTIONS, type ActiveFilter } from '$lib/components/products/WatchlistFilterBar.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 	import CreateProductModal from '$lib/components/products/CreateProductModal.svelte';
-	import DashboardStatsBar from '$lib/components/products/DashboardStatsBar.svelte';
+	import OpportunityChips, { type Opportunity } from '$lib/components/products/OpportunityChips.svelte';
 	import ViewModeToggle from '$lib/components/products/ViewModeToggle.svelte';
 	import DensityToggle from '$lib/components/products/DensityToggle.svelte';
 	import DashboardPagination from '$lib/components/products/DashboardPagination.svelte';
@@ -40,23 +40,24 @@
 	let bulkDeleteConfirmOpen = $state(false);
 
 	let loadError = $state('');
+	// Account-wide, whatever the filters: the header, the chips and the store select use them.
 	let atLowestCount = $state(0);
-	let priceDropCount = $state(0);
-	let withAlertsCount = $state(0);
-	let totalProducts = $state(0);
+	let nearTargetCount = $state(0);
+	let productCount = $state(0);
+	let urlCount = $state(0);
+	let stores = $state<{ storeId: string; name: string }[]>([]);
 
 	// Filter state — initialized from the URL so refreshes and shared links land on the same
 	// view; every change is mirrored back via syncUrl() (shallow replaceState, no loader re-run).
 	const initParams = page.url.searchParams;
 	const initFilter = initParams.get('filter');
-	let statsFilter = $state<null | 'drops' | 'alerts' | 'lowest'>(
-		initFilter === 'drops' || initFilter === 'alerts' || initFilter === 'lowest' ? initFilter : null
-	);
+	let opportunity = $state<Opportunity | null>(initFilter === 'lowest' || initFilter === 'near' ? initFilter : null);
 	let search = $state(initParams.get('search') ?? '');
 	let status = $state<ProductStatus | ''>((initParams.get('status') as ProductStatus) ?? '');
 	let sortBy = $state(initParams.get('sortBy') ?? '');
 	let sortDirection = $state(initParams.get('sortDirection') === 'desc' ? 'desc' : 'asc');
 	let selectedTagId = $state<string | null>(initParams.get('tag'));
+	let storeId = $state<string | null>(initParams.get('store'));
 	let favouriteOnly = $state(initParams.get('favourite') === 'true');
 	let currentPage = $state(Math.max(1, parseInt(initParams.get('page') ?? '1', 10) || 1));
 
@@ -77,8 +78,9 @@
 		setOrDelete('sortBy', sortBy || null);
 		setOrDelete('sortDirection', sortBy && sortDirection === 'desc' ? 'desc' : null);
 		setOrDelete('tag', selectedTagId);
+		setOrDelete('store', storeId);
 		setOrDelete('favourite', favouriteOnly ? 'true' : null);
-		setOrDelete('filter', statsFilter);
+		setOrDelete('filter', opportunity);
 		setOrDelete('page', currentPage > 1 ? String(currentPage) : null);
 		replaceState(url, {});
 	}
@@ -96,12 +98,13 @@
 			sortBy: sortBy || undefined,
 			sortDirection: sortBy ? sortDirection : undefined,
 			tagId: selectedTagId || undefined,
+			storeId: storeId || undefined,
 			page: currentPage,
-			includeSparkline: viewMode.current === 'grid' ? true : undefined,
-			atLowest: statsFilter === 'lowest' ? true : undefined,
-			favourite: favouriteOnly ? true : undefined,
-			priceDrop: statsFilter === 'drops' ? true : undefined,
-			hasAlerts: statsFilter === 'alerts' ? true : undefined
+			// The table and the gallery both draw the sparkline and the range.
+			includeSparkline: true,
+			atLowest: opportunity === 'lowest' ? true : undefined,
+			nearTarget: opportunity === 'near' ? true : undefined,
+			favourite: favouriteOnly ? true : undefined
 		};
 	}
 
@@ -109,18 +112,23 @@
 	// and searching down to three results shouldn't flip the view back to grid.
 	let viewDefaultApplied = false;
 
+	function applyCounts(p: ProductListResponse) {
+		atLowestCount = p.atLowestCount;
+		nearTargetCount = p.nearTargetCount;
+		productCount = p.productCount;
+		urlCount = p.urlCount;
+		stores = p.stores;
+	}
+
 	// Hydrate from loader
 	$effect(() => {
 		const p = pageData.products;
 		products.setPage(p.items, p.total, p.page, p.pageSize);
-		totalProducts = p.total;
 		if (!viewDefaultApplied) {
 			viewDefaultApplied = true;
 			viewMode.applyCountDefault(p.total);
 		}
-		atLowestCount = p.atLowestCount;
-		priceDropCount = p.priceDropCount;
-		withAlertsCount = p.withAlertsCount;
+		applyCounts(p);
 		tags.set(pageData.tags);
 	});
 
@@ -142,10 +150,7 @@
 			const productsResult = await api.getProducts(buildParams());
 			if (controller.signal.aborted) return;
 			products.setPage(productsResult.items, productsResult.total, productsResult.page, productsResult.pageSize);
-			totalProducts = productsResult.total;
-			atLowestCount = productsResult.atLowestCount;
-			priceDropCount = productsResult.priceDropCount;
-			withAlertsCount = productsResult.withAlertsCount;
+			applyCounts(productsResult);
 		} catch (error) {
 			if (controller.signal.aborted) return;
 			console.error('Failed to refresh products:', error);
@@ -165,40 +170,36 @@
 		}, DEBOUNCE_MS);
 	}
 
-	function handleFilterStatusChange(value: string) {
-		status = value as ProductStatus | '';
+	/** Applies a filter or sort change: back to page 1, into the URL, then refetch. */
+	function applyFilters(change: () => void) {
+		change();
 		currentPage = 1;
 		syncUrl();
 		refreshProducts();
 	}
 
-	function handleSortChange(newSortBy: string, newSortDirection: string) {
-		sortBy = newSortBy;
-		sortDirection = newSortDirection;
-		currentPage = 1;
-		syncUrl();
-		refreshProducts();
+	function setSort(by: string, direction: string) {
+		applyFilters(() => {
+			sortBy = by;
+			sortDirection = direction;
+		});
 	}
 
-	function handleTagChange(tagId: string | null) {
-		selectedTagId = tagId;
-		currentPage = 1;
-		syncUrl();
-		refreshProducts();
+	function clearSearch() {
+		if (searchTimeout) clearTimeout(searchTimeout);
+		search = '';
+		debouncedSearch = '';
 	}
 
-	function handleFavouriteChange(value: boolean) {
-		favouriteOnly = value;
-		currentPage = 1;
-		syncUrl();
-		refreshProducts();
-	}
-
-	function setStatsFilter(filter: typeof statsFilter) {
-		statsFilter = filter;
-		currentPage = 1;
-		syncUrl();
-		refreshProducts();
+	function clearAllFilters() {
+		applyFilters(() => {
+			clearSearch();
+			status = '';
+			selectedTagId = null;
+			storeId = null;
+			favouriteOnly = false;
+			opportunity = null;
+		});
 	}
 
 	function setPage(p: number) {
@@ -208,10 +209,7 @@
 	}
 
 	function setViewMode(mode: ViewMode) {
-		// Only grid carries sparkline data, so crossing the grid boundary needs a refetch.
-		const needsRefresh = (mode === 'grid') !== (viewMode.current === 'grid');
 		viewMode.set(mode);
-		if (needsRefresh) refreshProducts();
 	}
 
 	// --- Bulk selection ---
@@ -267,10 +265,11 @@
 	}
 
 	async function handleAddProduct(url: string) {
-		const wasEmpty = totalProducts === 0;
+		const wasEmpty = productCount === 0;
 		const product = await api.addProduct(url);
 		products.add(product);
-		totalProducts++;
+		productCount++;
+		urlCount++;
 		toast.success('Product added — scraping in progress');
 		if (wasEmpty) {
 			setTimeout(() => toast.info('Tip: Set a price alert to get notified when the price drops!'), 2000);
@@ -281,7 +280,7 @@
 		try {
 			const product = await api.createProduct(data);
 			products.add(product);
-			totalProducts++;
+			productCount++;
 			showCreateModal = false;
 			goto(resolve(`/products/${product.id}`));
 		} catch (err) {
@@ -300,12 +299,11 @@
 			await api.deleteProduct(deleteProductId);
 			// Optimistic removal for instant feedback...
 			products.remove(deleteProductId);
-			totalProducts--;
 			deleteProductId = null;
 			toast.success('Product deleted');
 			// ...then reconcile with the server. refreshProducts() aborts any in-flight poll
 			// (a pending sibling keeps a 3s poll alive, and its stale response would otherwise
-			// re-add the deleted product) and refreshes total/atLowestCount, which optimistic
+			// re-add the deleted product) and refreshes total and the counts, which optimistic
 			// removal alone leaves stale.
 			await refreshProducts();
 		} catch (err) {
@@ -342,38 +340,50 @@
 		goto(resolve(`/products/${product.id}`));
 	}
 
-	const hasActiveFilters = $derived(!!status || !!debouncedSearch || !!selectedTagId || favouriteOnly || !!statsFilter);
+	const STATUS_LABELS: Record<string, string> = { active: 'Active', paused: 'Paused', error: 'Error' };
+	const OPPORTUNITY_LABELS: Record<Opportunity, string> = { lowest: 'At their 90-day low', near: 'Alert near target' };
 
-	const emptyFilterMessage = $derived.by(() => {
-		if (statsFilter === 'drops') return 'No products with recent price drops';
-		if (statsFilter === 'alerts') return 'No products with active alerts';
-		if (statsFilter === 'lowest') return 'No products currently at their lowest price';
-		if (favouriteOnly) return 'No favourite products found';
-		if (status === 'paused') return 'No paused products';
-		if (status === 'error') return 'No products with errors';
-		if (status === 'active') return 'No active products';
-		if (debouncedSearch) return `No products matching "${debouncedSearch}"`;
-		if (selectedTagId) return 'No products with the selected tag';
-		return 'No products found';
+	// Every filter in effect, in the order of the bar. The sort is not a filter: it hides nothing.
+	const activeFilters = $derived.by(() => {
+		const list: ActiveFilter[] = [];
+		if (debouncedSearch)
+			list.push({ key: 'search', label: `Text: "${debouncedSearch}"`, onRemove: () => applyFilters(clearSearch) });
+		if (status)
+			list.push({ key: 'status', label: `Status: ${STATUS_LABELS[status] ?? status}`, onRemove: () => applyFilters(() => (status = '')) });
+		if (selectedTagId) {
+			const name = tags.items.find((t) => t.id === selectedTagId)?.name ?? 'unknown';
+			list.push({ key: 'tag', label: `Tag: ${name}`, onRemove: () => applyFilters(() => (selectedTagId = null)) });
+		}
+		if (storeId) {
+			const name = stores.find((s) => s.storeId === storeId)?.name ?? storeId;
+			list.push({ key: 'store', label: `Store: ${name}`, onRemove: () => applyFilters(() => (storeId = null)) });
+		}
+		if (favouriteOnly)
+			list.push({ key: 'favourite', label: 'Favourites', onRemove: () => applyFilters(() => (favouriteOnly = false)) });
+		if (opportunity)
+			list.push({ key: 'opportunity', label: OPPORTUNITY_LABELS[opportunity], onRemove: () => applyFilters(() => (opportunity = null)) });
+		return list;
 	});
+
+	const hasActiveFilters = $derived(activeFilters.length > 0);
+	const isEmptyAccount = $derived(productCount === 0 && products.items.length === 0);
+	const emptyFilterMessage = $derived(`No products match: ${activeFilters.map((f) => f.label).join(', ')}`);
+	// A sort the select does not offer (an old link) shows as the default instead of a blank select.
+	const knownSort = $derived(SORT_OPTIONS.some((o) => o.value === `${sortBy}:${sortDirection}`));
 
 	const totalPages = $derived(Math.max(1, Math.ceil(products.total / products.pageSize)));
 </script>
 
 <svelte:head>
-	<title>Dashboard - Ophi</title>
+	<title>Watchlist - Ophi</title>
 </svelte:head>
 
 <div>
-	<PageHeader title="Dashboard" description="Your tracked products and their latest prices" />
-
-	<DashboardStatsBar
-		{totalProducts}
-		priceDrops={priceDropCount}
-		alertCount={withAlertsCount}
-		{atLowestCount}
-		{statsFilter}
-		onFilterChange={setStatsFilter}
+	<PageHeader
+		title="Watchlist"
+		description={isEmptyAccount
+			? 'Paste a product URL to start tracking its price'
+			: `${productCount} ${productCount === 1 ? 'product' : 'products'} · ${urlCount} ${urlCount === 1 ? 'URL' : 'URLs'}`}
 	/>
 
 	<!-- Slim inline add product bar — the "create from scratch" affordance sits on the same row
@@ -395,26 +405,36 @@
 		</button>
 	</div>
 
+	{#if !isEmptyAccount}
+		<OpportunityChips
+			{atLowestCount}
+			{nearTargetCount}
+			active={opportunity}
+			onSelect={(next) => applyFilters(() => (opportunity = next))}
+		/>
+	{/if}
+
 	<div>
-		<ProductFilters
+		{#if !isEmptyAccount}
+		<WatchlistFilterBar
 			{search}
 			{status}
-			{sortBy}
+			{selectedTagId}
+			{storeId}
+			sortBy={knownSort ? sortBy : ''}
 			{sortDirection}
 			{favouriteOnly}
 			tags={tags.items}
-			{selectedTagId}
+			{stores}
+			{activeFilters}
 			onSearchChange={handleSearchChange}
-			onStatusChange={handleFilterStatusChange}
-			onSortChange={handleSortChange}
-			onFavouriteChange={handleFavouriteChange}
-			onTagChange={handleTagChange}
+			onStatusChange={(value) => applyFilters(() => (status = value))}
+			onTagChange={(value) => applyFilters(() => (selectedTagId = value))}
+			onStoreChange={(value) => applyFilters(() => (storeId = value))}
+			onSortChange={setSort}
+			onFavouriteChange={(value) => applyFilters(() => (favouriteOnly = value))}
+			onClearAll={clearAllFilters}
 		>
-			{#snippet leading()}
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-					Your Products
-				</h2>
-			{/snippet}
 			{#snippet trailing()}
 				<div class="flex items-center gap-2">
 					{#if viewMode.current !== 'feed'}
@@ -439,7 +459,8 @@
 					<ViewModeToggle mode={viewMode.current} onModeChange={setViewMode} />
 				</div>
 			{/snippet}
-		</ProductFilters>
+		</WatchlistFilterBar>
+		{/if}
 
 		{#if selectionMode}
 			<div
@@ -500,10 +521,18 @@
 			</div>
 		{:else if products.items.length === 0 && hasActiveFilters}
 			<div
-				class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+				class="text-center py-12 bg-surface-1 rounded-lg border border-gray-200 dark:border-gray-700"
 				data-testid="empty-filter-result"
 			>
 				<p class="text-gray-500 dark:text-gray-400">{emptyFilterMessage}</p>
+				<button
+					type="button"
+					onclick={clearAllFilters}
+					class="mt-3 min-h-11 px-3 text-sm text-brand dark:text-brand-muted hover:underline"
+					data-testid="empty-clear-filters"
+				>
+					Clear filters
+				</button>
 			</div>
 		{:else if products.items.length === 0}
 			<EmptyState
@@ -541,6 +570,9 @@
 			<div in:fade={{ duration: 150 }}>
 			<ProductTable
 				products={products.items}
+				{sortBy}
+				{sortDirection}
+				onSortChange={setSort}
 				onDelete={handleDeleteProduct}
 				onViewHistory={handleViewHistory}
 				onStatusChange={handleProductStatusChange}

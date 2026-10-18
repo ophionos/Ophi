@@ -49,7 +49,7 @@ setup('authenticate', async ({ page }) => {
 	// cold vite dev server (every CI run) the dashboard route compiles on first hit
 	// and its data load can outlast the default 10s expect.
 	await page.goto('/dashboard');
-	await expect(page.getByRole('heading', { name: 'Your Products' })).toBeVisible({
+	await expect(page.getByRole('heading', { name: 'Watchlist', level: 1 })).toBeVisible({
 		timeout: 20_000
 	});
 

@@ -1,8 +1,5 @@
 <script lang="ts">
 	import {
-		TrendingDown,
-		TrendingUp,
-		Minus,
 		ExternalLink,
 		Trash2,
 		Bell,
@@ -13,7 +10,10 @@
 		Check,
 		X,
 		History,
-		RefreshCw
+		RefreshCw,
+		ArrowUp,
+		ArrowDown,
+		ArrowUpDown
 	} from 'lucide-svelte';
 	import { resolve } from '$app/paths';
 	import { onDestroy } from 'svelte';
@@ -25,8 +25,18 @@
 	import TagBadge from '$lib/components/tags/TagBadge.svelte';
 	import ProductTableMobileCard from '$lib/components/products/ProductTableMobileCard.svelte';
 	import FormError from '$lib/components/shared/FormError.svelte';
-	import ConvertedPrice from '$lib/components/shared/ConvertedPrice.svelte';
-	import { priceChangeTextClass } from '$lib/utils/priceColors';
+	import ActionMenu, { type ActionMenuItem } from '$lib/components/shared/ActionMenu.svelte';
+	import AttentionPill from '$lib/components/products/AttentionPill.svelte';
+	import PriceChangeChip from '$lib/components/products/PriceChangeChip.svelte';
+	import PriceRangeBar from '$lib/components/products/PriceRangeBar.svelte';
+	import Sparkline from '$lib/components/products/Sparkline.svelte';
+	import {
+		alertDistanceText,
+		alertTargetText,
+		isPriceOld,
+		productInitial,
+		storeLabel
+	} from '$lib/utils/watchlist';
 
 	interface Props {
 		products: Product[];
@@ -40,15 +50,51 @@
 		selectable?: boolean;
 		selectedIds?: ReadonlySet<string>;
 		onSelectToggle?: (id: string) => void;
+		/** The list's sort; the sortable headers show and change it. */
+		sortBy?: string;
+		sortDirection?: string;
+		onSortChange?: (sortBy: string, sortDirection: string) => void;
 	}
 
-	let { products, loading = false, onDelete, onViewHistory, onStatusChange, onFavouriteToggle, onAlertCreated, selectable = false, selectedIds, onSelectToggle }: Props = $props();
+	let {
+		products,
+		loading = false,
+		onDelete,
+		onViewHistory,
+		onStatusChange,
+		onFavouriteToggle,
+		onAlertCreated,
+		selectable = false,
+		selectedIds,
+		onSelectToggle,
+		sortBy = '',
+		sortDirection = 'asc',
+		onSortChange
+	}: Props = $props();
 
 	// Density-driven cell metrics for the desktop table (mobile cards are unaffected).
 	const isCompact = $derived(density.current === 'compact');
 	const cellPad = $derived(isCompact ? 'px-3 py-1.5' : 'px-3 py-3');
 	const avatarSize = $derived(isCompact ? 'w-7 h-7' : 'w-10 h-10');
 	const nameText = $derived(isCompact ? 'text-sm' : 'text-base');
+
+	// The direction a column sorts in when it is first chosen.
+	const SORTABLE: Record<string, string> = { name: 'asc', price: 'asc', pricechange: 'asc', lastchecked: 'desc' };
+	const columnCount = $derived(selectable ? 10 : 9);
+
+	// The failure count only explains a scrape problem; out of stock or paused have none to show.
+	const FAILURE_KINDS = new Set(['failing', 'blocked', 'priceNotFound']);
+
+	function ariaSort(column: string): 'ascending' | 'descending' | 'none' {
+		if (sortBy !== column) return 'none';
+		return sortDirection === 'desc' ? 'descending' : 'ascending';
+	}
+
+	function sortOn(column: string) {
+		if (!onSortChange) return;
+		if (sortBy === column) onSortChange(column, sortDirection === 'asc' ? 'desc' : 'asc');
+		else onSortChange(column, SORTABLE[column]);
+	}
 
 	const quickAlerts = new Map<string, QuickAlert>();
 
@@ -74,19 +120,23 @@
 		return quickAlertFor(product.id).submit(product.id);
 	}
 
-	function getStatusClasses(status: string) {
-		switch (status) {
-			case 'active':
-				return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
-			case 'paused':
-				return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300';
-			case 'error':
-				return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
-			case 'pending':
-				return 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300';
-			default:
-				return 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300';
+	function menuItems(product: Product): ActionMenuItem[] {
+		const isPending = product.status === 'pending';
+		const items: ActionMenuItem[] = [
+			{ label: 'Open in store', icon: ExternalLink, href: product.affiliateUrl ?? product.bestUrl ?? product.url, external: true }
+		];
+		if (!isPending && onViewHistory) items.push({ label: 'Price history', icon: History, onSelect: () => onViewHistory?.(product) });
+		if ((product.status === 'active' || product.status === 'paused') && onStatusChange) {
+			const pausing = product.status === 'active';
+			items.push({
+				label: pausing ? 'Pause tracking' : 'Resume tracking',
+				icon: pausing ? Pause : Play,
+				onSelect: () => onStatusChange?.(product.id, pausing ? 'paused' : 'active')
+			});
 		}
+		if (!isPending) items.push({ label: 'Set price alert', icon: Bell, onSelect: () => toggleQuickAlert(product) });
+		if (onDelete) items.push({ label: 'Delete', icon: Trash2, danger: true, onSelect: () => onDelete?.(product.id) });
+		return items;
 	}
 </script>
 
@@ -121,45 +171,64 @@
 	{/if}
 </div>
 
+{#snippet sortHeader(column: string, label: string, align: 'left' | 'right' = 'left')}
+	<th scope="col" class="px-3 py-3 {align === 'right' ? 'text-right' : ''}" aria-sort={ariaSort(column)}>
+		{#if onSortChange}
+			{@const SortIcon = sortBy !== column ? ArrowUpDown : sortDirection === 'desc' ? ArrowDown : ArrowUp}
+			<button
+				type="button"
+				onclick={() => sortOn(column)}
+				class="inline-flex items-center gap-1 uppercase hover:text-gray-900 dark:hover:text-white {sortBy === column ? 'text-gray-900 dark:text-white' : ''}"
+				data-testid="sort-header-{column}"
+			>
+				{label}
+				<SortIcon size={12} aria-hidden="true" class={sortBy === column ? '' : 'opacity-40'} />
+			</button>
+		{:else}
+			{label}
+		{/if}
+	</th>
+{/snippet}
+
 <!-- Desktop table -->
-<div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" data-testid="product-table">
+<div class="hidden md:block bg-surface-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" data-testid="product-table">
 	<div class="overflow-x-auto">
 		<table class="w-full text-sm text-left">
-			<thead class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+			<thead class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-surface-2 border-b border-gray-200 dark:border-gray-700">
 				<tr>
 					{#if selectable}
 						<th scope="col" class="px-3 py-3 w-10"><span class="sr-only">Select</span></th>
 					{/if}
-					<th scope="col" class="px-3 py-3 w-10"><span class="sr-only">Favourite</span></th>
-					<th scope="col" class="px-3 py-3">Product</th>
-					<th scope="col" class="px-3 py-3">Price</th>
-					<th scope="col" class="px-3 py-3">Store</th>
+					{@render sortHeader('name', 'Product')}
 					<th scope="col" class="px-3 py-3">Status</th>
-					<th scope="col" class="px-3 py-3">Updated</th>
-					<th scope="col" class="px-3 py-3 text-right">Actions</th>
+					{@render sortHeader('price', 'Price', 'right')}
+					{@render sortHeader('pricechange', 'Change')}
+					<th scope="col" class="px-3 py-3 whitespace-nowrap">30 days</th>
+					<th scope="col" class="px-3 py-3 whitespace-nowrap">90-day range</th>
+					<th scope="col" class="px-3 py-3">Alert</th>
+					{@render sortHeader('lastchecked', 'Checked')}
+					<th scope="col" class="px-3 py-3 w-12"><span class="sr-only">Actions</span></th>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
 				{#if loading}
 					{#each Array(5) as _, i (i)}
 						<tr data-testid="desktop-row-skeleton">
-							<td class="px-3 py-3"><div class="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded animate-shimmer"></div></td>
-							<td class="px-3 py-3"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded animate-shimmer"></div><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-shimmer"></div></div></td>
-							<td class="px-3 py-3"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-shimmer"></div></td>
-							<td class="px-3 py-3"><div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-8 animate-shimmer"></div></td>
-							<td class="px-3 py-3"><div class="h-5 bg-gray-200 dark:bg-gray-700 rounded-full w-16 animate-shimmer"></div></td>
-							<td class="px-3 py-3"><div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-shimmer"></div></td>
-							<td class="px-3 py-3"><div class="flex justify-end gap-1"><div class="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded animate-shimmer"></div><div class="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded animate-shimmer"></div></div></td>
+							{#each Array(columnCount) as _, c (c)}
+								<td class="px-3 py-3"><div class="h-4 bg-surface-3 rounded animate-shimmer {c === 0 ? 'w-40' : 'w-12'}"></div></td>
+							{/each}
 						</tr>
 					{/each}
 				{/if}
 				{#each products as product (product.id)}
 					{@const isPending = product.status === 'pending'}
-					{@const canToggleStatus = product.status === 'active' || product.status === 'paused'}
 					{@const qa = quickAlertFor(product.id)}
-					<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" in:fade={{ duration: 200 }} out:fade={{ duration: 150 }}>
+					{@const oldPrice = isPriceOld(product)}
+					{@const store = storeLabel(product)}
+					{@const failures = product.attention && FAILURE_KINDS.has(product.attention.kind) ? product.attention.consecutiveFailures : 0}
+					<tr class="hover:bg-surface-2 transition-colors" in:fade={{ duration: 200 }} out:fade={{ duration: 150 }} data-testid="product-row">
 						{#if selectable}
-							<td class="{cellPad}">
+							<td class={cellPad}>
 								<input
 									type="checkbox"
 									checked={selectedIds?.has(product.id) ?? false}
@@ -169,48 +238,49 @@
 								/>
 							</td>
 						{/if}
-						<!-- Favourite -->
-						<td class="{cellPad}">
-							{#if onFavouriteToggle}
-								<button
-									onclick={() => onFavouriteToggle?.(product.id, !product.isFavourite)}
-									class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-									aria-label={product.isFavourite ? 'Remove from favourites' : 'Add to favourites'}
-								>
-									<Star
-										size={16}
-										class={product.isFavourite
-											? 'text-yellow-500 fill-yellow-500'
-											: 'text-gray-400 hover:text-yellow-500'}
-									/>
-								</button>
-							{/if}
-						</td>
 
 						<!-- Product -->
-						<td class="{cellPad}">
+						<td class="{cellPad} min-w-56">
 							<div class="flex items-center gap-3">
 								{#if isPending}
-									<div class="{avatarSize} shrink-0 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
+									<div class="{avatarSize} shrink-0 bg-surface-2 rounded flex items-center justify-center">
 										<LoaderCircle size={14} class="animate-spin text-gray-400 dark:text-gray-500" />
 									</div>
 									<span class="text-gray-500 dark:text-gray-400">Loading product data...</span>
 								{:else}
 									{#if product.imageUrl}
-										<img src={product.imageUrl} alt={product.name} loading="lazy" class="{avatarSize} shrink-0 rounded object-cover" />
+										<img src={product.imageUrl} alt="" loading="lazy" class="{avatarSize} shrink-0 rounded object-cover" />
 									{:else}
-										<div class="{avatarSize} shrink-0 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center text-gray-400 dark:text-gray-500 text-[10px]" role="img" aria-label="No image available">
-											N/A
+										<div class="{avatarSize} shrink-0 bg-surface-2 rounded flex items-center justify-center font-semibold text-gray-500 dark:text-gray-400" aria-hidden="true" data-testid="product-initial">
+											{productInitial(product.name)}
 										</div>
 									{/if}
 									<div class="min-w-0">
-										<a
-											href={resolve(`/products/${product.id}`)}
-											class="font-semibold {nameText} text-gray-900 dark:text-white hover:text-brand dark:hover:text-brand-muted line-clamp-1"
-										>{product.name}</a>
+										<div class="flex items-center gap-1">
+											<a
+												href={resolve(`/products/${product.id}`)}
+												class="font-semibold {nameText} text-gray-900 dark:text-white hover:text-brand dark:hover:text-brand-muted line-clamp-1"
+											>{product.name}</a>
+											{#if onFavouriteToggle}
+												<button
+													type="button"
+													onclick={() => onFavouriteToggle?.(product.id, !product.isFavourite)}
+													class="shrink-0 p-0.5 rounded hover:bg-surface-2"
+													aria-label={product.isFavourite ? `Remove ${product.name} from favourites` : `Add ${product.name} to favourites`}
+													aria-pressed={product.isFavourite}
+												>
+													<Star size={14} class={product.isFavourite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300 hover:text-yellow-500 dark:text-gray-600'} />
+												</button>
+											{:else if product.isFavourite}
+												<Star size={14} class="shrink-0 text-yellow-500 fill-yellow-500" aria-label="Favourite" />
+											{/if}
+										</div>
+										<p class="text-xs text-gray-500 dark:text-gray-400" data-testid="product-store">
+											{store}{#if product.storeCount > 1}{` · ${product.storeCount - 1} more`}{/if}
+										</p>
 										{#if (product.tags ?? []).length > 0}
 											<div class="flex flex-wrap gap-1 mt-0.5">
-												{#each (product.tags ?? []) as tag (tag.id)}
+												{#each product.tags ?? [] as tag (tag.id)}
 													<TagBadge name={tag.name} color={tag.color} />
 												{/each}
 											</div>
@@ -220,63 +290,71 @@
 							</div>
 						</td>
 
-						<!-- Price -->
-						<td class="{cellPad}">
+						<!-- Status: empty while the product is healthy -->
+						<td class={cellPad}>
 							{#if isPending}
-								<span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-									<LoaderCircle size={14} class="animate-spin" />
-									Fetching...
-								</span>
-							{:else if product.currentPrice}
-								<div class="flex items-center gap-2">
-									<span class="font-semibold text-gray-900 dark:text-white tabular-nums">
-										{formatPrice(product.currentPrice, product.currency)}
-									</span>
-									<ConvertedPrice amount={product.currentPrice} currency={product.currency} />
-									{#if product.priceChange}
-										{@const PriceIcon = !product.priceChange || product.priceChange === 0 ? Minus : product.priceChange < 0 ? TrendingDown : TrendingUp}
-										<span class="flex items-center text-xs tabular-nums {priceChangeTextClass(product.priceChange)}">
-											<PriceIcon size={12} class="mr-0.5" />
-											{Math.abs(product.priceChange).toFixed(1)}%
-										</span>
-									{/if}
-								</div>
-							{:else}
-								<span class="text-gray-500 dark:text-gray-400">Price unavailable</span>
-							{/if}
-						</td>
-
-						<!-- Store -->
-						<td class="{cellPad}">
-							<div class="flex items-center gap-1.5">
-								<span class="text-sm text-gray-900 dark:text-white" data-testid="store-count-badge">
-									{product.storeCount}
-								</span>
-								{#if product.alertCount > 0}
-									<span class="text-xs px-1.5 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 flex items-center gap-0.5" data-testid="alert-count-badge">
-										<Bell size={10} />
-										{product.alertCount}
-									</span>
-								{/if}
-							</div>
-						</td>
-
-						<!-- Status -->
-						<td class="{cellPad}">
-							{#if isPending}
-								<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {getStatusClasses('pending')}">
+								<span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
 									<LoaderCircle size={12} class="animate-spin" />
 									Pending
 								</span>
-							{:else}
-								<span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {getStatusClasses(product.status)}">
-									{product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-								</span>
+							{:else if product.attention}
+								<AttentionPill attention={product.attention} productId={product.id} />
 							{/if}
 						</td>
 
-						<!-- Updated -->
-						<td class="{cellPad} text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap"
+						<!-- Price -->
+						<td class="{cellPad} text-right whitespace-nowrap">
+							{#if isPending}
+								<span class="text-gray-500 dark:text-gray-400">Fetching...</span>
+							{:else if product.currentPrice != null}
+								<div class="font-semibold tabular-nums {oldPrice ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}" data-testid="product-price">
+									{formatPrice(product.currentPrice, product.currency)}
+								</div>
+								<div class="text-xs text-gray-500 dark:text-gray-400">
+									{#if oldPrice}
+										<span title={product.lastSucceededAt ? `Last read ${new Date(product.lastSucceededAt).toLocaleString()}` : undefined} data-testid="old-price">old price</span>
+									{:else}
+										{product.currency}
+									{/if}
+								</div>
+							{:else}
+								<span class="text-gray-500 dark:text-gray-400">No price</span>
+							{/if}
+						</td>
+
+						<!-- Change -->
+						<td class={cellPad}>
+							{#if !isPending}
+								<PriceChangeChip change={product.priceChange} />
+							{/if}
+						</td>
+
+						<!-- 30 days -->
+						<td class={cellPad}>
+							{#if product.sparkline && product.sparkline.length >= 3}
+								<Sparkline data={product.sparkline} width={72} height={22} />
+							{/if}
+						</td>
+
+						<!-- 90-day range -->
+						<td class={cellPad}>
+							{#if product.priceMin != null && product.priceMax != null && product.currentPrice != null}
+								<PriceRangeBar min={product.priceMin} max={product.priceMax} current={product.currentPrice} currency={product.currency} />
+							{/if}
+						</td>
+
+						<!-- Alert -->
+						<td class="{cellPad} whitespace-nowrap" data-testid="product-alert">
+							{#if product.closestAlert}
+								<div class="tabular-nums text-gray-900 dark:text-white">{alertTargetText(product.closestAlert, product.currency)}</div>
+								<div class="text-xs tabular-nums {product.closestAlert.isNear ? 'font-medium text-brand dark:text-brand-muted' : 'text-gray-500 dark:text-gray-400'}">
+									{alertDistanceText(product.closestAlert, product.currency)}
+								</div>
+							{/if}
+						</td>
+
+						<!-- Checked -->
+						<td class="{cellPad} text-xs whitespace-nowrap text-gray-500 dark:text-gray-400"
 							title={product.lastChecked && !isPending ? new Date(product.lastChecked).toLocaleString() : undefined}
 						>
 							{#if isPending}
@@ -284,70 +362,23 @@
 							{:else if product.lastChecked}
 								{formatTimeAgo(product.lastChecked)}
 							{:else}
-								Never checked
+								Never
+							{/if}
+							{#if failures > 0}
+								<div class="text-warning" data-testid="failed-runs">{failures} failed {failures === 1 ? 'run' : 'runs'}</div>
 							{/if}
 						</td>
 
 						<!-- Actions -->
-						<td class="{cellPad}">
-							<div class="flex items-center justify-end gap-1">
-								<a
-									href={product.affiliateUrl ?? product.url}
-									target="_blank"
-									rel="noopener noreferrer external"
-									class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-									aria-label="Open product in new tab"
-								>
-									<ExternalLink size={14} />
-								</a>
-								{#if !isPending && onViewHistory}
-									<button
-										onclick={() => onViewHistory?.(product)}
-										class="p-1.5 text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
-										aria-label="View price history"
-									>
-										<History size={14} />
-									</button>
-								{/if}
-								{#if canToggleStatus && onStatusChange}
-									<button
-										onclick={() => onStatusChange?.(product.id, product.status === 'active' ? 'paused' : 'active')}
-										class="p-1.5 text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
-										aria-label={product.status === 'active' ? 'Pause tracking' : 'Resume tracking'}
-									>
-										{#if product.status === 'active'}
-											<Pause size={14} />
-										{:else}
-											<Play size={14} />
-										{/if}
-									</button>
-								{/if}
-								{#if !isPending}
-									<button
-										onclick={() => toggleQuickAlert(product)}
-										class="p-1.5 text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded"
-										aria-label="Set quick price alert"
-									>
-										<Bell size={14} />
-									</button>
-								{/if}
-								{#if onDelete}
-									<button
-										onclick={() => onDelete?.(product.id)}
-										class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
-										aria-label="Delete product"
-									>
-										<Trash2 size={14} />
-									</button>
-								{/if}
-							</div>
+						<td class="{cellPad} text-right">
+							<ActionMenu label="Actions for {product.name}" items={menuItems(product)} testid="row-actions" />
 						</td>
 					</tr>
 
 					<!-- Quick Alert Row -->
 					{#if qa.open}
-						<tr class="bg-gray-50 dark:bg-gray-900/30">
-							<td colspan={selectable ? 8 : 7} class="px-3 py-2">
+						<tr class="bg-surface-2">
+							<td colspan={columnCount} class="px-3 py-2">
 								<div role="region" aria-label="Quick price alert for {product.name}">
 									{#if qa.success}
 										<p class="text-sm text-green-600 dark:text-green-400">Alert set ✓</p>
@@ -362,7 +393,7 @@
 												min="0"
 												bind:value={qa.price}
 												disabled={qa.loading}
-												class="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+												class="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-surface-1 text-gray-900 dark:text-white"
 											/>
 											<button
 												onclick={() => submitQuickAlert(product)}
@@ -374,7 +405,7 @@
 											</button>
 											<button
 												onclick={() => toggleQuickAlert(product)}
-												class="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+												class="p-1 text-gray-400 hover:bg-surface-3 rounded"
 												aria-label="Cancel"
 											>
 												<X size={16} />

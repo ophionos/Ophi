@@ -58,7 +58,10 @@ describe('AddProductToGroupModal', () => {
 					priceDropCount: 0,
 					withAlertsCount: 0,
 					needsActionCount: 0,
-					nearTargetCount: 0
+					nearTargetCount: 0,
+					productCount: 0,
+					urlCount: 0,
+					stores: []
 				};
 			}
 		);

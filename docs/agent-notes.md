@@ -206,6 +206,14 @@ other kind of fact. Link to owners; don't restate them here.
   failing; `RateLimited` never needs the user. Near is within `NearFraction` (5 %) of an active
   below/above target in the product's currency, compared upper-cased because Postgres text compare
   is case-sensitive.
+- **The watchlist's "at lowest" and its range bar share one 90-day window** (`GetProducts.RangeDays`,
+  `AtLowestSince`). The range includes the current price and the flag is `<=`, so a product in the
+  "at their 90-day low" chip always sits at the left end of its bar. The sparkline is 30 days.
+  The list has no silent favourites pin: favourites first is the explicit `sortBy=favourites`.
+- **"Old price" reads `ProductUrl.LastSucceededAt`, never `LastCheckedAt`.** A failed check moves
+  `LastCheckedAt`, and price points are written only when the price changes, so neither tells when a
+  price was last read. Only `RecordSuccessfulScrape` sets it; the migration backfilled it from
+  `LastCheckedAt` where the URL had a price and no error. A null value is never shown as old.
 - **JSON-LD matches must be scalars.** Stringifying `"price": [10,20]` produced `10,20`, which the
   European-comma heuristic read as 10.20. `JsonPathExtractor.MatchesInBlock` skips non-`JsonValue`
   matches.

@@ -17,9 +17,9 @@
 			position: 'bottom' as const
 		},
 		{
-			targetSelector: '[data-onboarding="stats-bar"]',
+			targetSelector: '[data-onboarding="filter-bar"]',
 			title: 'Filter & sort',
-			description: 'Click any stat to quickly filter your products — price drops, active alerts, or items at their lowest price.',
+			description: 'Narrow the list by text, status, tag or store, and change the sort. Each filter in effect shows as a chip you can remove.',
 			position: 'bottom' as const
 		},
 		{

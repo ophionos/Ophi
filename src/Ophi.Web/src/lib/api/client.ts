@@ -180,18 +180,9 @@ class ApiClient {
 		if (params?.hasAlerts) query.set('hasAlerts', 'true');
 		if (params?.needsAction) query.set('needsAction', 'true');
 		if (params?.nearTarget) query.set('nearTarget', 'true');
+		if (params?.storeId) query.set('storeId', params.storeId);
 		const qs = query.toString();
-		return this.request<{
-			items: Product[];
-			total: number;
-			page: number;
-			pageSize: number;
-			atLowestCount: number;
-			priceDropCount: number;
-			withAlertsCount: number;
-			needsActionCount: number;
-			nearTargetCount: number;
-		}>(`/products${qs ? `?${qs}` : ''}`);
+		return this.request<ProductListResponse>(`/products${qs ? `?${qs}` : ''}`);
 	}
 
 	async addProduct(url: string) {
@@ -679,6 +670,7 @@ export interface GetProductsParams {
 	hasAlerts?: boolean;
 	needsAction?: boolean;
 	nearTarget?: boolean;
+	storeId?: string;
 }
 
 export interface CustomField {
@@ -718,6 +710,28 @@ export interface Product {
 	hasPriceAnomaly?: boolean;
 	attention?: ProductAttention | null;
 	closestAlert?: AlertTarget | null;
+	/** The URL whose price is the product price. */
+	bestUrl?: string | null;
+	/** The configured name of that URL's store, when it has one. */
+	bestStoreName?: string | null;
+	/** When a scrape last read a price, across the product's URLs. */
+	lastSucceededAt?: string | null;
+}
+
+/** `total` and `items` follow the filters; every `*Count`, `productCount`, `urlCount` and `stores` is account-wide. */
+export interface ProductListResponse {
+	items: Product[];
+	total: number;
+	page: number;
+	pageSize: number;
+	atLowestCount: number;
+	priceDropCount: number;
+	withAlertsCount: number;
+	needsActionCount: number;
+	nearTargetCount: number;
+	productCount: number;
+	urlCount: number;
+	stores: { storeId: string; name: string }[];
 }
 
 /** Worst first. The first four need the user; out of stock and paused are information only. */

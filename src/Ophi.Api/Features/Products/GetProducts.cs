@@ -18,16 +18,16 @@ public static class GetProducts
 {
     public static void MapGetProductsEndpoint(this IEndpointRouteBuilder routes)
     {
-        routes.MapGet("/api/v1/products", async (Guid? tagId, string? search, string? status, string? sortBy, string? sortDirection, int? page, int? pageSize, bool? includeSparkline, bool? atLowest, bool? favourite, bool? priceDrop, bool? hasAlerts, bool? needsAction, bool? nearTarget, IMessageBus bus, HttpContext context) =>
+        routes.MapGet("/api/v1/products", async (Guid? tagId, string? search, string? status, string? sortBy, string? sortDirection, int? page, int? pageSize, bool? includeSparkline, bool? atLowest, bool? favourite, bool? priceDrop, bool? hasAlerts, bool? needsAction, bool? nearTarget, string? storeId, IMessageBus bus, HttpContext context) =>
         {
-            var query = new Query(context.User.GetUserId(), tagId, search, status, sortBy, sortDirection, page, pageSize, includeSparkline, atLowest, favourite, priceDrop, hasAlerts, needsAction, nearTarget);
+            var query = new Query(context.User.GetUserId(), tagId, search, status, sortBy, sortDirection, page, pageSize, includeSparkline, atLowest, favourite, priceDrop, hasAlerts, needsAction, nearTarget, storeId);
             var result = await bus.InvokeAsync<Response>(query);
             return Results.Ok(result);
         })
         .WithName("GetProducts")
         .WithTags("Products")
         .WithSummary("List products with filtering")
-        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price, or lastChecked. Pass includeSparkline=true to include 14-day price history, min/max prices, and deal scores (more expensive query). Each item carries `attention` (its worst URL state, or null) and `closestAlert` (the active below/above target nearest the price, in the product's currency); needsAction=true and nearTarget=true filter on them, and needsActionCount/nearTargetCount count them account-wide.")
+        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price, pricechange, dateadded, lastchecked, or favourites (favourites first, then newest); no sort pins favourites otherwise. Pass includeSparkline=true to include the 30-day daily lows, the 90-day price range (which includes the current price), and deal scores (more expensive query). atLowest means at the 90-day low. Each item carries `attention` (its worst URL state, or null) and `closestAlert` (the active below/above target nearest the price, in the product's currency); needsAction=true and nearTarget=true filter on them, and needsActionCount/nearTargetCount count them account-wide. productCount, urlCount and stores (the stores the account's URLs use) are account-wide too.")
         .Produces<Response>(200)
         .RequireAuthorization();
     }
@@ -47,7 +47,8 @@ public static class GetProducts
         bool? PriceDrop = null,
         bool? HasAlerts = null,
         bool? NeedsAction = null,
-        bool? NearTarget = null
+        bool? NearTarget = null,
+        string? StoreId = null
     );
 
     public record Response(
@@ -59,7 +60,31 @@ public static class GetProducts
         int PriceDropCount = 0,
         int WithAlertsCount = 0,
         int NeedsActionCount = 0,
-        int NearTargetCount = 0);
+        int NearTargetCount = 0,
+        int ProductCount = 0,
+        int UrlCount = 0,
+        List<StoreOptionDto>? Stores = null);
+
+    /// <summary>A store the account's URLs use; <c>Name</c> falls back to the id without a configuration.</summary>
+    public record StoreOptionDto(string StoreId, string Name);
+
+    /// <summary>The daily-low sparkline covers this many days.</summary>
+    public const int SparklineDays = 30;
+
+    /// <summary>PriceMin/PriceMax and the "at lowest" filter cover this many days.</summary>
+    public const int RangeDays = 90;
+
+    /// <summary>
+    /// At or below the lowest price recorded since <paramref name="cutoff"/>, in the product's own
+    /// currency: a URL re-pointed to another region leaves points the price can't be measured
+    /// against. The filter and the count share it, so the chip's number equals its rows.
+    /// </summary>
+    internal static Expression<Func<Product, bool>> AtLowestSince(DateTime cutoff) => p =>
+        p.CurrentPrice != null &&
+        p.PriceHistory.Any(pp => pp.Currency == p.Currency && pp.RecordedAt >= cutoff) &&
+        p.CurrentPrice <= p.PriceHistory
+            .Where(pp => pp.Currency == p.Currency && pp.RecordedAt >= cutoff)
+            .Min(pp => pp.Price);
 
     public record ProductDto(
          Guid Id,
@@ -86,7 +111,10 @@ public static class GetProducts
         int? CheckIntervalMinutes = null,
         bool HasPriceAnomaly = false,
         AttentionDto? Attention = null,
-        AlertTargetDto? ClosestAlert = null
+        AlertTargetDto? ClosestAlert = null,
+        string? BestUrl = null,
+        string? BestStoreName = null,
+        DateTime? LastSucceededAt = null
     );
 
     /// <summary>
@@ -241,12 +269,13 @@ public static class GetProducts
                 query = query.Where(p => p.Status == parsedStatus);
             }
 
-            // Only history in the product's own currency is comparable: a URL re-pointed to another
-            // region leaves points in a currency the current price can't be measured against.
-            Expression<Func<Product, bool>> isAtLowest = p =>
-                p.CurrentPrice != null &&
-                p.PriceHistory.Any(pp => pp.Currency == p.Currency) &&
-                p.CurrentPrice == p.PriceHistory.Where(pp => pp.Currency == p.Currency).Min(pp => pp.Price);
+            var now = timeProvider.GetUtcNow().UtcDateTime;
+            var isAtLowest = AtLowestSince(now.AddDays(-RangeDays));
+
+            if (!string.IsNullOrWhiteSpace(request.StoreId))
+            {
+                query = query.Where(p => p.ProductUrls.Any(pu => pu.StoreId == request.StoreId));
+            }
 
             if (request.AtLowest == true)
             {
@@ -284,37 +313,36 @@ public static class GetProducts
                 query = query.Where(AlertProximity.NearTarget);
             }
 
-            // Sort - favourites always first, then by specified sort
+            // Favourites are first only when asked for: a silent pin made every other sort lie about
+            // its order.
             var sortDirection = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase)
                 ? "desc" : "asc";
-
-            // First order by IsFavourite descending (true = 1, false = 0, so descending puts favourites first)
-            var favouritesFirst = query.OrderByDescending(p => p.IsFavourite);
 
             var orderedQuery = request.SortBy?.ToLowerInvariant() switch
             {
                 "name" => sortDirection == "desc"
-                    ? favouritesFirst.ThenByDescending(p => p.Name)
-                    : favouritesFirst.ThenBy(p => p.Name),
+                    ? query.OrderByDescending(p => p.Name)
+                    : query.OrderBy(p => p.Name),
                 "price" => sortDirection == "desc"
-                    ? favouritesFirst.ThenByDescending(p => (double?)p.CurrentPrice)
-                    : favouritesFirst.ThenBy(p => (double?)p.CurrentPrice),
+                    ? query.OrderByDescending(p => (double?)p.CurrentPrice)
+                    : query.OrderBy(p => (double?)p.CurrentPrice),
                 "dateadded" => sortDirection == "desc"
-                    ? favouritesFirst.ThenByDescending(p => p.CreatedAt)
-                    : favouritesFirst.ThenBy(p => p.CreatedAt),
+                    ? query.OrderByDescending(p => p.CreatedAt)
+                    : query.OrderBy(p => p.CreatedAt),
                 "lastchecked" => sortDirection == "desc"
-                    ? favouritesFirst.ThenByDescending(p => p.ProductUrls.Max(pu => pu.LastCheckedAt))
-                    : favouritesFirst.ThenBy(p => p.ProductUrls.Max(pu => pu.LastCheckedAt)),
+                    ? query.OrderByDescending(p => p.ProductUrls.Max(pu => pu.LastCheckedAt))
+                    : query.OrderBy(p => p.ProductUrls.Max(pu => pu.LastCheckedAt)),
                 "pricechange" => sortDirection == "desc"
-                    ? favouritesFirst.ThenByDescending(p =>
+                    ? query.OrderByDescending(p =>
                         p.CurrentPrice.HasValue && p.PreviousPrice.HasValue && p.PreviousPrice != 0
                             ? (double?)((p.CurrentPrice.Value - p.PreviousPrice.Value) / p.PreviousPrice.Value * 100)
                             : null)
-                    : favouritesFirst.ThenBy(p =>
+                    : query.OrderBy(p =>
                         p.CurrentPrice.HasValue && p.PreviousPrice.HasValue && p.PreviousPrice != 0
                             ? (double?)((p.CurrentPrice.Value - p.PreviousPrice.Value) / p.PreviousPrice.Value * 100)
                             : null),
-                _ => favouritesFirst.ThenByDescending(p => p.UpdatedAt)
+                "favourites" => query.OrderByDescending(p => p.IsFavourite).ThenByDescending(p => p.UpdatedAt),
+                _ => query.OrderByDescending(p => p.UpdatedAt)
             };
 
             // Unique final key. Every sort option above ends on a non-unique column (prices tie
@@ -335,10 +363,8 @@ public static class GetProducts
                 .GroupBy(_ => 1)
                 .Select(g => new
                 {
-                    AtLowest = g.Count(p =>
-                        p.CurrentPrice != null &&
-                        p.PriceHistory.Any(pp => pp.Currency == p.Currency) &&
-                        p.CurrentPrice == p.PriceHistory.Where(pp => pp.Currency == p.Currency).Min(pp => pp.Price)),
+                    Products = g.Count(),
+                    Urls = g.Sum(p => p.ProductUrls.Count),
                     PriceDrops = g.Count(p =>
                         p.CurrentPrice != null && p.PreviousPrice != null && p.PreviousPrice != 0 &&
                         p.CurrentPrice < p.PreviousPrice),
@@ -348,12 +374,33 @@ public static class GetProducts
             // Separate counts: the shared predicates are Expressions, which a g.Count(...) lambda
             // cannot embed without restating them.
             var needsActionCount = await userProducts.CountAsync(ProductAttention.NeedsAction, cancellationToken);
+            var atLowestCount = await userProducts.CountAsync(isAtLowest, cancellationToken);
             var nearTargetCount = await userProducts.CountAsync(AlertProximity.NearTarget, cancellationToken);
 
-            var atLowestCount = counts?.AtLowest ?? 0;
+            var productCount = counts?.Products ?? 0;
+            var urlCount = counts?.Urls ?? 0;
             var priceDropCount = counts?.PriceDrops ?? 0;
             var withAlertsCount = counts?.WithAlerts ?? 0;
             var total = await query.CountAsync(cancellationToken);
+
+            // Store names for the filter and each row's best store. Configurations are per user and
+            // few, so one small read serves both.
+            var storeNames = await dbContext.StoreConfigurations
+                .AsNoTracking()
+                .Where(sc => sc.UserId == request.UserId)
+                .Select(sc => new { sc.StoreId, sc.Name })
+                .ToDictionaryAsync(sc => sc.StoreId, sc => sc.Name, cancellationToken);
+            var storeIdsInUse = await dbContext.ProductUrls
+                .AsNoTracking()
+                .Where(pu => pu.Product.UserId == request.UserId && pu.StoreId != null)
+                .Select(pu => pu.StoreId!)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+            var stores = storeIdsInUse
+                .Select(id => new StoreOptionDto(id, storeNames.GetValueOrDefault(id) ?? id))
+                .OrderBy(st => st.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(st => st.StoreId, StringComparer.Ordinal)
+                .ToList();
 
             var entities = await orderedQuery
                 .Skip((page - 1) * pageSize)
@@ -394,16 +441,26 @@ public static class GetProducts
             if (request.IncludeSparkline == true && entities.Count > 0)
             {
                 var productIds = entities.Select(e => e.Id).ToList();
-                var cutoff = timeProvider.GetUtcNow().UtcDateTime.AddDays(-14);
+                var sparklineCutoff = now.AddDays(-SparklineDays);
+                var rangeCutoff = now.AddDays(-RangeDays);
 
                 var pricePoints = await dbContext.PricePoints
-                    .Where(pp => productIds.Contains(pp.ProductId) && pp.RecordedAt >= cutoff &&
+                    .Where(pp => productIds.Contains(pp.ProductId) && pp.RecordedAt >= sparklineCutoff &&
                                  pp.Currency == pp.Product.Currency)
                     .OrderBy(pp => pp.RecordedAt)
                     .Select(pp => new { pp.ProductId, pp.Price, pp.RecordedAt })
                     .ToListAsync(cancellationToken);
 
                 var grouped = pricePoints.GroupBy(pp => pp.ProductId).ToList();
+
+                // The range spans more days than the sparkline draws, so it is aggregated in SQL
+                // rather than loaded point by point.
+                var ranges = await dbContext.PricePoints
+                    .Where(pp => productIds.Contains(pp.ProductId) && pp.RecordedAt >= rangeCutoff &&
+                                 pp.Currency == pp.Product.Currency)
+                    .GroupBy(pp => pp.ProductId)
+                    .Select(g => new { ProductId = g.Key, Min = g.Min(pp => pp.Price), Max = g.Max(pp => pp.Price) })
+                    .ToDictionaryAsync(r => r.ProductId, r => (r.Min, r.Max), cancellationToken);
 
                 sparklineData = grouped.ToDictionary(
                     g => g.Key,
@@ -416,10 +473,19 @@ public static class GetProducts
                           .ToList()
                 );
 
-                priceStats = grouped.ToDictionary(
-                    g => g.Key,
-                    g => (Min: g.Min(pp => pp.Price), Max: g.Max(pp => pp.Price))
-                );
+                // Points are written only when a price changes, so the current price may predate the
+                // window; it always belongs in the range.
+                priceStats = entities
+                    .Where(e => ranges.ContainsKey(e.Id))
+                    .ToDictionary(
+                        e => e.Id,
+                        e =>
+                        {
+                            var (min, max) = ranges[e.Id];
+                            return e.CurrentPrice is { } current
+                                ? (Math.Min(min, current), Math.Max(max, current))
+                                : (min, max);
+                        });
             }
 
             var affiliates = await AffiliateUrlResolver.LoadAsync(dbContext, request.UserId, cancellationToken);
@@ -441,6 +507,13 @@ public static class GetProducts
                     : (Count: 0, TargetAlerts: new List<Alert>());
                 var worst = ProductAttention.Worst(p.ProductUrls);
                 var closest = AlertProximity.Closest(alertSummary.TargetAlerts, p.CurrentPrice, p.Currency);
+                // The URL whose price is the product price (the MIN across live URLs in its currency).
+                var bestUrl = p.ProductUrls
+                    .Where(pu => pu.Status != ProductUrlStatus.Paused && pu.CurrentPrice != null &&
+                                 string.Equals(pu.Currency, p.Currency, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(pu => pu.CurrentPrice)
+                    .ThenBy(pu => pu.Id)
+                    .FirstOrDefault() ?? firstUrl;
 
                 return new ProductDto(
                     p.Id,
@@ -476,13 +549,16 @@ public static class GetProducts
                         : null,
                     closest is (var alert, var gap, var isNear)
                         ? new AlertTargetDto(alert.Id, alert.Condition.ToApiString(), alert.TargetPrice, gap, isNear)
-                        : null
+                        : null,
+                    bestUrl?.Url,
+                    bestUrl?.StoreId is { } bestStoreId ? storeNames.GetValueOrDefault(bestStoreId) : null,
+                    p.ProductUrls.Max(pu => pu.LastSucceededAt)
                 );
             }).ToList();
 
             logger.LogDebug("Returning {Count}/{Total} products for user {UserId}", products.Count, total, request.UserId);
             return new Response(products, total, page, pageSize, atLowestCount, priceDropCount, withAlertsCount,
-                needsActionCount, nearTargetCount);
+                needsActionCount, nearTargetCount, productCount, urlCount, stores);
         }
     }
 }

@@ -4,7 +4,7 @@ import DashboardPage from '../../../routes/dashboard/+page.svelte';
 import { page } from '$app/state';
 import { replaceState } from '$app/navigation';
 import { api } from '$lib/api/client';
-import type { Product } from '$lib/api/client';
+import type { Product, ProductListResponse } from '$lib/api/client';
 import type { PageData } from '../../../routes/dashboard/$types';
 
 vi.mock('$lib/api/client', async () => {
@@ -41,7 +41,7 @@ const mockProduct: Product = {
 	customFields: []
 };
 
-const emptyPage = {
+const emptyPage: ProductListResponse = {
 	items: [],
 	total: 0,
 	page: 1,
@@ -50,7 +50,10 @@ const emptyPage = {
 	priceDropCount: 0,
 	withAlertsCount: 0,
 	needsActionCount: 0,
-	nearTargetCount: 0
+	nearTargetCount: 0,
+	productCount: 0,
+	urlCount: 0,
+	stores: []
 };
 
 function renderDashboard(url = 'http://localhost/dashboard', products: Partial<typeof emptyPage> = {}) {
@@ -69,6 +72,9 @@ function renderDashboard(url = 'http://localhost/dashboard', products: Partial<t
 					withAlertsCount: 0,
 					needsActionCount: 0,
 					nearTargetCount: 0,
+					productCount: 0,
+					urlCount: 0,
+					stores: [],
 					...products
 				},
 				tags: []
@@ -85,7 +91,12 @@ beforeEach(() => {
 describe('Dashboard Page — header', () => {
 	it('should render the page title as the level-one heading', () => {
 		renderDashboard();
-		expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Dashboard');
+		expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Watchlist');
+	});
+
+	it('should count the products and URLs of the whole account', () => {
+		renderDashboard('http://localhost/dashboard', { productCount: 12, urlCount: 19 });
+		expect(screen.getByTestId('page-header')).toHaveTextContent('12 products · 19 URLs');
 	});
 });
 
@@ -114,49 +125,124 @@ describe('Dashboard Page — delete', () => {
 });
 
 describe('Dashboard Page — server-side filters', () => {
-	it('should refetch with priceDrop when the Drops stat is clicked', async () => {
+	it('should refetch with atLowest when the 90-day low chip is clicked', async () => {
 		renderDashboard();
 
-		await fireEvent.click(screen.getByText('Drops'));
+		await fireEvent.click(screen.getByTestId('opportunity-lowest'));
 
 		await waitFor(() => {
-			expect(api.getProducts).toHaveBeenCalledWith(
-				expect.objectContaining({ priceDrop: true })
-			);
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ atLowest: true }));
 		});
 	});
 
-	it('should refetch with hasAlerts when the Alerts stat is clicked', async () => {
-		renderDashboard();
+	it('should refetch with nearTarget when the near-target chip is clicked', async () => {
+		renderDashboard('http://localhost/dashboard', { nearTargetCount: 2 });
 
-		await fireEvent.click(screen.getByText('Alerts'));
+		await fireEvent.click(screen.getByTestId('opportunity-near'));
 
 		await waitFor(() => {
-			expect(api.getProducts).toHaveBeenCalledWith(
-				expect.objectContaining({ hasAlerts: true })
-			);
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ nearTarget: true }));
 		});
 	});
 
-	it('should refetch with favourite when the Favourites chip is clicked', async () => {
+	it('should refetch with favourite when the Favourites toggle is clicked', async () => {
 		renderDashboard();
 
 		await fireEvent.click(screen.getByTestId('favourite-filter'));
 
 		await waitFor(() => {
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ favourite: true }));
+		});
+	});
+
+	it('should refetch with storeId when a store is chosen', async () => {
+		renderDashboard('http://localhost/dashboard', {
+			stores: [
+				{ storeId: 'amazon', name: 'Amazon' },
+				{ storeId: 'shop', name: 'The Shop' }
+			]
+		});
+
+		await fireEvent.change(screen.getByLabelText('Store'), { target: { value: 'shop' } });
+
+		await waitFor(() => {
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ storeId: 'shop' }));
+		});
+	});
+
+	it('should ask for the sparkline on every refetch, whatever the view', async () => {
+		renderDashboard();
+
+		await fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'paused' } });
+
+		await waitFor(() => {
 			expect(api.getProducts).toHaveBeenCalledWith(
-				expect.objectContaining({ favourite: true })
+				expect.objectContaining({ status: 'paused', includeSparkline: true })
 			);
 		});
 	});
 
-	it('should show global counts from the response, not per-page tallies', () => {
-		// One product on the page, but the server reports 5 drops / 3 with alerts globally.
-		renderDashboard('http://localhost/dashboard', { priceDropCount: 5, withAlertsCount: 3 });
+	it('should show account-wide counts from the response, not per-page tallies', () => {
+		// One product on the page, but the server reports 4 at their low and 3 near a target.
+		renderDashboard('http://localhost/dashboard', { atLowestCount: 4, nearTargetCount: 3 });
 
-		const statsBar = within(screen.getByTestId('stats-bar'));
-		expect(statsBar.getByText('5')).toBeInTheDocument();
-		expect(statsBar.getByText('3')).toBeInTheDocument();
+		expect(screen.getByTestId('opportunity-lowest')).toHaveTextContent('4 at their 90-day low');
+		expect(screen.getByTestId('opportunity-near')).toHaveTextContent('3 alerts near target');
+	});
+});
+
+describe('Dashboard Page — active filters', () => {
+	it('should show each filter in the URL as a removable chip', () => {
+		renderDashboard('http://localhost/dashboard?status=paused&filter=lowest');
+
+		expect(screen.getByTestId('active-filter-status')).toHaveTextContent('Status: Paused');
+		expect(screen.getByTestId('active-filter-opportunity')).toHaveTextContent('At their 90-day low');
+	});
+
+	it('should remove one filter from its chip', async () => {
+		renderDashboard('http://localhost/dashboard?status=paused&favourite=true');
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Remove filter: Status: Paused' }));
+
+		await waitFor(() => {
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ status: undefined, favourite: true }));
+		});
+		expect(screen.queryByTestId('active-filter-status')).not.toBeInTheDocument();
+	});
+
+	it('should clear every filter at once', async () => {
+		renderDashboard('http://localhost/dashboard?status=paused&favourite=true&filter=lowest');
+
+		await fireEvent.click(screen.getByTestId('clear-all-filters'));
+
+		await waitFor(() => {
+			expect(api.getProducts).toHaveBeenCalledWith(
+				expect.objectContaining({ status: undefined, favourite: undefined, atLowest: undefined })
+			);
+		});
+		expect(screen.queryByTestId('active-filters')).not.toBeInTheDocument();
+	});
+
+	it('should name the active filters when nothing matches and offer to clear them', async () => {
+		renderDashboard('http://localhost/dashboard?status=error', { items: [], total: 0, productCount: 3 });
+
+		expect(screen.getByTestId('empty-filter-result')).toHaveTextContent('No products match: Status: Error');
+
+		await fireEvent.click(screen.getByTestId('empty-clear-filters'));
+
+		await waitFor(() => {
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ status: undefined }));
+		});
+	});
+});
+
+describe('Dashboard Page — empty account', () => {
+	it('should show only the URL field and the empty state', () => {
+		renderDashboard('http://localhost/dashboard', { items: [], total: 0, productCount: 0 });
+
+		expect(screen.getByText('Start tracking prices')).toBeInTheDocument();
+		expect(screen.queryByTestId('filter-bar')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('opportunity-chips')).not.toBeInTheDocument();
 	});
 });
 
@@ -237,23 +323,37 @@ describe('Dashboard Page — URL state', () => {
 		expect(screen.getByTestId('search-input')).toHaveValue('headphones');
 	});
 
-	it('should mirror a stats filter into the URL via shallow replaceState', async () => {
+	it('should mirror an opportunity filter into the URL via shallow replaceState', async () => {
 		renderDashboard();
 
-		await fireEvent.click(screen.getByText('Drops'));
+		await fireEvent.click(screen.getByTestId('opportunity-lowest'));
 
 		await waitFor(() => {
 			expect(replaceState).toHaveBeenCalled();
 		});
 		const url = vi.mocked(replaceState).mock.calls.at(-1)![0] as URL;
-		expect(url.toString()).toContain('filter=drops');
+		expect(url.toString()).toContain('filter=lowest');
+	});
+
+	it('should mirror the store filter into the URL', async () => {
+		renderDashboard('http://localhost/dashboard', {
+			stores: [
+				{ storeId: 'amazon', name: 'Amazon' },
+				{ storeId: 'shop', name: 'The Shop' }
+			]
+		});
+
+		await fireEvent.change(screen.getByLabelText('Store'), { target: { value: 'shop' } });
+
+		const url = vi.mocked(replaceState).mock.calls.at(-1)![0] as URL;
+		expect(url.searchParams.get('store')).toBe('shop');
 	});
 
 	it('should drop cleared filters from the URL', async () => {
-		renderDashboard('http://localhost/dashboard?filter=drops');
+		renderDashboard('http://localhost/dashboard?filter=lowest');
 
-		// Clicking the active Drops stat clears the filter.
-		await fireEvent.click(screen.getByText('Drops'));
+		// Clicking the active chip clears the filter.
+		await fireEvent.click(screen.getByTestId('opportunity-lowest'));
 
 		await waitFor(() => {
 			expect(replaceState).toHaveBeenCalled();

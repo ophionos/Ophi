@@ -14,13 +14,13 @@ export class DashboardPage extends BasePage {
 	readonly productCards: Locator;
 	readonly emptyProductsState: Locator;
 
-	// Stats bar
-	readonly statsBar: Locator;
+	// Header line with the account-wide counts
+	readonly pageHeader: Locator;
 
 	// Filters
 	readonly searchInput: Locator;
 	readonly sortSelect: Locator;
-	readonly statusFilters: Locator;
+	readonly statusSelect: Locator;
 	readonly favouriteFilter: Locator;
 
 	// View toggles
@@ -45,7 +45,7 @@ export class DashboardPage extends BasePage {
 
 	constructor(page: Page) {
 		super(page);
-		this.pageTitle = page.getByRole('heading', { name: 'Your Products' });
+		this.pageTitle = page.getByRole('heading', { name: 'Watchlist', level: 1 });
 		this.dashboardLink = page.getByRole('link', { name: 'Dashboard' });
 		this.loadingSpinner = page.locator('[data-testid="page-loading"]');
 
@@ -57,13 +57,12 @@ export class DashboardPage extends BasePage {
 		this.productCards = page.locator('[data-testid="product-card"]');
 		this.emptyProductsState = page.getByRole('heading', { name: 'Start tracking prices' });
 
-		// Stats bar
-		this.statsBar = page.locator('[data-testid="stats-bar"]');
+		this.pageHeader = page.locator('[data-testid="page-header"]');
 
 		// Filters
 		this.searchInput = page.locator('[data-testid="search-input"]');
 		this.sortSelect = page.locator('[data-testid="sort-select"]');
-		this.statusFilters = page.locator('[data-testid="status-filters"]');
+		this.statusSelect = page.locator('[data-testid="status-select"]');
 		this.favouriteFilter = page.locator('[data-testid="favourite-filter"]');
 
 		// View toggles
@@ -214,9 +213,8 @@ export class DashboardPage extends BasePage {
 		await this.sortSelect.selectOption(value);
 	}
 
-	async clickStatusFilter(status: 'all' | 'active' | 'paused' | 'error') {
-		const chip = this.page.locator(`[data-testid="status-chip-${status}"]`);
-		await chip.click();
+	async selectStatusFilter(status: 'all' | 'active' | 'paused' | 'error') {
+		await this.statusSelect.selectOption(status === 'all' ? '' : status);
 	}
 
 	async clickFavouriteFilter() {
