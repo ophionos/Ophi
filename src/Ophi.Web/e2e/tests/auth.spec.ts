@@ -159,7 +159,7 @@ test.describe('Authentication', () => {
 			await expect(storesPage.pageTitle).toBeVisible();
 
 			// Navigate back to dashboard
-			await page.getByRole('link', { name: 'Dashboard' }).click();
+			await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
 			await dashboardPage.waitForDashboardLoaded();
 			await dashboardPage.expectLoggedInAs(TEST_USER.name);
 

@@ -47,7 +47,7 @@ export class DashboardPage extends BasePage {
 	constructor(page: Page) {
 		super(page);
 		this.pageTitle = page.getByRole('heading', { name: 'Watchlist', level: 1 });
-		this.dashboardLink = page.getByRole('link', { name: 'Dashboard' });
+		this.dashboardLink = page.getByRole('link', { name: 'Dashboard', exact: true });
 		this.loadingSpinner = page.locator('[data-testid="page-loading"]');
 
 		// Add Product Form
