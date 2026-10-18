@@ -704,7 +704,6 @@ export interface Product {
 	sparkline?: { date: string; price: number }[];
 	priceMin?: number;
 	priceMax?: number;
-	dealScore?: number;
 	affiliateUrl?: string;
 	checkIntervalMinutes?: number;
 	hasPriceAnomaly?: boolean;

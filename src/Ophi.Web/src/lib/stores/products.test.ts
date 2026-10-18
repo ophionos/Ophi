@@ -23,7 +23,6 @@ function mockProduct(overrides: Partial<Product> = {}): Product {
 		sparkline: null,
 		priceMin: null,
 		priceMax: null,
-		dealScore: null,
 		affiliateUrl: null,
 		checkIntervalMinutes: null,
 		...overrides

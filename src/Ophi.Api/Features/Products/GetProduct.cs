@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
@@ -22,7 +21,7 @@ public static class GetProduct
         .WithName("GetProduct")
         .WithTags("Products")
         .WithSummary("Get a product by ID")
-        .WithDescription("Returns full product details including all URLs, price statistics (min, max, average over 90 days), custom fields, tags, alerts, deal score, and currency mismatch detection.")
+        .WithDescription("Returns full product details including all URLs, price statistics (min, max, average over 90 days), custom fields, tags, alerts, and currency mismatch detection.")
         .Produces<Response>(200)
         .RequireAuthorization();
     }
@@ -49,7 +48,6 @@ public static class GetProduct
         List<TagDto> Tags,
         List<ProductUrlDto> Urls,
         List<CustomFieldDto> CustomFields,
-        int? DealScore = null,
         int? CheckIntervalMinutes = null,
         bool HasPriceAnomaly = false
     );
@@ -163,26 +161,6 @@ public static class GetProduct
                 .Distinct()
                 .Count() > 1;
 
-            // Derive 14-day sparkline from the 90-day superset (no extra DB query)
-            var sparklineCutoff = timeProvider.GetUtcNow().UtcDateTime.AddDays(-14);
-            var recentPrices = allPricePoints.Where(pp => pp.RecordedAt >= sparklineCutoff).ToList();
-
-            List<GetProducts.SparklinePointDto>? sparklinePoints = null;
-            decimal? sparklineMin = null, sparklineMax = null;
-            if (recentPrices.Count > 0)
-            {
-                sparklinePoints = recentPrices
-                    .GroupBy(pp => pp.RecordedAt.Date)
-                    .OrderBy(g => g.Key)
-                    .Select(g => new GetProducts.SparklinePointDto(g.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), g.Min(pp => pp.Price)))
-                    .ToList();
-                sparklineMin = recentPrices.Min(pp => pp.Price);
-                sparklineMax = recentPrices.Max(pp => pp.Price);
-            }
-
-            var dealScore = GetProducts.ComputeDealScore(
-                product.CurrentPrice, sparklineMin, sparklineMax, sparklinePoints, product.Alerts, product.Currency);
-
             // Calculate price change percentage
             decimal? priceChange = null;
             if (product is { CurrentPrice: not null, PreviousPrice: not null and not 0 })
@@ -219,7 +197,6 @@ public static class GetProduct
                 tags,
                 urls,
                 product.CustomFields.Select(cf => new CustomFieldDto(cf.Name, cf.Value)).ToList(),
-                dealScore,
                 product.CheckIntervalMinutes,
                 product.HasPriceAnomaly
             );

@@ -27,7 +27,7 @@ public static class GetProducts
         .WithName("GetProducts")
         .WithTags("Products")
         .WithSummary("List products with filtering")
-        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price, pricechange, dateadded, lastchecked, or favourites (favourites first, then newest); no sort pins favourites otherwise. Pass includeSparkline=true to include the 30-day daily lows, the 90-day price range (which includes the current price), and deal scores (more expensive query). atLowest means at the 90-day low. Each item carries `attention` (its worst URL state, or null) and `closestAlert` (the active below/above target nearest the price, in the product's currency); needsAction=true and nearTarget=true filter on them, and needsActionCount/nearTargetCount count them account-wide. productCount, urlCount and stores (the stores the account's URLs use) are account-wide too.")
+        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price, pricechange, dateadded, lastchecked, or favourites (favourites first, then newest); no sort pins favourites otherwise. Pass includeSparkline=true to include the 30-day daily lows and the 90-day price range, which includes the current price (more expensive query). atLowest means at the 90-day low. Each item carries `attention` (its worst URL state, or null) and `closestAlert` (the active below/above target nearest the price, in the product's currency); needsAction=true and nearTarget=true filter on them, and needsActionCount/nearTargetCount count them account-wide. productCount, urlCount and stores (the stores the account's URLs use) are account-wide too.")
         .Produces<Response>(200)
         .RequireAuthorization();
     }
@@ -106,7 +106,6 @@ public static class GetProducts
         List<SparklinePointDto>? Sparkline = null,
         decimal? PriceMin = null,
         decimal? PriceMax = null,
-        int? DealScore = null,
         string? AffiliateUrl = null,
         int? CheckIntervalMinutes = null,
         bool HasPriceAnomaly = false,
@@ -140,81 +139,6 @@ public static class GetProducts
     public record SparklinePointDto(string Date, decimal Price);
 
     public record TagDto( Guid Id, string Name, string Color);
-
-    /// <summary>
-    /// Computes a 0-100 deal score based on price position, trend, and alert proximity.
-    /// </summary>
-    internal static int? ComputeDealScore(
-        decimal? currentPrice,
-        decimal? priceMin,
-        decimal? priceMax,
-        List<SparklinePointDto>? sparkline,
-        ICollection<Domain.Entities.Alert> alerts,
-        string productCurrency)
-    {
-        if (currentPrice == null || priceMin == null || priceMax == null || sparkline == null || sparkline.Count < 2)
-            return null;
-
-        // 1. Distance from low (40% weight): 100 = at min, 0 = at max
-        double distanceScore;
-        if (priceMax == priceMin)
-        {
-            distanceScore = 50;
-        }
-        else
-        {
-            distanceScore = (double)(1m - (currentPrice.Value - priceMin.Value) / (priceMax.Value - priceMin.Value)) * 100;
-        }
-
-        // 2. Trend direction (30% weight): compare avg of last 3 to avg of first 3
-        var firstN = sparkline.Take(Math.Min(3, sparkline.Count)).Average(s => (double)s.Price);
-        var lastN = sparkline.Skip(Math.Max(0, sparkline.Count - 3)).Average(s => (double)s.Price);
-        double trendScore;
-        if (firstN == 0)
-        {
-            trendScore = 50;
-        }
-        else
-        {
-            var trendPct = (lastN - firstN) / firstN;
-            // -20% decline -> score 100, +20% rise -> score 0, linear between
-            trendScore = Math.Clamp(50 - trendPct * 250, 0, 100);
-        }
-
-        // 3. Alert proximity (30% weight)
-        double alertScore;
-        var belowAlertTargets = alerts
-            // A target in another currency (dormant since a re-point) is not comparable to the price.
-            .Where(a => a.IsActive && a.Condition == Domain.Enums.AlertCondition.Below &&
-                        !a.HasCurrencyMismatch(productCurrency))
-            .Select(a => a.TargetPrice)
-            .ToList();
-
-        if (belowAlertTargets.Count == 0)
-        {
-            alertScore = 50; // Neutral when no alerts
-        }
-        else
-        {
-            // Find the closest "below" alert target
-            var bestProximity = belowAlertTargets
-                .Select(tp => (double)(currentPrice.Value - tp) / (double)currentPrice.Value)
-                .Min();
-
-            if (bestProximity <= 0)
-            {
-                alertScore = 100; // Already below target
-            }
-            else
-            {
-                // 0% gap = 100, 50%+ gap = 0
-                alertScore = Math.Clamp((1 - bestProximity * 2) * 100, 0, 100);
-            }
-        }
-
-        var score = distanceScore * 0.40 + trendScore * 0.30 + alertScore * 0.30;
-        return (int)Math.Round(Math.Clamp(score, 0, 100));
-    }
 
     public class Validator : AbstractValidator<Query>
     {
@@ -408,7 +332,7 @@ public static class GetProducts
                 .ToListAsync(cancellationToken);
 
             // Load per-product alert summary in one round-trip instead of Include(Alerts).
-            // Need: total count + the active below/above targets (ComputeDealScore, AlertProximity).
+            // Need: total count + the active below/above targets (AlertProximity).
             var entityIds = entities.Select(e => e.Id).ToList();
             var alertSummaries = entityIds.Count == 0
                 ? new Dictionary<Guid, (int Count, List<Alert> TargetAlerts)>()
@@ -537,9 +461,6 @@ public static class GetProducts
                     sparklineData != null ? (sp ?? new List<SparklinePointDto>()) : null,
                     ps?.Min,
                     ps?.Max,
-                    sparklineData != null
-                        ? ComputeDealScore(p.CurrentPrice, ps?.Min, ps?.Max, sp, alertSummary.TargetAlerts, p.Currency)
-                        : null,
                     affiliateUrl,
                     p.CheckIntervalMinutes,
                     p.HasPriceAnomaly,

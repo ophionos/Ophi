@@ -427,61 +427,6 @@ public class GetProductHandlerTests : IDisposable
         result.HasCurrencyMismatch.Should().BeTrue();
     }
 
-    // --- Deal Score Tests ---
-
-    [Fact]
-    public async Task Handle_WithPriceHistory_ReturnsDealScore()
-    {
-        // Arrange
-        var product = CreateProduct("Score Product", "https://example.com/score");
-        product.CurrentPrice = 50m;
-        _dbContext.Products.Add(product);
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var urlId = _dbContext.ProductUrls.First(u => u.ProductId == product.Id).Id;
-        // Declining prices: at the min
-        for (var i = 0; i < 5; i++)
-        {
-            _dbContext.PricePoints.Add(new PricePoint
-            {
-                Id = Guid.NewGuid(),
-                ProductId = product.Id,
-                ProductUrlId = urlId,
-                Price = 100m - (i * 12.5m),
-                Currency = "USD",
-                RecordedAt = DateTime.UtcNow.AddDays(-4 + i)
-            });
-        }
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var query = new GetProduct.Query(product.Id, _testUserId);
-
-        // Act
-        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
-
-        // Assert — product at min with declining trend = high score
-        result.DealScore.Should().NotBeNull();
-        result.DealScore.Should().BeGreaterThanOrEqualTo(70);
-    }
-
-    [Fact]
-    public async Task Handle_WithNoPriceHistory_ReturnsNullDealScore()
-    {
-        // Arrange
-        var product = CreateProduct("No History Score", "https://example.com/nohistscore");
-        product.CurrentPrice = 100m;
-        _dbContext.Products.Add(product);
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var query = new GetProduct.Query(product.Id, _testUserId);
-
-        // Act
-        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
-
-        // Assert
-        result.DealScore.Should().BeNull();
-    }
-
     // --- Affiliate URL Tests ---
 
     [Fact]
