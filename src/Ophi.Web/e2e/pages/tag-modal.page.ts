@@ -15,8 +15,8 @@ export class TagModalPage extends BaseModalPage {
 		this.nameInput = page.locator('[data-testid="tag-name-input"]');
 		this.weightInput = page.locator('[data-testid="tag-weight-input"]');
 		this.cancelButton = this.modal.getByRole('button', { name: 'Cancel' });
-		this.errorMessage = this.modal.locator('.bg-red-50');
-		this.nameError = this.modal.locator('.text-red-600, .text-red-400');
+		this.errorMessage = this.modal.locator('[data-form-error="box"]');
+		this.nameError = this.modal.locator('#tag-name-error');
 		this.colorButtons = this.modal.locator('button[aria-label^="Select color"]');
 	}
 

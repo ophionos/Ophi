@@ -21,7 +21,7 @@ export class AlertModalPage extends BasePage {
 		// Submit button is inside the modal form, scope it to the modal
 		this.submitButton = this.modal.getByRole('button', { name: 'Create Alert' });
 		this.cancelButton = this.modal.getByRole('button', { name: 'Cancel' });
-		this.errorMessage = this.modal.locator('.bg-red-50');
+		this.errorMessage = this.modal.locator('[data-form-error="box"]');
 	}
 
 	async expectOpen() {

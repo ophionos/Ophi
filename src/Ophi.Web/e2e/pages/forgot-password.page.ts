@@ -16,7 +16,7 @@ export class ForgotPasswordPage extends BasePage {
 		this.emailInput = page.getByLabel('Email address');
 		this.submitButton = page.getByRole('button', { name: 'Send reset link' });
 		this.successMessage = page.locator('[data-testid="success-message"]');
-		this.errorMessage = page.locator('.bg-red-50');
+		this.errorMessage = page.locator('[data-form-error="box"]');
 		this.backToSignInLink = page.getByRole('link', { name: 'Back to sign in' });
 		this.signInLink = page.getByRole('link', { name: 'Sign in' });
 	}

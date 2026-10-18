@@ -407,7 +407,9 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   own `.dark` value, so a component adds no `dark:` pair for it; a price change maps through
   `$lib/utils/priceColors.ts`. Chart series take `chartSeriesColor(i)` from `$lib/utils/chart.ts`, which
   has no green or red (they mean "dropped" and "rose"). Pages still on raw `green-*`/`bg-white` utilities
-  move to the tokens when they are next changed.
+  move to the tokens when they are next changed. `danger`/`success` are text colours (red-400/green-400 in
+  dark mode), so they take tints (`bg-danger/10`) but not solid fills under white text: that fails
+  contrast in dark mode. Solid red buttons and badges stay on raw `red-600` until a solid variant exists.
 - **Native form controls are themed once in `app.css`.** `accent-color` and `color-scheme` are set on
   `:root`/`.dark`, so a checkbox or radio adds no `accent-*` class. Number fields have no spinners. A
   `<select>` takes the `form-select` utility (chevron and right padding) and sets `pl-*`, never `px-*`,
@@ -425,7 +427,9 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   `BasePage.waitForPageLoad()` uses it) and for concrete responses (`page.waitForResponse`). The marker
   also stops pre-hydration clicks hitting native form behavior.
 - **e2e locators use `data-testid` or roles, never styling classes.** A `.bg-surface-2.rounded-lg`
-  alert-row locator matched nothing after a restyle, and only the nightly run caught it.
+  alert-row locator matched nothing after a restyle, and only the nightly run caught it. A form error is
+  `[data-form-error="box"]` (set by `FormError`); a `ConfirmModal` is its `aria-labelledby="confirm-modal-title"`
+  dialog. A role name matches substrings unless `exact: true` (`Dashboard` also matched `Ophi dashboard`).
 - **Settings-area e2e recipe** (`/settings/*`, `/scrape-health`):
   1. Clicks that open modals/toggles go inside `expect(...).toPass()`.
   2. Fills on fields re-synced by an on-mount `$effect` use `fillStable`

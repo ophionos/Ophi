@@ -17,7 +17,7 @@ export class ResetPasswordPage extends BasePage {
 		this.confirmPasswordInput = page.getByLabel('Confirm password');
 		this.submitButton = page.getByRole('button', { name: 'Reset password' });
 		this.successMessage = page.locator('[data-testid="success-message"]');
-		this.errorMessage = page.locator('.bg-red-50');
+		this.errorMessage = page.locator('[data-form-error="box"]');
 		this.signInLink = page.getByRole('link', { name: 'Sign in' });
 	}
 

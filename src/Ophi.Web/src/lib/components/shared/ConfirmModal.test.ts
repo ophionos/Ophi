@@ -101,7 +101,7 @@ describe('ConfirmModal', () => {
 		const { container } = render(ConfirmModal, { props: defaultProps });
 
 		// Look for the alert triangle icon (SVG element within the warning icon container)
-		const iconContainer = container.querySelector('.bg-red-100, .dark\\:bg-red-900');
+		const iconContainer = container.querySelector('.bg-danger\\/15');
 		expect(iconContainer).toBeInTheDocument();
 		const svg = iconContainer?.querySelector('svg');
 		expect(svg).toBeInTheDocument();

@@ -13,7 +13,7 @@ export class LoginPage extends BasePage {
 		// exact: the reveal toggle's aria-label ("Show password") also contains "Password".
 		this.passwordInput = page.getByLabel('Password', { exact: true });
 		this.submitButton = page.getByRole('button', { name: 'Sign in' });
-		this.errorMessage = page.locator('.bg-red-50');
+		this.errorMessage = page.locator('[data-form-error="box"]');
 	}
 
 	async goto() {
