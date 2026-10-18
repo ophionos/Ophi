@@ -311,7 +311,7 @@
 					data-testid="detect-url-input"
 					bind:value={detectUrl}
 					placeholder="https://example.com/product/123"
-					class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
+					class="flex-1 px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
 					disabled={detecting || loading}
 				/>
 				<button
@@ -319,7 +319,7 @@
 					data-testid="detect-button"
 					onclick={handleDetect}
 					disabled={detecting || loading}
-					class="px-4 py-2 text-sm font-medium text-white bg-brand-secondary rounded-md hover:bg-brand-secondary/90 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+					class="px-4 min-h-11 text-sm font-medium text-white bg-brand-secondary rounded-md hover:bg-brand-secondary/90 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
 				>
 					{#if detecting}
 						<LoaderCircle size={16} class="animate-spin" />
@@ -361,7 +361,7 @@
 					type="text"
 					bind:value={storeId}
 					placeholder="my-custom-store"
-					class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
+					class="mt-1 w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 						'storeid'
 					)
 						? 'border-red-300 dark:border-red-600'
@@ -386,7 +386,7 @@
 				type="text"
 				bind:value={name}
 				placeholder="My Custom Store"
-				class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
+				class="mt-1 w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 					'name'
 				)
 					? 'border-red-300 dark:border-red-600'
@@ -439,7 +439,7 @@
 				data-testid="store-price-locale"
 				bind:value={priceLocale}
 				disabled={loading}
-				class="mt-1 w-full form-select pl-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent"
+				class="mt-1 w-full form-select pl-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent"
 			>
 				<option value="en-US">English - US (1,234.56)</option>
 				<option value="en-GB">English - UK (1,234.56)</option>
@@ -458,7 +458,7 @@
 		</div>
 
 		<div>
-			<label class="flex items-center gap-2 cursor-pointer">
+			<label class="flex min-h-11 items-center gap-2 cursor-pointer">
 				<input
 					type="checkbox"
 					data-testid="store-requires-js"
@@ -476,7 +476,7 @@
 		</div>
 
 		<div>
-			<label class="flex items-center gap-2 cursor-pointer">
+			<label class="flex min-h-11 items-center gap-2 cursor-pointer">
 				<input
 					type="checkbox"
 					data-testid="currency-override-checkbox"
@@ -499,7 +499,7 @@
 					placeholder="EUR"
 					maxlength={3}
 					disabled={loading}
-					class="mt-2 ml-6 w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent uppercase {getFieldError('currencyoverride') ? 'border-red-300 dark:border-red-600' : ''}"
+					class="mt-2 ml-6 w-24 px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent uppercase {getFieldError('currencyoverride') ? 'border-red-300 dark:border-red-600' : ''}"
 				/>
 				{#if getFieldError('currencyoverride')}
 					<p role="alert" class="mt-1 ml-6 text-sm text-red-600 dark:text-red-400">
@@ -520,7 +520,7 @@
 				placeholder="Leave empty for automatic browser rotation"
 				maxlength={500}
 				disabled={loading}
-				class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-xs"
+				class="mt-1 w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-xs"
 			/>
 			<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
 				Override the browser identity for scraping this store. Leave blank to rotate through modern browser profiles automatically.
@@ -552,7 +552,7 @@
 				placeholder="tag"
 				maxlength={50}
 				disabled={loading}
-				class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
+				class="mt-1 w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
 			/>
 			<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
 				The query parameter name (e.g., "tag", "ref", "aff")
@@ -571,7 +571,7 @@
 				placeholder="my-affiliate-20"
 				maxlength={100}
 				disabled={loading}
-				class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
+				class="mt-1 w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
 			/>
 			<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
 				Your affiliate tag value (e.g., "ophi-20")
@@ -699,14 +699,14 @@
 			type="button"
 			onclick={onCancel}
 			disabled={loading}
-			class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+			class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
 		>
 			Cancel
 		</button>
 		<button
 			type="submit"
 			disabled={loading}
-			class="px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
+			class="px-4 min-h-11 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
 		>
 			{#if loading}
 				<LoaderCircle size={16} class="animate-spin" />

@@ -46,7 +46,7 @@
 		<button
 			type="button"
 			onclick={addItem}
-			class="text-sm text-brand dark:text-brand-muted hover:text-brand dark:hover:text-brand-muted flex items-center gap-1"
+			class="tap-area text-sm text-brand dark:text-brand-muted hover:text-brand dark:hover:text-brand-muted flex items-center gap-1"
 		>
 			<Plus size={14} />
 			Add
@@ -65,13 +65,13 @@
 					{value}
 					oninput={(e) => updateItem(index, e.currentTarget.value)}
 					{placeholder}
-					class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
+					class="flex-1 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
 				/>
 				<button
 					type="button"
 					onclick={() => removeItem(index)}
 					disabled={required && values.length <= 1}
-					class="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
 					title="Remove"
 				>
 					<X size={16} />

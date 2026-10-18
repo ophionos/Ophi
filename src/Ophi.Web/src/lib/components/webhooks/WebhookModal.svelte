@@ -83,7 +83,7 @@
 				placeholder="My Home Assistant webhook"
 				required
 				maxlength="100"
-				class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
+				class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
 			/>
 		</div>
 
@@ -98,7 +98,7 @@
 				bind:value={url}
 				placeholder="https://..."
 				required
-				class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
+				class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
 			/>
 		</div>
 
@@ -107,7 +107,7 @@
 			<p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fire on</p>
 			<div class="space-y-2">
 				{#each ALL_EVENTS as ev (ev.value)}
-					<label class="flex items-start gap-3 cursor-pointer">
+					<label class="flex min-h-11 items-start gap-3 cursor-pointer">
 						<input
 							type="checkbox"
 							checked={selectedEvents.includes(ev.value)}
@@ -149,14 +149,14 @@
 			<button
 				type="button"
 				onclick={onClose}
-				class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+				class="flex-1 px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
 			>
 				Cancel
 			</button>
 			<button
 				type="submit"
 				disabled={saving}
-				class="flex-1 px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-lg disabled:opacity-50 transition-colors"
+				class="flex-1 px-4 min-h-11 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-lg disabled:opacity-50 transition-colors"
 			>
 				{saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Webhook'}
 			</button>

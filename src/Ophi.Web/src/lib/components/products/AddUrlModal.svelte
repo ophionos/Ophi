@@ -61,7 +61,7 @@
 				placeholder="https://store.com/product"
 				required
 				disabled={loading}
-				class="w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand focus:border-transparent disabled:opacity-50 {error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}"
+				class="w-full px-3 min-h-11 border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand focus:border-transparent disabled:opacity-50 {error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}"
 			/>
 			<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
 				Add another store URL to compare prices
@@ -77,14 +77,14 @@
 				type="button"
 				onclick={onClose}
 				disabled={loading}
-				class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
 			>
 				Cancel
 			</button>
 			<button
 				type="submit"
 				disabled={loading || !url.trim() || !isValidHttpUrl(url)}
-				class="px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
+				class="px-4 min-h-11 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
 			>
 				{#if loading}
 					<LoaderCircle size={16} class="animate-spin" />

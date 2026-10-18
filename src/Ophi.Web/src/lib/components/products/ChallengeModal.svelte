@@ -185,11 +185,11 @@
 					aria-label="Text to type"
 					maxlength="256"
 					autocomplete="off"
-					class="flex-1 min-w-40 px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+					class="flex-1 min-w-40 px-3 min-h-11 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 				/>
 				<button
 					type="submit"
-					class="px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover"
+					class="px-3 min-h-11 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover"
 				>
 					Type
 				</button>
@@ -197,7 +197,7 @@
 					<button
 						type="button"
 						onclick={() => send({ kind: 'key', key })}
-						class="px-2 py-1.5 text-xs font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+						class="px-2 min-h-11 text-xs font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
 					>
 						{key}
 					</button>
@@ -214,7 +214,7 @@
 			<button
 				type="button"
 				onclick={cancel}
-				class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
 			>
 				Cancel
 			</button>

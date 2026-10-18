@@ -147,7 +147,7 @@
 				oninput={handleSearchInput}
 				placeholder="Search products…"
 				aria-label="Search products"
-				class="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
+				class="w-full pl-9 pr-3 min-h-11 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
 			/>
 		</div>
 	</div>
@@ -247,7 +247,7 @@
 				type="button"
 				onclick={handleClose}
 				disabled={submitting}
-				class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
 			>
 				Cancel
 			</button>
@@ -255,7 +255,7 @@
 				type="button"
 				onclick={handleAdd}
 				disabled={submitting || selected.size === 0}
-				class="px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
+				class="px-4 min-h-11 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
 			>
 				{#if submitting}
 					<LoaderCircle size={16} class="animate-spin" />

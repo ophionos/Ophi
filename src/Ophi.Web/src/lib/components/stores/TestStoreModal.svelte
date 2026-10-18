@@ -61,13 +61,13 @@
 					type="url"
 					bind:value={testUrl}
 					placeholder="https://example.com/product/123"
-					class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand focus:border-transparent"
+					class="flex-1 px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand focus:border-transparent"
 					disabled={loading}
 				/>
 				<button
 					onclick={handleTest}
 					disabled={loading || !testUrl.trim()}
-					class="px-4 py-2 bg-brand-secondary text-white rounded-lg hover:bg-brand-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+					class="px-4 min-h-11 bg-brand-secondary text-white rounded-lg hover:bg-brand-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 				>
 					{#if loading}
 						<LoaderCircle size={16} class="animate-spin" />

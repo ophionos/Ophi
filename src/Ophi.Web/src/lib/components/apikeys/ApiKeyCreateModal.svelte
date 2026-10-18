@@ -107,7 +107,7 @@
 				<code class="flex-1 text-sm font-mono text-gray-900 dark:text-gray-100 break-all select-all">{createdKey}</code>
 				<button
 					onclick={handleCopyKey}
-					class="shrink-0 p-1.5 text-gray-500 hover:text-brand dark:hover:text-brand-muted rounded transition-colors"
+					class="shrink-0 flex min-h-11 min-w-11 items-center justify-center text-gray-500 hover:text-brand dark:hover:text-brand-muted rounded transition-colors"
 					title="Copy to clipboard"
 				>
 					{#if copied}
@@ -126,7 +126,7 @@
 				<button
 					type="button"
 					onclick={handleClose}
-					class="px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md transition-colors"
+					class="px-4 min-h-11 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md transition-colors"
 				>
 					Done
 				</button>
@@ -147,18 +147,18 @@
 						bind:value={name}
 						placeholder="e.g., Home Assistant, cron script"
 						maxlength="100"
-						class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+						class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
 					/>
 				</div>
 
 				<fieldset>
 					<legend class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Scopes</legend>
 					<div class="space-y-2">
-						<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+						<label class="flex min-h-11 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
 							<input type="checkbox" bind:checked={scopeRead} class="rounded" data-testid="scope-read" />
 							<span><strong>read</strong> — view products, prices, alerts</span>
 						</label>
-						<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+						<label class="flex min-h-11 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
 							<input type="checkbox" bind:checked={scopeWrite} class="rounded" data-testid="scope-write" />
 							<span><strong>write</strong> — create/modify products and alerts</span>
 						</label>
@@ -172,7 +172,7 @@
 					<select
 						id="key-expires"
 						bind:value={expiresIn}
-						class="w-full form-select pl-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+						class="w-full form-select pl-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 					>
 						<option value="">Never</option>
 						<option value="30">30 days</option>
@@ -187,14 +187,14 @@
 						type="button"
 						onclick={handleClose}
 						disabled={saving}
-						class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+						class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
 						disabled={saving}
-						class="px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md disabled:opacity-50 flex items-center gap-2"
+						class="px-4 min-h-11 text-sm font-medium text-white bg-brand hover:bg-brand-hover rounded-md disabled:opacity-50 flex items-center gap-2"
 					>
 						{#if saving}
 							<LoaderCircle size={16} class="animate-spin" />

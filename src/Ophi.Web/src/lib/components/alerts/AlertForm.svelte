@@ -170,7 +170,7 @@
 				step={condition === 'percentDrop' ? '1' : '0.01'}
 				min="0"
 				bind:value={targetPrice}
-				class="block w-full pl-12 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white {getFieldError(
+				class="block w-full pl-12 pr-4 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white {getFieldError(
 					'targetprice'
 				)
 					? 'border-red-300 dark:border-red-600'
@@ -197,14 +197,14 @@
 			type="button"
 			onclick={onCancel}
 			disabled={loading}
-			class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+			class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
 		>
 			Cancel
 		</button>
 		<button
 			type="submit"
 			disabled={loading}
-			class="px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
+			class="px-4 min-h-11 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
 		>
 			{#if loading}
 				<LoaderCircle size={16} class="animate-spin" />

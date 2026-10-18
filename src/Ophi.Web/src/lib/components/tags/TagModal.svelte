@@ -104,7 +104,7 @@
 				type="text"
 				bind:value={name}
 				placeholder="e.g., Electronics, Wishlist"
-				class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 				data-testid="tag-name-input"
 				aria-invalid={nameError ? true : undefined}
 				aria-describedby={nameError ? 'tag-name-error' : undefined}
@@ -156,7 +156,7 @@
 				id="tag-weight"
 				type="number"
 				bind:value={weight}
-				class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 				data-testid="tag-weight-input"
 			/>
 			<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -169,14 +169,14 @@
 			<button
 				type="button"
 				onclick={onClose}
-				class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
+				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
 			>
 				Cancel
 			</button>
 			<button
 				type="submit"
 				disabled={saving}
-				class="px-4 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50"
+				class="px-4 min-h-11 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50"
 				data-testid="tag-save-button"
 			>
 				{saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Tag'}
