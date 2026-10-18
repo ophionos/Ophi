@@ -134,6 +134,18 @@ describe('ComparisonGroupPanel', () => {
 		);
 	});
 
+	it('should use the singular when the current group has one product', () => {
+		render(ComparisonGroupPanel, {
+			props: {
+				groups: [{ id: 'g1', name: 'Laptops', productCount: 1 }],
+				currentGroupId: 'g1',
+				onAdd: vi.fn(),
+				onRemove: vi.fn()
+			}
+		});
+		expect(screen.getByText('1 product in group')).toBeInTheDocument();
+	});
+
 	it('should call onRemove when Remove is clicked', async () => {
 		const onRemove = vi.fn();
 		render(ComparisonGroupPanel, {
