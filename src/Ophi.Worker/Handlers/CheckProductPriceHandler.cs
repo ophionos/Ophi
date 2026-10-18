@@ -379,7 +379,7 @@ public static class CheckProductPriceHandler
         }
         else
         {
-            productUrl.RecordFailure(errorMessage, now);
+            productUrl.RecordFailure(errorMessage, now, result.ErrorCategory);
         }
 
         dbContext.ScrapeLogs.Add(ScrapeOutcomeWriter.BuildFailureLog(

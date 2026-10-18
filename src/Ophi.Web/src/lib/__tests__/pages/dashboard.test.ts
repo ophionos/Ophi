@@ -48,7 +48,9 @@ const emptyPage = {
 	pageSize: 24,
 	atLowestCount: 0,
 	priceDropCount: 0,
-	withAlertsCount: 0
+	withAlertsCount: 0,
+	needsActionCount: 0,
+	nearTargetCount: 0
 };
 
 function renderDashboard(url = 'http://localhost/dashboard', products: Partial<typeof emptyPage> = {}) {
@@ -65,6 +67,8 @@ function renderDashboard(url = 'http://localhost/dashboard', products: Partial<t
 					atLowestCount: 1,
 					priceDropCount: 1,
 					withAlertsCount: 0,
+					needsActionCount: 0,
+					nearTargetCount: 0,
 					...products
 				},
 				tags: []

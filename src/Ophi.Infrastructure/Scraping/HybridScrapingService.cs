@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ophi.Infrastructure.Scraping.Adapters;
+using Ophi.Domain.Enums;
 
 namespace Ophi.Infrastructure.Scraping;
 

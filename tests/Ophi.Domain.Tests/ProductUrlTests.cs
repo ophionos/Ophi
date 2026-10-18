@@ -86,6 +86,59 @@ public class ProductUrlTests
     }
 
     [Fact]
+    public void RecordFailure_StoresTheErrorCategory()
+    {
+        var url = new ProductUrl();
+
+        url.RecordFailure("Blocked by anti-bot protection", Now, ScrapeErrorCategory.AntiBot);
+
+        url.LastErrorCategory.Should().Be(ScrapeErrorCategory.AntiBot);
+    }
+
+    [Fact]
+    public void RecordFailure_WithoutACategory_StoresUnknown()
+    {
+        var url = new ProductUrl();
+
+        url.RecordFailure("boom", Now);
+
+        url.LastErrorCategory.Should().Be(ScrapeErrorCategory.Unknown);
+    }
+
+    [Fact]
+    public void RecordTransientFailure_StoresRateLimited()
+    {
+        var url = new ProductUrl();
+
+        url.RecordTransientFailure("Rate limited", Now);
+
+        url.LastErrorCategory.Should().Be(ScrapeErrorCategory.RateLimited);
+    }
+
+    [Fact]
+    public void LastErrorCategory_IsClearedWheneverTheErrorIs()
+    {
+        // The category describes LastError; it must never outlive it.
+        static ProductUrl Failed()
+        {
+            var url = new ProductUrl { Status = ProductUrlStatus.Paused };
+            url.RecordFailure("Blocked", Now, ScrapeErrorCategory.AntiBot);
+            return url;
+        }
+
+        var scraped = Failed();
+        scraped.RecordSuccessfulScrape(10m, "USD", Now);
+        var outOfStock = Failed();
+        outOfStock.MarkOutOfStock(Now);
+        var resumed = Failed();
+        resumed.Resume();
+
+        scraped.LastErrorCategory.Should().BeNull();
+        outOfStock.LastErrorCategory.Should().BeNull();
+        resumed.LastErrorCategory.Should().BeNull();
+    }
+
+    [Fact]
     public void MarkOutOfStock_FromInStock_ReturnsTrueAndPreservesPrice()
     {
         var url = new ProductUrl

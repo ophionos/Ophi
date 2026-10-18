@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Ophi.Infrastructure.Scraping;
 using Ophi.Infrastructure.Scraping.Adapters;
+using Ophi.Domain.Enums;
 
 namespace Ophi.Infrastructure.Tests.Scraping;
 

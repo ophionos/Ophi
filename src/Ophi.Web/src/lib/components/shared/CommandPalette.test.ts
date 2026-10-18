@@ -189,7 +189,9 @@ describe('CommandPalette', () => {
 				pageSize: 24,
 				atLowestCount: 0,
 				priceDropCount: 0,
-				withAlertsCount: 0
+				withAlertsCount: 0,
+				needsActionCount: 0,
+				nearTargetCount: 0
 			});
 
 			render(CommandPalette, { props: defaultProps });
@@ -280,7 +282,9 @@ describe('CommandPalette', () => {
 				pageSize: 24,
 				atLowestCount: 0,
 				priceDropCount: 0,
-				withAlertsCount: 0
+				withAlertsCount: 0,
+				needsActionCount: 0,
+				nearTargetCount: 0
 			});
 			vi.mocked(api.getTags).mockRejectedValueOnce(new Error('Tags service down'));
 			// getStores uses the default mock (returns empty)
@@ -320,7 +324,9 @@ describe('CommandPalette', () => {
 				pageSize: 24,
 				atLowestCount: 0,
 				priceDropCount: 0,
-				withAlertsCount: 0
+				withAlertsCount: 0,
+				needsActionCount: 0,
+				nearTargetCount: 0
 			});
 
 			render(CommandPalette, { props: { ...defaultProps, onClose } });

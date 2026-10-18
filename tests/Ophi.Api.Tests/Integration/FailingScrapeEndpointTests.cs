@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Ophi.Infrastructure.Scraping;
+using Ophi.Domain.Enums;
 
 namespace Ophi.Api.Tests.Integration;
 

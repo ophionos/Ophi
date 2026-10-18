@@ -1,4 +1,5 @@
 using Ophi.Infrastructure.Scraping.Adapters;
+using Ophi.Domain.Enums;
 
 namespace Ophi.Infrastructure.Scraping;
 

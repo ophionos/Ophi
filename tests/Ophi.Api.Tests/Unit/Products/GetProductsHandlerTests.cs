@@ -1675,6 +1675,158 @@ public class GetProductsHandlerTests : IDisposable
         result.WithAlertsCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task Handle_WithABlockedUrl_ReturnsTheAttentionSummary()
+    {
+        var product = CreateProduct("Blocked", "https://example.com/blocked");
+        var url = product.ProductUrls.First();
+        url.RecordFailure("Blocked by anti-bot", DateTime.UtcNow, ScrapeErrorCategory.AntiBot);
+        _dbContext.Products.Add(product);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetProducts.Query(_testUserId), TestContext.Current.CancellationToken);
+
+        var attention = result.Items.Single().Attention;
+        attention.Should().NotBeNull();
+        attention!.Kind.Should().Be("blocked");
+        attention.IsAction.Should().BeTrue();
+        attention.ProductUrlId.Should().Be(url.Id);
+        attention.Url.Should().Be("https://example.com/blocked");
+        attention.ConsecutiveFailures.Should().Be(1);
+        attention.LastError.Should().Be("Blocked by anti-bot");
+    }
+
+    [Fact]
+    public async Task Handle_WithAHealthyUrl_ReturnsNoAttention()
+    {
+        _dbContext.Products.Add(CreateProduct("Healthy", "https://example.com/healthy"));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetProducts.Query(_testUserId), TestContext.Current.CancellationToken);
+
+        result.Items.Single().Attention.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_NeedsActionCountAndFilter_MatchTheRowsWithAnActionState()
+    {
+        // Two action states, and four that are not: healthy, rate limited, out of stock, paused.
+        var now = DateTime.UtcNow;
+        var blocked = CreateProduct("Blocked", "https://example.com/1");
+        blocked.ProductUrls.First().RecordFailure("blocked", now, ScrapeErrorCategory.AntiBot);
+        var anomaly = CreateProduct("Anomaly", "https://example.com/2");
+        anomaly.ProductUrls.First().RecordPriceAnomaly(true);
+        var rateLimited = CreateProduct("Rate limited", "https://example.com/3");
+        for (var i = 0; i < 3; i++) rateLimited.ProductUrls.First().RecordTransientFailure("429", now);
+        var outOfStock = CreateProduct("Out of stock", "https://example.com/4");
+        outOfStock.ProductUrls.First().MarkOutOfStock(now);
+        var paused = CreateProduct("Paused", "https://example.com/5");
+        paused.ProductUrls.First().Pause();
+        var healthy = CreateProduct("Healthy", "https://example.com/6");
+        _dbContext.Products.AddRange(blocked, anomaly, rateLimited, outOfStock, paused, healthy);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var all = await _handler.Handle(new GetProducts.Query(_testUserId), TestContext.Current.CancellationToken);
+        var filtered = await _handler.Handle(
+            new GetProducts.Query(_testUserId, NeedsAction: true), TestContext.Current.CancellationToken);
+
+        var actionRows = all.Items.Where(i => i.Attention?.IsAction == true).Select(i => i.Name).ToList();
+        actionRows.Should().BeEquivalentTo("Blocked", "Anomaly");
+        all.NeedsActionCount.Should().Be(actionRows.Count);
+        filtered.Items.Select(i => i.Name).Should().BeEquivalentTo(actionRows);
+        filtered.Total.Should().Be(actionRows.Count);
+        all.Items.Single(i => i.Name == "Out of stock").Attention!.Kind.Should().Be("outOfStock");
+        all.Items.Single(i => i.Name == "Paused").Attention!.IsAction.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_NeedsActionCount_IsGlobalNotFiltered()
+    {
+        var blocked = CreateProduct("Blocked Paused", "https://example.com/1", status: ProductStatus.Paused);
+        blocked.ProductUrls.First().RecordFailure("blocked", DateTime.UtcNow, ScrapeErrorCategory.AntiBot);
+        _dbContext.Products.AddRange(blocked, CreateProduct("Active", "https://example.com/2"));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(
+            new GetProducts.Query(_testUserId, Status: "active"), TestContext.Current.CancellationToken);
+
+        result.Items.Should().ContainSingle(p => p.Name == "Active");
+        result.NeedsActionCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WithAlerts_ReturnsTheClosestTargetInTheProductCurrency()
+    {
+        var product = CreateProduct("Alerted", "https://example.com/alerted", currentPrice: 104m);
+        _dbContext.Products.Add(product);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var near = AlertFor(product, 100m);
+        _dbContext.Alerts.AddRange(
+            near,
+            AlertFor(product, 50m),
+            // Closer in number, but in another currency: not comparable to the price.
+            AlertFor(product, 103m, currency: "EUR"),
+            AlertFor(product, 10m, AlertCondition.PercentDrop));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetProducts.Query(_testUserId), TestContext.Current.CancellationToken);
+
+        var target = result.Items.Single().ClosestAlert;
+        target.Should().NotBeNull();
+        target!.AlertId.Should().Be(near.Id);
+        target.Condition.Should().Be("below");
+        target.TargetPrice.Should().Be(100m);
+        target.Gap.Should().Be(4m);
+        target.IsNear.Should().BeTrue();
+        result.Items.Single().AlertCount.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task Handle_NearTargetCountAndFilter_MatchTheRowsWithANearTarget()
+    {
+        var near = CreateProduct("Near", "https://example.com/1", currentPrice: 104m);
+        var far = CreateProduct("Far", "https://example.com/2", currentPrice: 120m);
+        var euro = CreateProduct("Euro target", "https://example.com/3", currentPrice: 104m);
+        var noAlert = CreateProduct("No alert", "https://example.com/4", currentPrice: 104m);
+        _dbContext.Products.AddRange(near, far, euro, noAlert);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _dbContext.Alerts.AddRange(
+            AlertFor(near, 100m),
+            AlertFor(far, 100m),
+            AlertFor(euro, 100m, currency: "EUR"));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var all = await _handler.Handle(new GetProducts.Query(_testUserId), TestContext.Current.CancellationToken);
+        var filtered = await _handler.Handle(
+            new GetProducts.Query(_testUserId, NearTarget: true), TestContext.Current.CancellationToken);
+
+        var nearRows = all.Items.Where(i => i.ClosestAlert?.IsNear == true).Select(i => i.Name).ToList();
+        nearRows.Should().Equal("Near");
+        all.NearTargetCount.Should().Be(nearRows.Count);
+        filtered.Items.Select(i => i.Name).Should().Equal(nearRows);
+        all.Items.Single(i => i.Name == "Far").ClosestAlert!.IsNear.Should().BeFalse();
+        all.Items.Single(i => i.Name == "Euro target").ClosestAlert.Should().BeNull();
+    }
+
+    private Alert AlertFor(
+        Product product,
+        decimal target,
+        AlertCondition condition = AlertCondition.Below,
+        string currency = "USD") =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            ProductId = product.Id,
+            UserId = _testUserId,
+            TargetPrice = target,
+            ReferencePrice = 120m,
+            Condition = condition,
+            Currency = currency,
+            IsActive = true
+        };
+
     private Product CreateProduct(
         string name,
         string url,

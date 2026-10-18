@@ -5,6 +5,7 @@ using AngleSharp.Dom;
 using Microsoft.Extensions.Logging;
 using Ophi.Infrastructure.Net;
 using Ophi.Infrastructure.Scraping.Adapters;
+using Ophi.Domain.Enums;
 
 namespace Ophi.Infrastructure.Scraping;
 

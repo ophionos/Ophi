@@ -4,6 +4,7 @@ using Moq;
 using Ophi.Infrastructure.Scraping;
 using Ophi.Infrastructure.Scraping.Adapters;
 using RichardSzalay.MockHttp;
+using Ophi.Domain.Enums;
 
 namespace Ophi.Infrastructure.Tests.Scraping;
 

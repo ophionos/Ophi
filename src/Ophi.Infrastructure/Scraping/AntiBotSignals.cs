@@ -1,3 +1,4 @@
+using Ophi.Domain.Enums;
 namespace Ophi.Infrastructure.Scraping;
 
 /// <summary>

@@ -8,6 +8,7 @@ using Ophi.Api.Common.Helpers;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
 using Ophi.Domain.Extensions;
+using Ophi.Domain.Services;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
 
@@ -17,16 +18,16 @@ public static class GetProducts
 {
     public static void MapGetProductsEndpoint(this IEndpointRouteBuilder routes)
     {
-        routes.MapGet("/api/v1/products", async (Guid? tagId, string? search, string? status, string? sortBy, string? sortDirection, int? page, int? pageSize, bool? includeSparkline, bool? atLowest, bool? favourite, bool? priceDrop, bool? hasAlerts, IMessageBus bus, HttpContext context) =>
+        routes.MapGet("/api/v1/products", async (Guid? tagId, string? search, string? status, string? sortBy, string? sortDirection, int? page, int? pageSize, bool? includeSparkline, bool? atLowest, bool? favourite, bool? priceDrop, bool? hasAlerts, bool? needsAction, bool? nearTarget, IMessageBus bus, HttpContext context) =>
         {
-            var query = new Query(context.User.GetUserId(), tagId, search, status, sortBy, sortDirection, page, pageSize, includeSparkline, atLowest, favourite, priceDrop, hasAlerts);
+            var query = new Query(context.User.GetUserId(), tagId, search, status, sortBy, sortDirection, page, pageSize, includeSparkline, atLowest, favourite, priceDrop, hasAlerts, needsAction, nearTarget);
             var result = await bus.InvokeAsync<Response>(query);
             return Results.Ok(result);
         })
         .WithName("GetProducts")
         .WithTags("Products")
         .WithSummary("List products with filtering")
-        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price, or lastChecked. Pass includeSparkline=true to include 14-day price history, min/max prices, and deal scores (more expensive query).")
+        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price, or lastChecked. Pass includeSparkline=true to include 14-day price history, min/max prices, and deal scores (more expensive query). Each item carries `attention` (its worst URL state, or null) and `closestAlert` (the active below/above target nearest the price, in the product's currency); needsAction=true and nearTarget=true filter on them, and needsActionCount/nearTargetCount count them account-wide.")
         .Produces<Response>(200)
         .RequireAuthorization();
     }
@@ -44,7 +45,9 @@ public static class GetProducts
         bool? AtLowest = null,
         bool? Favourite = null,
         bool? PriceDrop = null,
-        bool? HasAlerts = null
+        bool? HasAlerts = null,
+        bool? NeedsAction = null,
+        bool? NearTarget = null
     );
 
     public record Response(
@@ -54,7 +57,9 @@ public static class GetProducts
         int PageSize,
         int AtLowestCount = 0,
         int PriceDropCount = 0,
-        int WithAlertsCount = 0);
+        int WithAlertsCount = 0,
+        int NeedsActionCount = 0,
+        int NearTargetCount = 0);
 
     public record ProductDto(
          Guid Id,
@@ -79,8 +84,30 @@ public static class GetProducts
         int? DealScore = null,
         string? AffiliateUrl = null,
         int? CheckIntervalMinutes = null,
-        bool HasPriceAnomaly = false
+        bool HasPriceAnomaly = false,
+        AttentionDto? Attention = null,
+        AlertTargetDto? ClosestAlert = null
     );
+
+    /// <summary>
+    /// The product's worst URL state (<see cref="ProductAttention.Worst"/>) and the URL to act on.
+    /// <c>Kind</c> is the camelCase <see cref="AttentionKind"/>; <c>IsAction</c> is false for the
+    /// information-only states (out of stock, paused).
+    /// </summary>
+    public record AttentionDto(
+        string Kind,
+        bool IsAction,
+        Guid ProductUrlId,
+        string Url,
+        int ConsecutiveFailures,
+        DateTime? BackoffUntil,
+        string? LastError);
+
+    /// <summary>
+    /// The alert target nearest the current price (<see cref="AlertProximity.Closest"/>). <c>Gap</c>
+    /// is how far the price still has to move, in the product's currency; zero or less means reached.
+    /// </summary>
+    public record AlertTargetDto(Guid AlertId, string Condition, decimal TargetPrice, decimal Gap, bool IsNear);
 
     public record SparklinePointDto(string Date, decimal Price);
 
@@ -246,6 +273,17 @@ public static class GetProducts
                 query = query.Where(p => p.Alerts.Any());
             }
 
+            // The same predicates feed the counts below, so a chip's number always equals its rows.
+            if (request.NeedsAction == true)
+            {
+                query = query.Where(ProductAttention.NeedsAction);
+            }
+
+            if (request.NearTarget == true)
+            {
+                query = query.Where(AlertProximity.NearTarget);
+            }
+
             // Sort - favourites always first, then by specified sort
             var sortDirection = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase)
                 ? "desc" : "asc";
@@ -290,9 +328,10 @@ public static class GetProducts
             // Stats-bar counts are computed against the global user scope (unfiltered) in one DB
             // roundtrip, so each number stays independent of whatever filter is currently applied —
             // the bar always describes the whole watchlist, the list shows the filtered slice.
-            var counts = await dbContext.Products
+            var userProducts = dbContext.Products
                 .AsNoTracking()
-                .Where(p => p.UserId == request.UserId)
+                .Where(p => p.UserId == request.UserId);
+            var counts = await userProducts
                 .GroupBy(_ => 1)
                 .Select(g => new
                 {
@@ -306,6 +345,10 @@ public static class GetProducts
                     WithAlerts = g.Count(p => p.Alerts.Any())
                 })
                 .FirstOrDefaultAsync(cancellationToken);
+            // Separate counts: the shared predicates are Expressions, which a g.Count(...) lambda
+            // cannot embed without restating them.
+            var needsActionCount = await userProducts.CountAsync(ProductAttention.NeedsAction, cancellationToken);
+            var nearTargetCount = await userProducts.CountAsync(AlertProximity.NearTarget, cancellationToken);
 
             var atLowestCount = counts?.AtLowest ?? 0;
             var priceDropCount = counts?.PriceDrops ?? 0;
@@ -318,10 +361,10 @@ public static class GetProducts
                 .ToListAsync(cancellationToken);
 
             // Load per-product alert summary in one round-trip instead of Include(Alerts).
-            // Need: total count + Below-condition target prices (for ComputeDealScore).
+            // Need: total count + the active below/above targets (ComputeDealScore, AlertProximity).
             var entityIds = entities.Select(e => e.Id).ToList();
             var alertSummaries = entityIds.Count == 0
-                ? new Dictionary<Guid, (int Count, List<Alert> BelowAlerts)>()
+                ? new Dictionary<Guid, (int Count, List<Alert> TargetAlerts)>()
                 : await dbContext.Alerts
                     .AsNoTracking()
                     .Where(a => entityIds.Contains(a.ProductId))
@@ -330,10 +373,11 @@ public static class GetProducts
                     {
                         ProductId = g.Key,
                         Count = g.Count(),
-                        BelowAlerts = g
-                            .Where(a => a.IsActive && a.Condition == AlertCondition.Below)
+                        TargetAlerts = g
+                            .Where(a => a.IsActive && a.Condition != AlertCondition.PercentDrop)
                             .Select(a => new Alert
                             {
+                                Id = a.Id,
                                 TargetPrice = a.TargetPrice,
                                 Condition = a.Condition,
                                 IsActive = a.IsActive,
@@ -341,7 +385,7 @@ public static class GetProducts
                             })
                             .ToList()
                     })
-                    .ToDictionaryAsync(x => x.ProductId, x => (x.Count, x.BelowAlerts), cancellationToken);
+                    .ToDictionaryAsync(x => x.ProductId, x => (x.Count, x.TargetAlerts), cancellationToken);
 
             // Batch-load sparkline data when requested
             Dictionary<Guid, List<SparklinePointDto>>? sparklineData = null;
@@ -394,7 +438,9 @@ public static class GetProducts
 
                 var alertSummary = alertSummaries.TryGetValue(p.Id, out var asum)
                     ? asum
-                    : (Count: 0, BelowAlerts: new List<Alert>());
+                    : (Count: 0, TargetAlerts: new List<Alert>());
+                var worst = ProductAttention.Worst(p.ProductUrls);
+                var closest = AlertProximity.Closest(alertSummary.TargetAlerts, p.CurrentPrice, p.Currency);
 
                 return new ProductDto(
                     p.Id,
@@ -419,16 +465,24 @@ public static class GetProducts
                     ps?.Min,
                     ps?.Max,
                     sparklineData != null
-                        ? ComputeDealScore(p.CurrentPrice, ps?.Min, ps?.Max, sp, alertSummary.BelowAlerts, p.Currency)
+                        ? ComputeDealScore(p.CurrentPrice, ps?.Min, ps?.Max, sp, alertSummary.TargetAlerts, p.Currency)
                         : null,
                     affiliateUrl,
                     p.CheckIntervalMinutes,
-                    p.HasPriceAnomaly
+                    p.HasPriceAnomaly,
+                    worst is (var kind, var worstUrl)
+                        ? new AttentionDto(kind.ToApiString(), ProductAttention.IsAction(kind), worstUrl.Id,
+                            worstUrl.Url, worstUrl.ConsecutiveFailures, worstUrl.BackoffUntil, worstUrl.LastError)
+                        : null,
+                    closest is (var alert, var gap, var isNear)
+                        ? new AlertTargetDto(alert.Id, alert.Condition.ToApiString(), alert.TargetPrice, gap, isNear)
+                        : null
                 );
             }).ToList();
 
             logger.LogDebug("Returning {Count}/{Total} products for user {UserId}", products.Count, total, request.UserId);
-            return new Response(products, total, page, pageSize, atLowestCount, priceDropCount, withAlertsCount);
+            return new Response(products, total, page, pageSize, atLowestCount, priceDropCount, withAlertsCount,
+                needsActionCount, nearTargetCount);
         }
     }
 }

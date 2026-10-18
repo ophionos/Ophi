@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Ophi.Infrastructure.Scraping;
 using Ophi.Infrastructure.Scraping.Adapters;
 using Ophi.Infrastructure.Scraping.Adapters.StoreConfigs;
+using Ophi.Domain.Enums;
 
 namespace Ophi.Infrastructure.Tests.Scraping;
 

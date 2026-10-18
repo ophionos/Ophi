@@ -9,6 +9,7 @@ public class ProductUrl : BaseEntity
     // backing field by convention.
     private DateTime? _lastCheckedAt;
     private string? _lastError;
+    private ScrapeErrorCategory? _lastErrorCategory;
     private int _failureCount;
     private ProductUrlStatus _status = ProductUrlStatus.Active;
     private int _suspiciousCount;
@@ -29,6 +30,12 @@ public class ProductUrl : BaseEntity
     public DateTime? LastCheckedAt { get => _lastCheckedAt; init => _lastCheckedAt = value; }
     public string? LastError { get => _lastError; init => _lastError = value; }
     public int FailureCount { get => _failureCount; init => _failureCount = value; }
+
+    /// <summary>
+    /// What kind of failure <see cref="LastError"/> is, so readers need not parse its text. Set and
+    /// cleared together with <see cref="LastError"/>. Null on rows written before the column existed.
+    /// </summary>
+    public ScrapeErrorCategory? LastErrorCategory { get => _lastErrorCategory; init => _lastErrorCategory = value; }
 
     // URL health monitoring
     public ProductUrlStatus Status { get => _status; init => _status = value; }
@@ -103,6 +110,7 @@ public class ProductUrl : BaseEntity
         Currency = currency ?? Currency;
         _lastCheckedAt = now;
         _lastError = null;
+        _lastErrorCategory = null;
         _failureCount = 0;
         _failureNotified = false; // Streak over — a future streak must be able to notify again.
         _isOutOfStock = false;
@@ -115,10 +123,12 @@ public class ProductUrl : BaseEntity
     /// Use <see cref="RecordTransientFailure"/> for failures that should not count (e.g.,
     /// rate limiting where the next attempt is expected to succeed).
     /// </summary>
-    public void RecordFailure(string? error, DateTime now)
+    public void RecordFailure(string? error, DateTime now, ScrapeErrorCategory category = ScrapeErrorCategory.Unknown)
     {
         _failureCount++;
         _lastError = error;
+        // A failure always has a kind; None means the scraper did not say which.
+        _lastErrorCategory = category == ScrapeErrorCategory.None ? ScrapeErrorCategory.Unknown : category;
         _lastCheckedAt = now;
         ExtendBackoff(now);
     }
@@ -141,6 +151,7 @@ public class ProductUrl : BaseEntity
     public void RecordTransientFailure(string? error, DateTime now)
     {
         _lastError = error;
+        _lastErrorCategory = ScrapeErrorCategory.RateLimited;
         _lastCheckedAt = now;
         ExtendBackoff(now);
     }
@@ -176,6 +187,7 @@ public class ProductUrl : BaseEntity
         var wasInStock = !_isOutOfStock;
         _isOutOfStock = true;
         _lastError = null;
+        _lastErrorCategory = null;
         _failureCount = 0; // The scrape worked, just OOS — don't budget against failures.
         _failureNotified = false;
         _lastCheckedAt = now;
@@ -249,6 +261,7 @@ public class ProductUrl : BaseEntity
         _failureNotified = false;
         _hasPriceAnomaly = false;
         _lastError = null;
+        _lastErrorCategory = null;
         ClearBackoff();
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 using Ophi.Infrastructure.Net;
 using Ophi.Infrastructure.Scraping.Adapters;
+using Ophi.Domain.Enums;
 
 namespace Ophi.Infrastructure.Scraping;
 
