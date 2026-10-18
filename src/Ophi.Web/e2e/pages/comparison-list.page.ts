@@ -17,9 +17,7 @@ export class ComparisonListPage extends BasePage {
 		this.emptyState = page.getByText('No comparison groups yet');
 		// The stats are a slim inline summary (label + value spans), not cards.
 		this.totalGroupsCount = page.getByTestId('stat-total-groups').locator('span.font-semibold');
-		this.totalProductsCount = page
-			.getByTestId('stat-total-products')
-			.locator('span.font-semibold');
+		this.totalProductsCount = page.getByTestId('stat-total-products').locator('span.font-semibold');
 	}
 
 	async goto() {
@@ -35,16 +33,17 @@ export class ComparisonListPage extends BasePage {
 		await this.createButton.click();
 	}
 
-	/** Find a group card by its name using the h3 heading inside each card */
+	/** Find a group card by the name in its h3 heading */
 	getGroupCardByName(name: string): Locator {
-		// Each ComparisonCard has an h3 with the group name.
-		// Navigate up to the card div (parent of the flex > div > h3 structure)
-		return this.page.locator('h3').filter({ hasText: name }).locator('..').locator('..').locator('..');
+		return this.page
+			.getByTestId('comparison-card')
+			.filter({ has: this.page.locator('h3', { hasText: name }) });
 	}
 
+	/** The card has no View button: the name link stretches over the card and opens the group. */
 	async clickViewGroup(groupName: string) {
 		const card = this.getGroupCardByName(groupName);
-		await card.locator('button[title="View"]').click();
+		await card.getByRole('link', { name: groupName }).click();
 	}
 
 	async clickDeleteGroup(groupName: string) {
@@ -62,8 +61,7 @@ export class ComparisonListPage extends BasePage {
 
 	async getGroupCount(): Promise<number> {
 		await this.waitForLoaded();
-		// Count h3 elements that are group names (inside the card grid)
-		return await this.page.locator('button[title="View"]').count();
+		return await this.page.getByTestId('comparison-card').count();
 	}
 
 	async expectGroupProductCount(groupName: string, count: number) {
