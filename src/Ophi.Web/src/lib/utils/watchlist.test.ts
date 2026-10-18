@@ -7,6 +7,9 @@ import {
 	alertTargetText,
 	alertDistanceText,
 	productInitial,
+	fixAction,
+	attentionCause,
+	hostOf,
 	STALE_AFTER_HOURS
 } from './watchlist';
 
@@ -98,5 +101,33 @@ describe('productInitial', () => {
 		expect(productInitial('desk lamp')).toBe('D');
 		expect(productInitial('  "4K" monitor')).toBe('4');
 		expect(productInitial('')).toBe('?');
+	});
+});
+
+describe('fixAction', () => {
+	it('should offer the check only when challenges are available', () => {
+		expect(fixAction('blocked', true)).toEqual({ kind: 'challenge', label: 'Solve check' });
+		expect(fixAction('blocked', false)).toEqual({ kind: 'retry', label: 'Retry now' });
+	});
+
+	it('should retry a failing URL and send the rest to the product page', () => {
+		expect(fixAction('failing', true).kind).toBe('retry');
+		expect(fixAction('priceNotFound', true)).toEqual({ kind: 'link', label: 'Open product' });
+		expect(fixAction('priceAnomaly', true)).toEqual({ kind: 'link', label: 'Review' });
+	});
+});
+
+describe('attentionCause', () => {
+	it('should state the cause with the failure count for a failing URL', () => {
+		const attention = { kind: 'failing' as const, isAction: true, productUrlId: 'u', url: 'https://x.test', consecutiveFailures: 4 };
+		expect(attentionCause(attention)).toBe('4 failed checks in a row');
+		expect(attentionCause({ ...attention, kind: 'blocked' })).toBe('The store blocks automated checks');
+	});
+});
+
+describe('hostOf', () => {
+	it('should drop www. and survive a bad URL', () => {
+		expect(hostOf('https://www.shop.example/p/1')).toBe('shop.example');
+		expect(hostOf('not a url')).toBe('');
 	});
 });

@@ -1,52 +1,38 @@
 import { browser } from '$app/environment';
 
-export type ViewMode = 'grid' | 'list' | 'feed';
+/** 'list' is the table, 'grid' the gallery. The stored values predate those names. */
+export type ViewMode = 'grid' | 'list';
 
 const STORAGE_KEY = 'dashboard-view-mode';
 
 /**
- * Past this many products the grid stops being the denser fit and list becomes the better
- * default. Only applies to a dashboard whose view has never been chosen by hand.
+ * The table is the default. The old activity-feed mode is now a side rail next to either view,
+ * so a stored 'feed' (or anything unknown) reads as the table.
  */
-export const LIST_DEFAULT_THRESHOLD = 12;
+function readStoredChoice(): ViewMode {
+	if (!browser) return 'list';
 
-/**
- * A stored value only exists once the user has used the view toggle, so its presence — not its
- * value — is what distinguishes a deliberate 'grid' from the untouched default.
- */
-function readStoredChoice(): ViewMode | null {
-	if (!browser) return null;
-
-	const stored = localStorage.getItem(STORAGE_KEY);
-	return stored === 'list' || stored === 'feed' || stored === 'grid' ? stored : null;
+	try {
+		return localStorage.getItem(STORAGE_KEY) === 'grid' ? 'grid' : 'list';
+	} catch {
+		return 'list';
+	}
 }
 
-const storedChoice = readStoredChoice();
-
-let explicitChoice = $state<ViewMode | null>(storedChoice);
-let current = $state<ViewMode>(storedChoice ?? 'grid');
+let current = $state<ViewMode>(readStoredChoice());
 
 export const viewMode = {
 	get current() {
 		return current;
 	},
-	get hasExplicitChoice() {
-		return explicitChoice !== null;
-	},
 	set(value: ViewMode) {
 		if (browser) {
-			localStorage.setItem(STORAGE_KEY, value);
+			try {
+				localStorage.setItem(STORAGE_KEY, value);
+			} catch {
+				// A per-viewer convenience: the view still switches without storage.
+			}
 		}
-		explicitChoice = value;
 		current = value;
-	},
-	/**
-	 * Applies the count-based default. Deliberately does not persist: an untouched dashboard
-	 * should follow the product count in both directions, and writing here would forge a
-	 * preference the user never expressed. No-op once they have chosen a view themselves.
-	 */
-	applyCountDefault(productCount: number) {
-		if (explicitChoice !== null) return;
-		current = productCount >= LIST_DEFAULT_THRESHOLD ? 'list' : 'grid';
 	}
 };

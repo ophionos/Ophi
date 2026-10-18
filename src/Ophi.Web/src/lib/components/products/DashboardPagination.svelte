@@ -14,7 +14,7 @@
 	<button
 		onclick={() => onPageChange(Math.max(1, currentPage - 1))}
 		disabled={currentPage <= 1}
-		class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors {currentPage <= 1 ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+		class="flex min-h-11 items-center gap-1 px-3 text-sm font-medium rounded-md transition-colors {currentPage <= 1 ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
 		data-testid="pagination-prev"
 	>
 		<ChevronLeft size={16} />
@@ -26,7 +26,7 @@
 	<button
 		onclick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
 		disabled={currentPage >= totalPages}
-		class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors {currentPage >= totalPages ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+		class="flex min-h-11 items-center gap-1 px-3 text-sm font-medium rounded-md transition-colors {currentPage >= totalPages ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
 		data-testid="pagination-next"
 	>
 		Next

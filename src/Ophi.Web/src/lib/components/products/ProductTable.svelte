@@ -1,15 +1,9 @@
 <script lang="ts">
 	import {
-		ExternalLink,
-		Trash2,
-		Bell,
-		Pause,
-		Play,
 		LoaderCircle,
 		Star,
 		Check,
 		X,
-		History,
 		RefreshCw,
 		ArrowUp,
 		ArrowDown,
@@ -25,7 +19,8 @@
 	import TagBadge from '$lib/components/tags/TagBadge.svelte';
 	import ProductTableMobileCard from '$lib/components/products/ProductTableMobileCard.svelte';
 	import FormError from '$lib/components/shared/FormError.svelte';
-	import ActionMenu, { type ActionMenuItem } from '$lib/components/shared/ActionMenu.svelte';
+	import ActionMenu from '$lib/components/shared/ActionMenu.svelte';
+	import { productMenuItems } from '$lib/components/products/productMenu';
 	import AttentionPill from '$lib/components/products/AttentionPill.svelte';
 	import PriceChangeChip from '$lib/components/products/PriceChangeChip.svelte';
 	import PriceRangeBar from '$lib/components/products/PriceRangeBar.svelte';
@@ -120,23 +115,8 @@
 		return quickAlertFor(product.id).submit(product.id);
 	}
 
-	function menuItems(product: Product): ActionMenuItem[] {
-		const isPending = product.status === 'pending';
-		const items: ActionMenuItem[] = [
-			{ label: 'Open in store', icon: ExternalLink, href: product.affiliateUrl ?? product.bestUrl ?? product.url, external: true }
-		];
-		if (!isPending && onViewHistory) items.push({ label: 'Price history', icon: History, onSelect: () => onViewHistory?.(product) });
-		if ((product.status === 'active' || product.status === 'paused') && onStatusChange) {
-			const pausing = product.status === 'active';
-			items.push({
-				label: pausing ? 'Pause tracking' : 'Resume tracking',
-				icon: pausing ? Pause : Play,
-				onSelect: () => onStatusChange?.(product.id, pausing ? 'paused' : 'active')
-			});
-		}
-		if (!isPending) items.push({ label: 'Set price alert', icon: Bell, onSelect: () => toggleQuickAlert(product) });
-		if (onDelete) items.push({ label: 'Delete', icon: Trash2, danger: true, onSelect: () => onDelete?.(product.id) });
-		return items;
+	function menuItems(product: Product) {
+		return productMenuItems(product, { onViewHistory, onStatusChange, onSetAlert: toggleQuickAlert, onDelete });
 	}
 </script>
 

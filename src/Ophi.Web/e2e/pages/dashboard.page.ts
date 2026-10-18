@@ -12,6 +12,7 @@ export class DashboardPage extends BasePage {
 
 	// Product Grid
 	readonly productCards: Locator;
+	readonly productRows: Locator;
 	readonly emptyProductsState: Locator;
 
 	// Header line with the account-wide counts
@@ -26,7 +27,7 @@ export class DashboardPage extends BasePage {
 	// View toggles
 	readonly viewToggleGrid: Locator;
 	readonly viewToggleList: Locator;
-	readonly viewToggleFeed: Locator;
+	readonly activityRail: Locator;
 
 	// Pagination
 	readonly paginationControls: Locator;
@@ -55,6 +56,8 @@ export class DashboardPage extends BasePage {
 
 		// Product Grid
 		this.productCards = page.locator('[data-testid="product-card"]');
+		// Desktop table rows: the table is the default view.
+		this.productRows = page.locator('[data-testid="product-row"]');
 		this.emptyProductsState = page.getByRole('heading', { name: 'Start tracking prices' });
 
 		this.pageHeader = page.locator('[data-testid="page-header"]');
@@ -68,7 +71,7 @@ export class DashboardPage extends BasePage {
 		// View toggles
 		this.viewToggleGrid = page.locator('[data-testid="view-toggle-grid"]');
 		this.viewToggleList = page.locator('[data-testid="view-toggle-list"]');
-		this.viewToggleFeed = page.locator('[data-testid="view-toggle-feed"]');
+		this.activityRail = page.locator('[data-testid="activity-rail"]');
 
 		// Pagination
 		this.paginationControls = page.locator('[data-testid="pagination-controls"]');
@@ -227,10 +230,6 @@ export class DashboardPage extends BasePage {
 
 	async switchToListView() {
 		await this.viewToggleList.click();
-	}
-
-	async switchToFeedView() {
-		await this.viewToggleFeed.click();
 	}
 
 	async clickCreateFromScratch() {

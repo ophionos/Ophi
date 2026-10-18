@@ -16,6 +16,9 @@ const EMPTY_PAGE = {
 	stores: []
 };
 
+/** How many products the action card lists before it links to the filtered table. */
+const ACTION_CARD_SIZE = 10;
+
 /**
  * The dashboard's filters live in the URL (written shallowly by the page via replaceState), so a
  * refresh, a shared link, or a bookmark lands on the same filtered view. This loader is the only
@@ -38,6 +41,7 @@ function parseProductParams(searchParams: URLSearchParams): GetProductsParams {
 		includeSparkline: true,
 		atLowest: opportunity === 'lowest' || undefined,
 		nearTarget: opportunity === 'near' || undefined,
+		needsAction: opportunity === 'action' || undefined,
 		favourite: searchParams.get('favourite') === 'true' || undefined
 	};
 }
@@ -45,17 +49,28 @@ function parseProductParams(searchParams: URLSearchParams): GetProductsParams {
 export const load: PageLoad = async ({ fetch, parent, url }) => {
 	const { user } = await parent();
 	if (!user) {
-		return { products: EMPTY_PAGE, tags: [] };
+		return {
+			products: EMPTY_PAGE,
+			tags: [],
+			actionProducts: EMPTY_PAGE,
+			challengeAvailable: false
+		};
 	}
 
 	const client = api.withFetch(fetch);
-	const [products, tagsResult] = await Promise.all([
+	// The action card has its own query: the products that need the user stay visible whatever
+	// the table is filtered to.
+	const [products, tagsResult, actionProducts, challenge] = await Promise.all([
 		client.getProducts(parseProductParams(url.searchParams)),
-		client.getTags()
+		client.getTags(),
+		client.getProducts({ needsAction: true, pageSize: ACTION_CARD_SIZE }),
+		client.getChallengeAvailability().catch(() => ({ available: false }))
 	]);
 
 	return {
 		products,
-		tags: tagsResult.items
+		tags: tagsResult.items,
+		actionProducts,
+		challengeAvailable: challenge.available
 	};
 };

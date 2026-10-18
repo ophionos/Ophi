@@ -11,7 +11,7 @@ describe('ProductTableMobileCard', () => {
 	const mockProduct: Product = {
 		id: 'product-123',
 		name: 'Test Headphones',
-		url: 'https://example.com/product',
+		url: 'https://www.example.com/product',
 		imageUrl: 'https://example.com/image.jpg',
 		currentPrice: 99.99,
 		previousPrice: 109.99,
@@ -27,72 +27,77 @@ describe('ProductTableMobileCard', () => {
 		customFields: []
 	};
 
-	it('should render product name', () => {
+	it('should render product name and price when loaded', () => {
 		render(ProductTableMobileCard, { props: { product: mockProduct } });
 
 		expect(screen.getByText('Test Headphones')).toBeInTheDocument();
-	});
-
-	it('should render current price with currency', () => {
-		render(ProductTableMobileCard, { props: { product: mockProduct } });
-
 		expect(screen.getByText('$99.99')).toBeInTheDocument();
-	});
-
-	it('should render price change indicator', () => {
-		render(ProductTableMobileCard, { props: { product: mockProduct } });
-
 		expect(screen.getByText('9.1%')).toBeInTheDocument();
 	});
 
-	it('should render status badge', () => {
+	it('should show the store as the subtitle when the product is healthy', () => {
 		render(ProductTableMobileCard, { props: { product: mockProduct } });
 
-		expect(screen.getByText('Active')).toBeInTheDocument();
+		expect(screen.getByTestId('mobile-product-subtitle')).toHaveTextContent('example.com');
+		expect(screen.queryByText('Active')).not.toBeInTheDocument();
 	});
 
-	it('should render product image', () => {
-		render(ProductTableMobileCard, { props: { product: mockProduct } });
+	it('should show the attention label as the subtitle when the product needs action', () => {
+		const blocked: Product = {
+			...mockProduct,
+			attention: { kind: 'blocked', isAction: true, productUrlId: 'url-1', url: mockProduct.url, consecutiveFailures: 3 }
+		};
+		render(ProductTableMobileCard, { props: { product: blocked } });
 
-		const img = screen.getByRole('img');
-		expect(img).toHaveAttribute('src', 'https://example.com/image.jpg');
+		const subtitle = screen.getByTestId('mobile-product-subtitle');
+		expect(subtitle).toHaveTextContent('Blocked');
+		expect(subtitle).not.toHaveTextContent('example.com');
 	});
 
-	it('should render N/A placeholder when no image', () => {
-		const noImage = { ...mockProduct, imageUrl: undefined };
-		render(ProductTableMobileCard, { props: { product: noImage } });
+	it('should show an initial instead of a placeholder when there is no image', () => {
+		render(ProductTableMobileCard, { props: { product: { ...mockProduct, imageUrl: undefined } } });
 
-		expect(screen.getByRole('img', { name: 'No image available' })).toBeInTheDocument();
+		expect(screen.getByTestId('product-initial')).toHaveTextContent('T');
+		expect(screen.queryByText('N/A')).not.toBeInTheDocument();
 	});
 
-	it('should render action buttons with aria-labels', () => {
-		const onDelete = vi.fn();
-		const onViewHistory = vi.fn();
-		const onStatusChange = vi.fn();
-		render(ProductTableMobileCard, {
-			props: { product: mockProduct, onDelete, onViewHistory, onStatusChange }
+	it('should render a sparkline when there are enough points', () => {
+		const { container } = render(ProductTableMobileCard, {
+			props: { product: { ...mockProduct, sparkline: [100, 105, 99.99].map((price, i) => ({ date: `2024-01-1${i}`, price })) } }
 		});
 
-		expect(screen.getByLabelText('Open product in new tab')).toBeInTheDocument();
-		expect(screen.getByLabelText('View price history')).toBeInTheDocument();
-		expect(screen.getByLabelText('Pause tracking')).toBeInTheDocument();
-		expect(screen.getByLabelText('Delete product')).toBeInTheDocument();
+		expect(container.querySelector('[data-testid="mobile-sparkline"] svg')).toBeInTheDocument();
 	});
 
-	it('should call onDelete when delete button is clicked', async () => {
+	it('should put the actions in one menu when handlers are given', async () => {
 		const onDelete = vi.fn();
-		render(ProductTableMobileCard, { props: { product: mockProduct, onDelete } });
+		render(ProductTableMobileCard, { props: { product: mockProduct, onDelete, onViewHistory: vi.fn(), onStatusChange: vi.fn() } });
 
-		await fireEvent.click(screen.getByLabelText('Delete product'));
+		const trigger = screen.getByRole('button', { name: 'Actions for Test Headphones' });
+		expect(trigger).toHaveClass('min-h-11', 'min-w-11');
+		await fireEvent.click(trigger);
+		expect(screen.getByRole('menuitem', { name: /Price history/ })).toBeInTheDocument();
+		expect(screen.getByRole('menuitem', { name: /Pause tracking/ })).toBeInTheDocument();
+		await fireEvent.click(screen.getByRole('menuitem', { name: /Delete/ }));
 		expect(onDelete).toHaveBeenCalledWith('product-123');
 	});
 
-	it('should call onViewHistory when history button is clicked', async () => {
-		const onViewHistory = vi.fn();
-		render(ProductTableMobileCard, { props: { product: mockProduct, onViewHistory } });
+	it('should toggle the favourite with a 44 px target when the star is clicked', async () => {
+		const onFavouriteToggle = vi.fn();
+		render(ProductTableMobileCard, { props: { product: mockProduct, onFavouriteToggle } });
 
-		await fireEvent.click(screen.getByLabelText('View price history'));
-		expect(onViewHistory).toHaveBeenCalledWith(mockProduct);
+		const star = screen.getByRole('button', { name: 'Add Test Headphones to favourites' });
+		expect(star).toHaveClass('min-h-11', 'min-w-11');
+		await fireEvent.click(star);
+		expect(onFavouriteToggle).toHaveBeenCalledWith('product-123', true);
+	});
+
+	it('should select the row when selectable and the checkbox is clicked', async () => {
+		const onSelectToggle = vi.fn();
+		render(ProductTableMobileCard, { props: { product: mockProduct, selectable: true, onSelectToggle } });
+
+		await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Test Headphones' }));
+		expect(onSelectToggle).toHaveBeenCalledWith('product-123');
 	});
 
 	it('should show loading state for pending products', () => {
@@ -101,24 +106,5 @@ describe('ProductTableMobileCard', () => {
 
 		expect(screen.getByText('Loading product data...')).toBeInTheDocument();
 		expect(screen.getByText('Fetching...')).toBeInTheDocument();
-	});
-
-	it('should render tags when present', () => {
-		const withTags = {
-			...mockProduct,
-			tags: [{ id: 't1', name: 'Electronics', color: '#3B82F6' }]
-		};
-		render(ProductTableMobileCard, { props: { product: withTags } });
-
-		expect(screen.getByText('Electronics')).toBeInTheDocument();
-	});
-
-	it('should have min-w-10 min-h-10 touch targets on action buttons', () => {
-		const onDelete = vi.fn();
-		render(ProductTableMobileCard, { props: { product: mockProduct, onDelete } });
-
-		const deleteBtn = screen.getByLabelText('Delete product');
-		expect(deleteBtn).toHaveClass('min-w-10');
-		expect(deleteBtn).toHaveClass('min-h-10');
 	});
 });

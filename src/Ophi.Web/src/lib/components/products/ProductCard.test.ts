@@ -23,7 +23,7 @@ describe('ProductCard', () => {
 	const mockProduct: Product = {
 		id: 'product-123',
 		name: 'Test Headphones',
-		url: 'https://example.com/product',
+		url: 'https://www.example.com/product',
 		imageUrl: 'https://example.com/image.jpg',
 		currentPrice: 99.99,
 		previousPrice: 109.99,
@@ -39,353 +39,220 @@ describe('ProductCard', () => {
 		customFields: []
 	};
 
+	async function openMenu(name = 'Test Headphones') {
+		await fireEvent.click(screen.getByRole('button', { name: `Actions for ${name}` }));
+	}
+
+	async function openQuickAlert() {
+		await openMenu();
+		await fireEvent.click(screen.getByRole('menuitem', { name: /Set price alert/ }));
+	}
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(api.createAlert).mockResolvedValue({ id: 'alert-1' } as Alert);
 	});
 
 	describe('Active Product', () => {
-		it('should render product name', () => {
+		it('should display product name, store and price when loaded', () => {
 			render(ProductCard, { props: { product: mockProduct } });
 
 			expect(screen.getByText('Test Headphones')).toBeInTheDocument();
+			expect(screen.getByTestId('product-store')).toHaveTextContent('example.com');
+			expect(screen.getByTestId('product-price')).toHaveTextContent('$99.99');
+			expect(screen.getByTestId('product-price')).toHaveClass('tabular-nums');
 		});
 
-		it('should render current price', () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			expect(screen.getByText('$99.99')).toBeInTheDocument();
-		});
-
-		it('should render the price with tabular figures', () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			expect(screen.getByText('$99.99').className).toContain('tabular-nums');
-		});
-
-		it('should render price change percentage in badge', () => {
+		it('should show the price change chip when the price moved', () => {
 			render(ProductCard, { props: { product: mockProduct } });
 
 			expect(screen.getByText('9.1%')).toBeInTheDocument();
-			expect(screen.getByTestId('price-change-badge')).toBeInTheDocument();
 		});
 
-		it('should render product image when imageUrl is provided', () => {
+		it('should render the image when imageUrl is provided', () => {
+			const { container } = render(ProductCard, { props: { product: mockProduct } });
+
+			expect(container.querySelector('img')).toHaveAttribute('src', 'https://example.com/image.jpg');
+		});
+
+		it('should show a small initial and no image area when there is no image', () => {
+			const { container } = render(ProductCard, { props: { product: { ...mockProduct, imageUrl: undefined } } });
+
+			expect(container.querySelector('img')).not.toBeInTheDocument();
+			expect(screen.getByTestId('product-initial')).toHaveTextContent('T');
+		});
+
+		it('should show when the product was last checked', () => {
 			render(ProductCard, { props: { product: mockProduct } });
-
-			const img = screen.getByRole('img');
-			expect(img).toHaveAttribute('src', 'https://example.com/image.jpg');
+			expect(screen.getByText(/^Checked /)).toBeInTheDocument();
 		});
 
-		it('should render an accessible no-image fallback when imageUrl is not provided', () => {
-			const productWithoutImage = { ...mockProduct, imageUrl: undefined };
-			render(ProductCard, { props: { product: productWithoutImage } });
-
-			expect(screen.getByRole('img', { name: /no image available/i })).toBeInTheDocument();
-		});
-
-		it('should render last checked date', () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			expect(screen.getByText(/Updated/)).toBeInTheDocument();
-		});
-
-		it('should render "Never checked" when lastChecked is not provided', () => {
-			const productNeverChecked = { ...mockProduct, lastChecked: undefined };
-			render(ProductCard, { props: { product: productNeverChecked } });
-
+		it('should show "Never checked" when lastChecked is not provided', () => {
+			render(ProductCard, { props: { product: { ...mockProduct, lastChecked: undefined } } });
 			expect(screen.getByText('Never checked')).toBeInTheDocument();
 		});
 
-		it('should render external link to product URL', () => {
+		it('should link the name to the product page', () => {
 			render(ProductCard, { props: { product: mockProduct } });
+			expect(screen.getByRole('link', { name: 'Test Headphones' })).toHaveAttribute('href', '/products/product-123');
+		});
 
-			const externalLink = screen.getByLabelText('Open product in new tab');
-			expect(externalLink).toHaveAttribute('href', 'https://example.com/product');
-			expect(externalLink).toHaveAttribute('target', '_blank');
+		it('should show the 90-day range when min and max are known', () => {
+			render(ProductCard, { props: { product: { ...mockProduct, priceMin: 89, priceMax: 120 } } });
+			expect(screen.getByTestId('price-range-bar')).toBeInTheDocument();
+		});
+
+		it('should show the closest alert target when one exists', () => {
+			const withAlert: Product = {
+				...mockProduct,
+				closestAlert: { alertId: 'a1', targetPrice: 90, condition: 'below', gap: 9.99, isNear: false }
+			};
+			render(ProductCard, { props: { product: withAlert } });
+			expect(screen.getByTestId('product-alert')).toHaveTextContent('≤ $90.00');
+			expect(screen.getByTestId('product-alert')).toHaveTextContent('$9.99 away');
+		});
+	});
+
+	describe('Attention', () => {
+		it('should show the attention pill when the product needs action', () => {
+			const blocked: Product = {
+				...mockProduct,
+				attention: { kind: 'blocked', isAction: true, productUrlId: 'u1', url: mockProduct.url, consecutiveFailures: 3 }
+			};
+			render(ProductCard, { props: { product: blocked } });
+			expect(screen.getByTestId('attention-pill')).toHaveTextContent('Blocked');
+		});
+
+		it('should not show a status for a healthy product', () => {
+			render(ProductCard, { props: { product: mockProduct } });
+			expect(screen.queryByTestId('attention-pill')).not.toBeInTheDocument();
+			expect(screen.queryByText('Active')).not.toBeInTheDocument();
 		});
 	});
 
 	describe('Pending Product', () => {
-		const pendingProduct: Product = {
-			...mockProduct,
-			status: 'pending',
-			currentPrice: undefined,
-			imageUrl: undefined
-		};
+		const pendingProduct = { ...mockProduct, status: 'pending' as const, currentPrice: undefined, imageUrl: undefined };
 
-		it('should render loading message instead of product name', () => {
+		it('should render loading messages instead of the name and price', () => {
 			render(ProductCard, { props: { product: pendingProduct } });
 
 			expect(screen.getByText('Loading product data...')).toBeInTheDocument();
-			expect(screen.queryByText('Test Headphones')).not.toBeInTheDocument();
-		});
-
-		it('should render "Fetching price..." message', () => {
-			render(ProductCard, { props: { product: pendingProduct } });
-
 			expect(screen.getByText('Fetching price...')).toBeInTheDocument();
-		});
-
-		it('should render "Processing..." status', () => {
-			render(ProductCard, { props: { product: pendingProduct } });
-
 			expect(screen.getByText('Processing...')).toBeInTheDocument();
 		});
 
-		it('should not render View history button for pending products', () => {
-			const onViewHistory = vi.fn();
-			render(ProductCard, { props: { product: pendingProduct, onViewHistory } });
+		it('should not offer history or an alert for a pending product', async () => {
+			render(ProductCard, { props: { product: pendingProduct, onViewHistory: vi.fn() } });
+			await openMenu();
 
-			expect(screen.queryByLabelText('View price history')).not.toBeInTheDocument();
-		});
-
-		it('should not render quick alert button for pending products', () => {
-			render(ProductCard, { props: { product: pendingProduct } });
-
-			expect(screen.queryByLabelText('Set quick price alert')).not.toBeInTheDocument();
+			expect(screen.queryByRole('menuitem', { name: /Price history/ })).not.toBeInTheDocument();
+			expect(screen.queryByRole('menuitem', { name: /Set price alert/ })).not.toBeInTheDocument();
 		});
 	});
 
 	describe('Price Display', () => {
-		it('should render "Price unavailable" when currentPrice is not set', () => {
-			const productNoPrice = { ...mockProduct, status: 'active' as const, currentPrice: undefined };
-			render(ProductCard, { props: { product: productNoPrice } });
-
-			expect(screen.getByText('Price unavailable')).toBeInTheDocument();
-		});
-
-		it('should not render price change when priceChange is not set', () => {
-			const productNoChange = { ...mockProduct, priceChange: undefined };
-			render(ProductCard, { props: { product: productNoChange } });
-
-			expect(screen.queryByTestId('price-change-badge')).not.toBeInTheDocument();
-		});
-
-		it('should not render price change when priceChange is zero', () => {
-			const productNoChange = { ...mockProduct, priceChange: 0 };
-			render(ProductCard, { props: { product: productNoChange } });
-
-			expect(screen.queryByTestId('price-change-badge')).not.toBeInTheDocument();
+		it('should show "No price" when currentPrice is not set', () => {
+			render(ProductCard, { props: { product: { ...mockProduct, currentPrice: undefined } } });
+			expect(screen.getByText('No price')).toBeInTheDocument();
 		});
 	});
 
-	describe('Callbacks', () => {
-		it('should call onDelete when delete button is clicked', async () => {
+	describe('Menu', () => {
+		it('should put every action in one 44 px menu', async () => {
+			render(ProductCard, {
+				props: { product: mockProduct, onDelete: vi.fn(), onViewHistory: vi.fn(), onStatusChange: vi.fn() }
+			});
+
+			expect(screen.getByRole('button', { name: 'Actions for Test Headphones' })).toHaveClass('min-h-11', 'min-w-11');
+			await openMenu();
+			for (const name of [/Open in store/, /Price history/, /Pause tracking/, /Set price alert/, /Delete/]) {
+				expect(screen.getByRole('menuitem', { name })).toBeInTheDocument();
+			}
+		});
+
+		it('should call onDelete when Delete is chosen', async () => {
 			const onDelete = vi.fn();
 			render(ProductCard, { props: { product: mockProduct, onDelete } });
-
-			await fireEvent.click(screen.getByLabelText('Delete product'));
+			await openMenu();
+			await fireEvent.click(screen.getByRole('menuitem', { name: /Delete/ }));
 
 			expect(onDelete).toHaveBeenCalledWith('product-123');
 		});
 
-		it('should render View history button when onViewHistory is provided', () => {
+		it('should call onViewHistory when Price history is chosen', async () => {
 			const onViewHistory = vi.fn();
 			render(ProductCard, { props: { product: mockProduct, onViewHistory } });
-
-			expect(screen.getByLabelText('View price history')).toBeInTheDocument();
-		});
-
-		it('should call onViewHistory when View history button is clicked', async () => {
-			const onViewHistory = vi.fn();
-			render(ProductCard, { props: { product: mockProduct, onViewHistory } });
-
-			await fireEvent.click(screen.getByLabelText('View price history'));
+			await openMenu();
+			await fireEvent.click(screen.getByRole('menuitem', { name: /Price history/ }));
 
 			expect(onViewHistory).toHaveBeenCalledWith(mockProduct);
 		});
 
-		it('should not render delete button when onDelete is not provided', () => {
+		it('should not offer Delete when onDelete is not provided', async () => {
 			render(ProductCard, { props: { product: mockProduct } });
-
-			expect(screen.queryByLabelText('Delete product')).not.toBeInTheDocument();
-		});
-	});
-
-	describe('Navigation Links', () => {
-		it('should have links to product detail page', () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			const productLinks = screen
-				.getAllByRole('link')
-				.filter((link) => link.getAttribute('href') === '/products/product-123');
-			expect(productLinks.length).toBeGreaterThanOrEqual(2);
-		});
-
-		it('should link product image to product detail page', () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			const imageLinks = screen.getAllByRole('link');
-			const imageLink = imageLinks.find((link) => link.querySelector('img'));
-			expect(imageLink).toHaveAttribute('href', '/products/product-123');
+			await openMenu();
+			expect(screen.queryByRole('menuitem', { name: /Delete/ })).not.toBeInTheDocument();
 		});
 	});
 
 	describe('Favourite Toggle', () => {
-		it('should not render star button when onFavouriteToggle is not provided', () => {
+		it('should not render the star when onFavouriteToggle is not provided', () => {
 			render(ProductCard, { props: { product: mockProduct } });
-
-			expect(screen.queryByLabelText('Add to favourites')).not.toBeInTheDocument();
-			expect(screen.queryByLabelText('Remove from favourites')).not.toBeInTheDocument();
-		});
-
-		it('should render star button when onFavouriteToggle is provided', () => {
-			const onFavouriteToggle = vi.fn();
-			render(ProductCard, { props: { product: mockProduct, onFavouriteToggle } });
-
-			expect(screen.getByLabelText('Add to favourites')).toBeInTheDocument();
-		});
-
-		it('should show "Remove from favourites" label when product is favourite', () => {
-			const onFavouriteToggle = vi.fn();
-			const favouriteProduct = { ...mockProduct, isFavourite: true };
-			render(ProductCard, { props: { product: favouriteProduct, onFavouriteToggle } });
-
-			expect(screen.getByLabelText('Remove from favourites')).toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: /favourites/ })).not.toBeInTheDocument();
 		});
 
 		it('should call onFavouriteToggle with true when adding to favourites', async () => {
 			const onFavouriteToggle = vi.fn();
 			render(ProductCard, { props: { product: mockProduct, onFavouriteToggle } });
 
-			await fireEvent.click(screen.getByLabelText('Add to favourites'));
-
+			const star = screen.getByRole('button', { name: 'Add Test Headphones to favourites' });
+			expect(star).toHaveClass('min-h-11', 'min-w-11');
+			await fireEvent.click(star);
 			expect(onFavouriteToggle).toHaveBeenCalledWith('product-123', true);
 		});
 
 		it('should call onFavouriteToggle with false when removing from favourites', async () => {
 			const onFavouriteToggle = vi.fn();
-			const favouriteProduct = { ...mockProduct, isFavourite: true };
-			render(ProductCard, { props: { product: favouriteProduct, onFavouriteToggle } });
+			render(ProductCard, { props: { product: { ...mockProduct, isFavourite: true }, onFavouriteToggle } });
 
-			await fireEvent.click(screen.getByLabelText('Remove from favourites'));
-
+			await fireEvent.click(screen.getByRole('button', { name: 'Remove Test Headphones from favourites' }));
 			expect(onFavouriteToggle).toHaveBeenCalledWith('product-123', false);
 		});
 	});
 
-	describe('Store Count Badge', () => {
-		it('should show store count badge when storeCount > 1', () => {
-			const multiStoreProduct = { ...mockProduct, storeCount: 3 };
-			render(ProductCard, { props: { product: multiStoreProduct } });
+	describe('Selection', () => {
+		it('should toggle selection when the checkbox is clicked', async () => {
+			const onSelectToggle = vi.fn();
+			render(ProductCard, { props: { product: mockProduct, selectable: true, onSelectToggle } });
 
-			const badge = screen.getByTestId('store-count-badge');
-			expect(badge).toBeInTheDocument();
-			expect(badge.textContent?.trim()).toBe('3');
-		});
-
-		it('should not show store count badge when storeCount is 1', () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			expect(screen.queryByTestId('store-count-badge')).not.toBeInTheDocument();
-		});
-	});
-
-	describe('Alert Count Badge', () => {
-		it('should show alert count badge when alertCount > 0', () => {
-			const productWithAlerts = { ...mockProduct, alertCount: 3 };
-			render(ProductCard, { props: { product: productWithAlerts } });
-
-			expect(screen.getByText('3')).toBeInTheDocument();
-		});
-
-		it('should not show alert count badge when alertCount is 0', () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			expect(screen.queryByTestId('alert-count-badge')).not.toBeInTheDocument();
-		});
-	});
-
-	describe('Out of Stock', () => {
-		it('should show out of stock badge when product is out of stock', () => {
-			const oosProduct = { ...mockProduct, isOutOfStock: true };
-			render(ProductCard, { props: { product: oosProduct } });
-
-			expect(screen.getByTestId('out-of-stock-badge')).toBeInTheDocument();
-			expect(screen.getByTestId('out-of-stock-badge').textContent).toContain('Out of Stock');
-		});
-
-		it('should not show out of stock badge when product is in stock', () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			expect(screen.queryByTestId('out-of-stock-badge')).not.toBeInTheDocument();
-		});
-
-		it('should show "Out of Stock" text instead of price when OOS with no price', () => {
-			const oosNoPrice = { ...mockProduct, isOutOfStock: true, currentPrice: undefined };
-			render(ProductCard, { props: { product: oosNoPrice } });
-
-			// Both badge and price area show "Out of Stock" - just verify "Price unavailable" is not shown
-			expect(screen.getAllByText(/Out of Stock/).length).toBeGreaterThanOrEqual(2);
-			expect(screen.queryByText('Price unavailable')).not.toBeInTheDocument();
-		});
-
-		it('should show price when OOS but price is available', () => {
-			const oosWithPrice = { ...mockProduct, isOutOfStock: true, currentPrice: 49.99 };
-			render(ProductCard, { props: { product: oosWithPrice } });
-
-			expect(screen.getByTestId('out-of-stock-badge')).toBeInTheDocument();
-			expect(screen.getByText('$49.99')).toBeInTheDocument();
-		});
-	});
-
-	describe('Price Anomaly', () => {
-		it('should show anomaly badge when product has price anomaly', () => {
-			const anomalyProduct = { ...mockProduct, hasPriceAnomaly: true };
-			render(ProductCard, { props: { product: anomalyProduct } });
-
-			expect(screen.getByTestId('anomaly-badge')).toBeInTheDocument();
-			expect(screen.getByTestId('anomaly-badge').textContent).toContain('Price Anomaly');
-		});
-
-		it('should not show anomaly badge when product has no anomaly', () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			expect(screen.queryByTestId('anomaly-badge')).not.toBeInTheDocument();
-		});
-
-		it('should show both out of stock and anomaly badges when both apply', () => {
-			const bothProduct = { ...mockProduct, isOutOfStock: true, hasPriceAnomaly: true };
-			render(ProductCard, { props: { product: bothProduct } });
-
-			expect(screen.getByTestId('out-of-stock-badge')).toBeInTheDocument();
-			expect(screen.getByTestId('anomaly-badge')).toBeInTheDocument();
+			await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Test Headphones' }));
+			expect(onSelectToggle).toHaveBeenCalledWith('product-123');
 		});
 	});
 
 	describe('Quick Alert', () => {
-		it('should show quick alert form when bell clicked', async () => {
+		it('should show quick alert form when Set price alert is chosen', async () => {
 			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
+			await openQuickAlert();
 
 			expect(screen.getByText('Alert below')).toBeInTheDocument();
 			expect(screen.getByLabelText('Create alert')).toBeInTheDocument();
 			expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
+			expect(screen.getByRole('region', { name: /Quick price alert for Test Headphones/ })).toBeInTheDocument();
 		});
 
 		it('should pre-fill price at 90% of current price', async () => {
 			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
+			await openQuickAlert();
 
 			const input = screen.getByRole('spinbutton') as HTMLInputElement;
 			// 99.99 * 0.9 = 89.991, floored to 2 decimals = 89.99
 			expect(parseFloat(input.value)).toBe(89.99);
 		});
 
-		it('should hide bell when product is pending', () => {
-			const pendingProduct = { ...mockProduct, status: 'pending' as const, currentPrice: undefined, imageUrl: undefined };
-			render(ProductCard, { props: { product: pendingProduct } });
-
-			expect(screen.queryByLabelText('Set quick price alert')).not.toBeInTheDocument();
-		});
-
 		it('should call api.createAlert on submit', async () => {
 			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
+			await openQuickAlert();
 			await fireEvent.click(screen.getByLabelText('Create alert'));
 
 			expect(api.createAlert).toHaveBeenCalledWith('product-123', 89.99, 'below');
@@ -393,8 +260,7 @@ describe('ProductCard', () => {
 
 		it('should show success message after alert created', async () => {
 			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
+			await openQuickAlert();
 			await fireEvent.click(screen.getByLabelText('Create alert'));
 
 			await waitFor(() => {
@@ -404,10 +270,8 @@ describe('ProductCard', () => {
 
 		it('should show error message on failure', async () => {
 			vi.mocked(api.createAlert).mockRejectedValueOnce(new Error('Network error'));
-
 			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
+			await openQuickAlert();
 			await fireEvent.click(screen.getByLabelText('Create alert'));
 
 			await waitFor(() => {
@@ -418,44 +282,25 @@ describe('ProductCard', () => {
 		it('should reset loading state when closed mid-request', async () => {
 			// Stall the API call so loading stays active
 			vi.mocked(api.createAlert).mockReturnValueOnce(new Promise(() => {}));
-
 			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
+			await openQuickAlert();
 			await fireEvent.click(screen.getByLabelText('Create alert'));
-
-			// Submit button should be disabled while loading
 			expect(screen.getByLabelText('Create alert')).toBeDisabled();
 
-			// Close the form mid-request
 			await fireEvent.click(screen.getByLabelText('Cancel'));
 			expect(screen.queryByText('Alert below')).not.toBeInTheDocument();
 
 			// Reopen — loading state should be cleared
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
+			await openQuickAlert();
 			expect(screen.getByLabelText('Create alert')).not.toBeDisabled();
 		});
 
-		it('should close form when X clicked', async () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
-			expect(screen.getByText('Alert below')).toBeInTheDocument();
-
-			await fireEvent.click(screen.getByLabelText('Cancel'));
-			expect(screen.queryByText('Alert below')).not.toBeInTheDocument();
-		});
-	});
-
-	describe('Quick Alert Error Differentiation', () => {
 		it('should show field-level error for ApiError with field details', async () => {
 			vi.mocked(api.createAlert).mockRejectedValueOnce(
 				new ApiError('VALIDATION_ERROR', 'Validation failed', { targetprice: ['Must be positive'] })
 			);
-
 			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
+			await openQuickAlert();
 			await fireEvent.click(screen.getByLabelText('Create alert'));
 
 			await waitFor(() => {
@@ -465,51 +310,14 @@ describe('ProductCard', () => {
 		});
 
 		it('should show retry button for network errors', async () => {
-			vi.mocked(api.createAlert).mockRejectedValueOnce(
-				new ApiError('UnknownError', 'An error occurred')
-			);
-
+			vi.mocked(api.createAlert).mockRejectedValueOnce(new ApiError('UnknownError', 'An error occurred'));
 			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
+			await openQuickAlert();
 			await fireEvent.click(screen.getByLabelText('Create alert'));
 
 			await waitFor(() => {
 				expect(screen.getByLabelText('Retry creating alert')).toBeInTheDocument();
 			});
-		});
-	});
-
-	describe('Accessibility', () => {
-		it('should have aria-label on no-image placeholder', () => {
-			const productWithoutImage = { ...mockProduct, imageUrl: undefined };
-			render(ProductCard, { props: { product: productWithoutImage } });
-
-			expect(screen.getByRole('img', { name: /no image available/i })).toBeInTheDocument();
-		});
-
-		it('should have aria-label on all action buttons', () => {
-			const onDelete = vi.fn();
-			const onViewHistory = vi.fn();
-			const onStatusChange = vi.fn();
-			render(ProductCard, {
-				props: { product: mockProduct, onDelete, onViewHistory, onStatusChange }
-			});
-
-			expect(screen.getByLabelText('Open product in new tab')).toBeInTheDocument();
-			expect(screen.getByLabelText('View price history')).toBeInTheDocument();
-			expect(screen.getByLabelText('Pause tracking')).toBeInTheDocument();
-			expect(screen.getByLabelText('Set quick price alert')).toBeInTheDocument();
-			expect(screen.getByLabelText('Delete product')).toBeInTheDocument();
-		});
-
-		it('should wrap quick-alert in role="region" with aria-label', async () => {
-			render(ProductCard, { props: { product: mockProduct } });
-
-			await fireEvent.click(screen.getByLabelText('Set quick price alert'));
-
-			const region = screen.getByRole('region', { name: /Quick price alert for Test Headphones/ });
-			expect(region).toBeInTheDocument();
 		});
 	});
 
