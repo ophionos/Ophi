@@ -247,7 +247,7 @@
 				<select
 					value={sort}
 					onchange={(e) => setSort(e.currentTarget.value as SortKey)}
-					class="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+					class="form-select pl-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 				>
 					{#each SORTS as s (s.key)}
 						<option value={s.key}>{s.label}</option>

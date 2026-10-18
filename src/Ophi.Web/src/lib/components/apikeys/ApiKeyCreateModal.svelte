@@ -172,7 +172,7 @@
 					<select
 						id="key-expires"
 						bind:value={expiresIn}
-						class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+						class="w-full form-select pl-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 					>
 						<option value="">Never</option>
 						<option value="30">30 days</option>

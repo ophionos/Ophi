@@ -137,7 +137,7 @@
 						name="condition"
 						value={cond.value}
 						bind:group={condition}
-						class="mt-0.5 h-4 w-4 text-brand border-gray-300 dark:border-gray-600 focus:ring-brand"
+						class="mt-0.5 h-4 w-4"
 						disabled={loading}
 					/>
 					<div class="ml-3">

@@ -142,7 +142,7 @@
 			<select
 				id="product-currency"
 				bind:value={currency}
-				class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="w-full form-select pl-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 				data-testid="create-product-currency"
 			>
 				<option value="USD">USD - US Dollar</option>

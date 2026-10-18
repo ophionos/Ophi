@@ -408,6 +408,10 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   `$lib/utils/priceColors.ts`. Chart series take `chartSeriesColor(i)` from `$lib/utils/chart.ts`, which
   has no green or red (they mean "dropped" and "rose"). Pages still on raw `green-*`/`bg-white` utilities
   move to the tokens when they are next changed.
+- **Native form controls are themed once in `app.css`.** `accent-color` and `color-scheme` are set on
+  `:root`/`.dark`, so a checkbox or radio adds no `accent-*` class. Number fields have no spinners. A
+  `<select>` takes the `form-select` utility (chevron and right padding) and sets `pl-*`, never `px-*`,
+  which would put the text under the chevron.
 
 ## Testing recipes
 

@@ -113,6 +113,40 @@ a[href] {
 	cursor: pointer;
 }
 
+/* Native controls: brand-coloured checkboxes and radios everywhere, and dark popups, scrollbars and
+   date pickers in dark theme. Both inherit, so no element sets them itself. */
+:root {
+	accent-color: var(--color-brand);
+	color-scheme: light;
+}
+
+.dark {
+	color-scheme: dark;
+}
+
+/* Number fields carry their own unit prefix ("USD"); the spinner arrows add noise. The keyboard
+   arrows still step the value. */
+input[type='number'] {
+	appearance: textfield;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+/* The one select style: the native arrow is replaced by a gray-400 chevron (readable on both
+   themes). It owns the right padding, so a select sets pl-*, never px-*. */
+@utility form-select {
+	appearance: none;
+	padding-right: 2.25rem;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	background-size: 1rem;
+}
+
 @utility bg-brand-gradient {
 	background-image: linear-gradient(135deg, #0d9488, #6366f1);
 }
