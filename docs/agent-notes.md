@@ -410,6 +410,7 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   move to the tokens when they are next changed. `danger`/`success` are text colours (red-400/green-400 in
   dark mode), so they take tints (`bg-danger/10`) but not solid fills under white text: that fails
   contrast in dark mode. Solid red buttons and badges stay on raw `red-600` until a solid variant exists.
+  `warning` means "needs attention" (a dormant alert); a normal active state takes `brand`, not yellow.
 - **Native form controls are themed once in `app.css`.** `accent-color` and `color-scheme` are set on
   `:root`/`.dark`, so a checkbox or radio adds no `accent-*` class. Number fields have no spinners. A
   `<select>` takes the `form-select` utility (chevron and right padding) and sets `pl-*`, never `px-*`,

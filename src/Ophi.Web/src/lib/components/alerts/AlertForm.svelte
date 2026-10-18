@@ -99,9 +99,9 @@
 	{/if}
 
 	{#if hasDuplicate}
-		<div class="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-			<TriangleAlert size={16} class="text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
-			<p class="text-sm text-yellow-700 dark:text-yellow-300">
+		<div class="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-md">
+			<TriangleAlert size={16} class="text-warning shrink-0 mt-0.5" />
+			<p class="text-sm text-warning">
 				You already have an active alert with this condition. Creating another may result in duplicate notifications.
 			</p>
 		</div>
@@ -122,7 +122,7 @@
 
 	<div>
 		<label for="condition" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-			Alert Condition <span class="text-red-500">*</span>
+			Alert Condition <span class="text-danger">*</span>
 		</label>
 		<div class="space-y-2">
 			{#each conditions as cond (cond.value)}
@@ -149,14 +149,14 @@
 			{/each}
 		</div>
 		{#if getFieldError('condition')}
-			<p role="alert" class="mt-1 text-sm text-red-600 dark:text-red-400">{getFieldError('condition')}</p>
+			<p role="alert" class="mt-1 text-sm text-danger">{getFieldError('condition')}</p>
 		{/if}
 	</div>
 
 	<div>
 		<label for="targetPrice" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
 			{condition === 'percentDrop' ? 'Drop Percentage (%)' : `Target Price (${currency})`}
-			<span class="text-red-500">*</span>
+			<span class="text-danger">*</span>
 		</label>
 		<div class="mt-1 relative rounded-md shadow-sm">
 			<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -173,7 +173,7 @@
 				class="block w-full pl-12 pr-4 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white {getFieldError(
 					'targetprice'
 				)
-					? 'border-red-300 dark:border-red-600'
+					? 'border-danger'
 					: ''}"
 				disabled={loading}
 			/>
@@ -188,7 +188,7 @@
 			</p>
 		{/if}
 		{#if getFieldError('targetprice')}
-			<p role="alert" class="mt-1 text-sm text-red-600 dark:text-red-400">{getFieldError('targetprice')}</p>
+			<p role="alert" class="mt-1 text-sm text-danger">{getFieldError('targetprice')}</p>
 		{/if}
 	</div>
 
