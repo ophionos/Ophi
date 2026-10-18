@@ -165,7 +165,7 @@
 					required
 					maxlength={100}
 					disabled={profileLoading}
-					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 					data-testid="profile-name"
 				/>
 			</div>
@@ -180,7 +180,7 @@
 					required
 					maxlength={256}
 					disabled={profileLoading}
-					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 					data-testid="profile-email"
 				/>
 			</div>
@@ -207,7 +207,7 @@
 					bind:value={profileCurrentPassword}
 					autocomplete="current-password"
 					disabled={profileLoading}
-					class="w-full sm:max-w-xs px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+					class="w-full sm:max-w-xs px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 					data-testid="profile-current-password"
 				/>
 				<p class="mt-1 text-xs text-gray-400 dark:text-gray-500">
@@ -252,7 +252,7 @@
 					required
 					autocomplete="current-password"
 					disabled={passwordLoading}
-					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 					data-testid="password-current"
 				/>
 			</div>
@@ -267,7 +267,7 @@
 					required
 					autocomplete="new-password"
 					disabled={passwordLoading}
-					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 					data-testid="password-new"
 				/>
 			</div>
@@ -282,7 +282,7 @@
 					required
 					autocomplete="new-password"
 					disabled={passwordLoading}
-					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+					class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 					data-testid="password-confirm"
 				/>
 			</div>
@@ -355,7 +355,7 @@
 				bind:value={deletePassword}
 				autocomplete="current-password"
 				disabled={deleteLoading}
-				class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+				class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 				data-testid="delete-account-password"
 			/>
 		</div>
@@ -365,7 +365,7 @@
 				type="button"
 				onclick={closeDeleteModal}
 				disabled={deleteLoading}
-				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-surface-field border border-gray-300 dark:border-gray-600 rounded-md hover:bg-surface-field-hover disabled:opacity-50"
 			>
 				Cancel
 			</button>

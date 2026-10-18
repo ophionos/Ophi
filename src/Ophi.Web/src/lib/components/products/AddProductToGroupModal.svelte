@@ -147,7 +147,7 @@
 				oninput={handleSearchInput}
 				placeholder="Search products…"
 				aria-label="Search products"
-				class="w-full pl-9 pr-3 min-h-11 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
+				class="w-full pl-9 pr-3 min-h-11 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
 			/>
 		</div>
 	</div>
@@ -163,7 +163,7 @@
 			<div class="flex flex-wrap gap-1">
 				{#each [...selected.values()] as product (product.id)}
 					<span
-						class="inline-flex items-center gap-1 max-w-full pl-2 pr-1 py-1 text-xs rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600"
+						class="inline-flex items-center gap-1 max-w-full pl-2 pr-1 py-1 text-xs rounded-full bg-surface-field border border-gray-200 dark:border-gray-600"
 					>
 						<span class="truncate max-w-[12rem]">{product.name}</span>
 						<button
@@ -247,7 +247,7 @@
 				type="button"
 				onclick={handleClose}
 				disabled={submitting}
-				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-surface-field border border-gray-300 dark:border-gray-600 rounded-md hover:bg-surface-field-hover disabled:opacity-50"
 			>
 				Cancel
 			</button>

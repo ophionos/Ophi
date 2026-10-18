@@ -61,7 +61,7 @@
 					type="url"
 					bind:value={testUrl}
 					placeholder="https://example.com/product/123"
-					class="flex-1 px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand focus:border-transparent"
+					class="flex-1 px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-lg bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand focus:border-transparent"
 					disabled={loading}
 				/>
 				<button

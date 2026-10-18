@@ -183,7 +183,7 @@
 			value={defaultCheckInterval}
 			onchange={handleCheckIntervalChange}
 			disabled={checkIntervalLoading}
-			class="form-select pl-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+			class="form-select pl-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 			data-testid="default-check-interval"
 		>
 			{#each SETTINGS_INTERVAL_OPTIONS as option (option.value)}
@@ -208,7 +208,7 @@
 				value={pageFetchDelay}
 				onchange={handleFetchDelayChange}
 				disabled={pageFetchDelayLoading}
-				class="w-20 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+				class="w-20 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 				data-testid="page-fetch-delay"
 			/>
 			<span class="text-sm text-gray-500 dark:text-gray-400">sec</span>
@@ -231,7 +231,7 @@
 				value={scrapeCacheTtl}
 				onchange={handleCacheTtlChange}
 				disabled={scrapeCacheTtlLoading}
-				class="w-20 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+				class="w-20 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 				data-testid="scrape-cache-ttl"
 			/>
 			<span class="text-sm text-gray-500 dark:text-gray-400">min</span>
@@ -255,7 +255,7 @@
 				value={anomalyThreshold}
 				onchange={handleAnomalyThresholdChange}
 				disabled={anomalyThresholdLoading}
-				class="w-20 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+				class="w-20 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 				data-testid="anomaly-threshold"
 			/>
 			<span class="text-sm text-gray-500 dark:text-gray-400">%</span>
@@ -279,7 +279,7 @@
 				value={autoPauseFailures}
 				onchange={handleAutoPauseChange}
 				disabled={autoPauseFailuresLoading}
-				class="w-20 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+				class="w-20 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white disabled:opacity-50"
 				data-testid="auto-pause-failures"
 			/>
 			<span class="text-sm text-gray-500 dark:text-gray-400">fails</span>

@@ -93,7 +93,7 @@
 				type="text"
 				bind:value={name}
 				placeholder="e.g., iPhone 16 Pro"
-				class="w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-surface-field text-gray-900 dark:text-white"
 				data-testid="create-product-name"
 				aria-invalid={nameError ? true : undefined}
 				aria-describedby={nameError ? 'create-product-name-error' : undefined}
@@ -116,7 +116,7 @@
 				type="text"
 				bind:value={imageUrl}
 				placeholder="https://example.com/image.jpg"
-				class="w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-surface-field text-gray-900 dark:text-white"
 				data-testid="create-product-image-url"
 				aria-invalid={imageUrlError ? true : undefined}
 				aria-describedby={imageUrlError ? 'create-product-image-error' : undefined}
@@ -142,7 +142,7 @@
 			<select
 				id="product-currency"
 				bind:value={currency}
-				class="w-full form-select pl-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="w-full form-select pl-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-surface-field text-gray-900 dark:text-white"
 				data-testid="create-product-currency"
 			>
 				<option value="USD">USD - US Dollar</option>

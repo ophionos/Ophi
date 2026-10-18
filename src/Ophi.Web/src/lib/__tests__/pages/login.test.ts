@@ -46,6 +46,11 @@ describe('Login Page', () => {
 			expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
 		});
 
+		it('should give the fields the field surface token', () => {
+			render(LoginPage);
+			expect(screen.getByLabelText(/Email address/i)).toHaveClass('bg-surface-field');
+		});
+
 		it('should render Ophi branding', () => {
 			render(LoginPage);
 			expect(screen.getByText('Ophi')).toBeInTheDocument();

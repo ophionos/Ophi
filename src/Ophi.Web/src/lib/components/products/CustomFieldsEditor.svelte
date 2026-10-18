@@ -45,14 +45,14 @@
 				value={field.name}
 				oninput={(e) => updateField(index, 'name', e.currentTarget.value)}
 				placeholder="Field name"
-				class="flex-1 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="flex-1 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-surface-field text-gray-900 dark:text-white"
 			/>
 			<input
 				type="text"
 				value={field.value}
 				oninput={(e) => updateField(index, 'value', e.currentTarget.value)}
 				placeholder="Value"
-				class="flex-1 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="flex-1 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-surface-field text-gray-900 dark:text-white"
 			/>
 			<button
 				type="button"

@@ -61,7 +61,7 @@
 				placeholder="https://store.com/product"
 				required
 				disabled={loading}
-				class="w-full px-3 min-h-11 border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand focus:border-transparent disabled:opacity-50 {error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}"
+				class="w-full px-3 min-h-11 border rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand focus:border-transparent disabled:opacity-50 {error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}"
 			/>
 			<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
 				Add another store URL to compare prices

@@ -403,7 +403,8 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   are the page's content (product price stats, scrape health). A page whose filter chips already show
   the counts (stores) has no stat row.
 - **Colours come from the semantic tokens in `app.css`** (`price-drop/increase/unchanged` and their
-  `-subtle` backgrounds, `success`, `warning`, `danger`, `surface-*`, `brand*`). Each token carries its
+  `-subtle` backgrounds, `success`, `warning`, `danger`, `surface-*`, `brand*`; inputs, selects and
+  secondary buttons take `bg-surface-field` and `hover:bg-surface-field-hover`). Each token carries its
   own `.dark` value, so a component adds no `dark:` pair for it; a price change maps through
   `$lib/utils/priceColors.ts`. Chart series take `chartSeriesColor(i)` from `$lib/utils/chart.ts`, which
   has no green or red (they mean "dropped" and "rose"). Pages still on raw `green-*`/`bg-white` utilities
