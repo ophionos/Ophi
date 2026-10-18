@@ -23,7 +23,8 @@
 		<div>
 			<p class="font-medium text-gray-900 dark:text-white">{currentGroup.name}</p>
 			<p class="text-sm text-gray-500 dark:text-gray-400">
-				{currentGroup.productCount} products in group
+				{currentGroup.productCount}
+				{currentGroup.productCount === 1 ? 'product' : 'products'} in group
 			</p>
 		</div>
 		<div class="flex gap-2">
@@ -35,7 +36,7 @@
 			</a>
 			<button
 				onclick={onRemove}
-				class="min-h-11 px-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
+				class="min-h-11 px-3 text-sm font-medium text-danger hover:bg-danger/10 rounded-md"
 			>
 				Remove
 			</button>
