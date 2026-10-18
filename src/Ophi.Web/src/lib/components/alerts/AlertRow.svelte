@@ -132,18 +132,19 @@
 			</div>
 		{/if}
 		<div
+			data-testid="alert-state-icon"
 			class="p-2 rounded-full shrink-0 {alert.hasCurrencyMismatch
-				? 'bg-amber-100 dark:bg-amber-900/40'
+				? 'bg-warning/15'
 				: alert.active
-					? 'bg-yellow-100 dark:bg-yellow-900'
+					? 'bg-brand-light dark:bg-brand-dark/30'
 					: 'bg-gray-200 dark:bg-gray-600'}"
 		>
 			{#if alert.hasCurrencyMismatch}
-				<TriangleAlert size={16} class="text-amber-600 dark:text-amber-400" />
+				<TriangleAlert size={16} class="text-warning" />
 			{:else}
 				<Bell
 					size={16}
-					class={alert.active ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-400'}
+					class={alert.active ? 'text-brand dark:text-brand-muted' : 'text-gray-400'}
 				/>
 			{/if}
 		</div>
@@ -179,7 +180,7 @@
 				</p>
 			{/if}
 			{#if alert.hasCurrencyMismatch}
-				<p data-testid="alert-currency-mismatch" class="text-xs text-amber-700 dark:text-amber-400">
+				<p data-testid="alert-currency-mismatch" class="text-xs text-warning">
 					Dormant — target is in {alert.currency}, product is now priced in
 					{productCurrency}, so it won't trigger.
 				</p>
@@ -196,7 +197,7 @@
 						type="button"
 						data-testid="redenominate-alert"
 						onclick={() => (redenominating = true)}
-						class="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400 underline hover:no-underline"
+						class="mt-1 text-xs font-medium text-warning underline hover:no-underline"
 					>
 						Set a new target in {productCurrency}
 					</button>
@@ -235,7 +236,7 @@
 			disabled={deleting}
 			aria-label="Delete alert"
 			title="Delete alert"
-			class="flex min-h-11 min-w-11 items-center justify-center gap-1 px-2 text-sm text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md disabled:opacity-50"
+			class="flex min-h-11 min-w-11 items-center justify-center gap-1 px-2 text-sm text-gray-500 dark:text-gray-400 hover:text-danger hover:bg-danger/10 rounded-md disabled:opacity-50"
 		>
 			{#if deleting}
 				<LoaderCircle size={16} class="animate-spin" />

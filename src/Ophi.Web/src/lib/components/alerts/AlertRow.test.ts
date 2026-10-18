@@ -180,6 +180,18 @@ describe('AlertRow', () => {
 		});
 	});
 
+	describe('state icon', () => {
+		it('should show the active bell in the brand colour', () => {
+			renderRow();
+			expect(screen.getByTestId('alert-state-icon')).toHaveClass('bg-brand-light');
+		});
+
+		it('should show a paused alert in gray', () => {
+			renderRow({ alert: { ...baseAlert, active: false } });
+			expect(screen.getByTestId('alert-state-icon')).not.toHaveClass('bg-brand-light');
+		});
+	});
+
 	describe('selection', () => {
 		it('should render a labelled checkbox when onSelectChange is given', async () => {
 			const onSelectChange = vi.fn();
@@ -198,6 +210,11 @@ describe('AlertRow', () => {
 			expect(screen.getByTestId('alert-currency-mismatch')).toHaveTextContent(
 				/target is in USD, product is now priced in\s+EUR/
 			);
+		});
+
+		it('should use the warning token for the dormancy explanation', () => {
+			renderRow({ alert: dormant, productCurrency: 'EUR' });
+			expect(screen.getByTestId('alert-currency-mismatch')).toHaveClass('text-warning');
 		});
 
 		it('should open the redenominate form and close it after a successful submit', async () => {

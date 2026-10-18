@@ -288,7 +288,7 @@
 					<button
 						onclick={() => (bulkDeleteConfirmOpen = true)}
 						disabled={bulkBusy}
-						class="flex min-h-11 items-center gap-1 px-2.5 text-sm rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
+						class="flex min-h-11 items-center gap-1 px-2.5 text-sm rounded-md text-danger hover:bg-danger/10 disabled:opacity-50"
 					>
 						<Trash2 size={16} /> Delete selected
 					</button>
