@@ -2,7 +2,7 @@
 	import type { ComparisonProduct } from '$lib/api/client';
 	import { theme } from '$lib/stores/theme.svelte';
 	import CurrencyMismatchBanner from '$lib/components/shared/CurrencyMismatchBanner.svelte';
-	import { loadChart, getChartThemeColors, chartSeriesColor } from '$lib/utils/chart';
+	import { loadChart, getChartThemeColors, chartSeriesColor, pointRadii } from '$lib/utils/chart';
 	import { formatPrice } from '$lib/format';
 
 	interface Props {
@@ -77,7 +77,7 @@
 				// instead of diagonally interpolating between sparse points.
 				stepped: 'after' as const,
 				tension: 0,
-				pointRadius: 3,
+				pointRadius: pointRadii(data, 3),
 				pointHoverRadius: 5,
 				pointBackgroundColor: colorSet.border,
 				pointBorderColor: themeColors.pointBorder,

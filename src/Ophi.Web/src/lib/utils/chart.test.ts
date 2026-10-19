@@ -4,6 +4,7 @@ import {
 	CHART_SERIES_COLORS,
 	getChartThemeColors,
 	formatChartDate,
+	pointRadii,
 	resetChartLoaderForTests
 } from './chart';
 
@@ -125,5 +126,27 @@ describe('chart helpers', () => {
 			const out = formatChartDate('2024-03-15', true);
 			expect(out).toMatch(/2024/);
 		});
+	});
+});
+
+describe('pointRadii', () => {
+	it('should give every point a marker up to the threshold', () => {
+		expect(pointRadii([3, 1, 2], 4, 3)).toBe(4);
+	});
+
+	it('should keep only the lowest and the latest marker above the threshold', () => {
+		expect(pointRadii([5, 2, 4, 3], 4, 3)).toEqual([0, 4, 0, 4]);
+	});
+
+	it('should mark the latest occurrence of a repeated lowest price', () => {
+		expect(pointRadii([2, 5, 2, 4], 4, 3)).toEqual([0, 0, 4, 4]);
+	});
+
+	it('should skip gaps when finding the latest point', () => {
+		expect(pointRadii([5, 2, 4, null], 4, 3)).toEqual([0, 4, 4, 0]);
+	});
+
+	it('should give no markers when every point is a gap', () => {
+		expect(pointRadii([null, null, null, null], 4, 3)).toEqual([0, 0, 0, 0]);
 	});
 });

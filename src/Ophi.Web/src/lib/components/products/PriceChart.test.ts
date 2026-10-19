@@ -3,8 +3,10 @@ import { render, screen } from '@testing-library/svelte';
 import type { PriceHistoryPoint } from '$lib/api/client';
 
 // Captures the config handed to `new Chart(ctx, config)` so tests can assert on scale options.
-// Typed as just the slice the tests read: the y-axis bounds (undefined = left to Chart.js).
+// Typed as just the slice the tests read: the y-axis bounds (undefined = left to Chart.js) and
+// the point markers.
 interface CapturedChartConfig {
+	data: { datasets: { pointRadius: number | number[] }[] };
 	options: { scales: { y: { min?: number; max?: number } } };
 }
 const chartConfigs: CapturedChartConfig[] = [];
@@ -55,6 +57,28 @@ describe('PriceChart', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		chartConfigs.length = 0;
+	});
+
+	describe('point markers', () => {
+		it('should mark every point in a short range', async () => {
+			render(PriceChart, { props: defaultProps });
+			await vi.waitFor(() => expect(chartConfigs.length).toBeGreaterThan(0));
+			expect(chartConfigs[0].data.datasets[0].pointRadius).toBe(4);
+		});
+
+		it('should mark only the lowest and the latest point in a long range', async () => {
+			const long = Array.from({ length: 75 }, (_, i) => ({
+				date: new Date(Date.UTC(2024, 0, 1 + i)).toISOString().slice(0, 10),
+				price: i === 10 ? 50 : 100
+			}));
+			render(PriceChart, { props: { ...defaultProps, history: long } });
+			await vi.waitFor(() => expect(chartConfigs.length).toBeGreaterThan(0));
+
+			const radii = chartConfigs[0].data.datasets[0].pointRadius as number[];
+			expect(radii.filter((r) => r > 0)).toHaveLength(2);
+			expect(radii[10]).toBeGreaterThan(0);
+			expect(radii[74]).toBeGreaterThan(0);
+		});
 	});
 
 	describe('y-axis scaling', () => {
