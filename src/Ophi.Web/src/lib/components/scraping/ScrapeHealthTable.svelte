@@ -13,15 +13,15 @@
 
 	function successRateBadge(rate: number): { text: string; class: string } {
 		const pct = Math.round(rate * 100);
-		if (rate >= 0.95) return { text: `${pct}%`, class: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' };
-		if (rate >= 0.80) return { text: `${pct}%`, class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' };
-		return { text: `${pct}%`, class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
+		if (rate >= 0.95) return { text: `${pct}%`, class: 'bg-success/10 text-success' };
+		if (rate >= 0.80) return { text: `${pct}%`, class: 'bg-warning/15 text-warning' };
+		return { text: `${pct}%`, class: 'bg-danger/10 text-danger' };
 	}
 
 	function statusIconClass(rate: number): string {
-		if (rate >= 0.95) return 'text-green-500';
-		if (rate >= 0.80) return 'text-amber-500';
-		return 'text-red-500';
+		if (rate >= 0.95) return 'text-success';
+		if (rate >= 0.80) return 'text-warning';
+		return 'text-danger';
 	}
 
 	function statusLevel(rate: number): 'healthy' | 'degraded' | 'unhealthy' {
@@ -57,7 +57,7 @@
 			{@const badge = successRateBadge(domain.successRate)}
 			{@const level = statusLevel(domain.successRate)}
 			{@const iconCls = statusIconClass(domain.successRate)}
-			<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+			<div class="bg-surface-1 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
 				<div class="flex items-center justify-between mb-3">
 					<div class="flex items-center gap-2">
 						{#if level === 'healthy'}
@@ -93,7 +93,7 @@
 				</div>
 				{#if domain.lastFailureMessage}
 					<div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-						<p class="text-xs text-red-500 dark:text-red-400 truncate" title={domain.lastFailureMessage}>
+						<p class="text-xs text-danger truncate" title={domain.lastFailureMessage}>
 							{domain.lastFailureMessage}
 						</p>
 						{#if domain.lastFailureAt}
@@ -148,7 +148,7 @@
 						<td class="py-3 px-4 text-center text-sm text-gray-700 dark:text-gray-300">{formatDuration(domain.p95DurationMs)}</td>
 						<td class="py-3 px-4">
 							{#if domain.lastFailureMessage}
-								<p class="text-xs text-red-500 dark:text-red-400 truncate max-w-[250px]" title={domain.lastFailureMessage}>
+								<p class="text-xs text-danger truncate max-w-[250px]" title={domain.lastFailureMessage}>
 									{domain.lastFailureMessage}
 								</p>
 								{#if domain.lastFailureAt}
