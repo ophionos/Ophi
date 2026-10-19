@@ -81,11 +81,11 @@
 
 		{#if error}
 			<div
-				class="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg"
+				class="p-3 bg-danger/10 border border-danger/30 rounded-lg"
 			>
 				<div class="flex items-center gap-2">
-					<CircleX size={16} class="text-red-600 dark:text-red-400" />
-					<p role="alert" class="text-sm text-red-600 dark:text-red-400">{error}</p>
+					<CircleX size={16} class="text-danger" />
+					<p role="alert" class="text-sm text-danger">{error}</p>
 				</div>
 			</div>
 		{/if}
@@ -96,21 +96,21 @@
 				data-testid="test-result"
 			>
 				<div
-					class="px-4 py-3 flex items-center gap-2 {result.success ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}"
+					class="px-4 py-3 flex items-center gap-2 {result.success ? 'bg-success/10' : 'bg-danger/10'}"
 				>
 					{#if result.success}
 						<CircleCheck
 							size={18}
-							class="text-green-600 dark:text-green-400"
+							class="text-success"
 						/>
 						<span
-							class="text-sm font-medium text-green-700 dark:text-green-300"
+							class="text-sm font-medium text-success"
 							>Extraction successful</span
 						>
 					{:else}
-						<CircleX size={18} class="text-red-600 dark:text-red-400" />
+						<CircleX size={18} class="text-danger" />
 						<span
-							class="text-sm font-medium text-red-700 dark:text-red-300"
+							class="text-sm font-medium text-danger"
 							>{result.error || 'Extraction failed'}</span
 						>
 					{/if}

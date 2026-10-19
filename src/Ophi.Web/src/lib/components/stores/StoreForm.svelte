@@ -334,7 +334,7 @@
 			{/if}
 			{#if detectSuccess}
 				<p
-					class="text-sm text-green-600 dark:text-green-400"
+					class="text-sm text-success"
 					data-testid="detect-success"
 				>
 					{detectSuccess}
@@ -354,7 +354,7 @@
 		{#if !isEdit}
 			<div>
 				<label for="storeId" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-					Store ID <span class="text-red-500">*</span>
+					Store ID <span class="text-danger">*</span>
 				</label>
 				<input
 					id="storeId"
@@ -364,7 +364,7 @@
 					class="mt-1 w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 						'storeid'
 					)
-						? 'border-red-300 dark:border-red-600'
+						? 'border-danger'
 						: ''}"
 					disabled={loading}
 				/>
@@ -372,14 +372,14 @@
 					Lowercase letters, numbers, and hyphens only
 				</p>
 				{#if getFieldError('storeid')}
-					<p role="alert" class="mt-1 text-sm text-red-600 dark:text-red-400">{getFieldError('storeid')}</p>
+					<p role="alert" class="mt-1 text-sm text-danger">{getFieldError('storeid')}</p>
 				{/if}
 			</div>
 		{/if}
 
 		<div>
 			<label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-				Display Name <span class="text-red-500">*</span>
+				Display Name <span class="text-danger">*</span>
 			</label>
 			<input
 				id="name"
@@ -389,12 +389,12 @@
 				class="mt-1 w-full px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 					'name'
 				)
-					? 'border-red-300 dark:border-red-600'
+					? 'border-danger'
 					: ''}"
 				disabled={loading}
 			/>
 			{#if getFieldError('name')}
-				<p role="alert" class="mt-1 text-sm text-red-600 dark:text-red-400">{getFieldError('name')}</p>
+				<p role="alert" class="mt-1 text-sm text-danger">{getFieldError('name')}</p>
 			{/if}
 		</div>
 	</div>
@@ -415,7 +415,7 @@
 			helpText="Domain patterns to match URLs (e.g., 'example.com', 'shop.example.com')"
 		/>
 		{#if getFieldError('domainpatterns')}
-			<p role="alert" class="text-sm text-red-600 dark:text-red-400">{getFieldError('domainpatterns')}</p>
+			<p role="alert" class="text-sm text-danger">{getFieldError('domainpatterns')}</p>
 		{/if}
 	</div>
 
@@ -499,10 +499,10 @@
 					placeholder="EUR"
 					maxlength={3}
 					disabled={loading}
-					class="mt-2 ml-6 w-24 px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent uppercase {getFieldError('currencyoverride') ? 'border-red-300 dark:border-red-600' : ''}"
+					class="mt-2 ml-6 w-24 px-3 min-h-11 border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent uppercase {getFieldError('currencyoverride') ? 'border-danger' : ''}"
 				/>
 				{#if getFieldError('currencyoverride')}
-					<p role="alert" class="mt-1 ml-6 text-sm text-red-600 dark:text-red-400">
+					<p role="alert" class="mt-1 ml-6 text-sm text-danger">
 						{getFieldError('currencyoverride')}
 					</p>
 				{/if}
@@ -596,7 +596,7 @@
 			helpText="CSS selectors to find the product price"
 		/>
 		{#if getFieldError('selectors.priceselectors')}
-			<p role="alert" class="text-sm text-red-600 dark:text-red-400">
+			<p role="alert" class="text-sm text-danger">
 				{getFieldError('selectors.priceselectors')}
 			</p>
 		{/if}
@@ -610,7 +610,7 @@
 			helpText="CSS selectors to find the product name"
 		/>
 		{#if getFieldError('selectors.nameselectors')}
-			<p role="alert" class="text-sm text-red-600 dark:text-red-400">
+			<p role="alert" class="text-sm text-danger">
 				{getFieldError('selectors.nameselectors')}
 			</p>
 		{/if}
@@ -624,7 +624,7 @@
 			helpText="CSS selectors to find the product image"
 		/>
 		{#if getFieldError('selectors.imageselectors')}
-			<p role="alert" class="text-sm text-red-600 dark:text-red-400">
+			<p role="alert" class="text-sm text-danger">
 				{getFieldError('selectors.imageselectors')}
 			</p>
 		{/if}

@@ -40,7 +40,7 @@
 		<span class="block text-sm font-medium text-gray-700 dark:text-gray-300">
 			{label}
 			{#if required}
-				<span class="text-red-500">*</span>
+				<span class="text-danger">*</span>
 			{/if}
 		</span>
 		<button
@@ -71,7 +71,7 @@
 					type="button"
 					onclick={() => removeItem(index)}
 					disabled={required && values.length <= 1}
-					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-danger dark:text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed"
 					title="Remove"
 				>
 					<X size={16} />

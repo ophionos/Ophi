@@ -100,6 +100,17 @@ describe('StoreCard', () => {
 			expect(screen.getByText('Auto-detected')).toBeInTheDocument();
 		});
 
+		it('should use the warning colour for the Auto-detected badge and a neutral Custom badge', () => {
+			render(StoreCard, { props: { store: autoCreatedStore } });
+			expect(screen.getByText('Auto-detected')).toHaveClass('text-warning');
+			expect(screen.getByText('Custom').className).not.toMatch(/green|success/);
+		});
+
+		it('should render the card on the raised surface with a test id', () => {
+			render(StoreCard, { props: { store: mockStore } });
+			expect(screen.getByTestId('store-card')).toHaveClass('bg-surface-1');
+		});
+
 		it('should not show Auto-detected badge when isAutoCreated is false', () => {
 			render(StoreCard, { props: { store: mockStore } });
 			expect(screen.queryByText('Auto-detected')).not.toBeInTheDocument();
