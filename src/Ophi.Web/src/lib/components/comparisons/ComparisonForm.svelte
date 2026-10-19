@@ -61,7 +61,7 @@
 
 	<div>
 		<label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-			Name <span class="text-red-500">*</span>
+			Name <span class="text-danger">*</span>
 		</label>
 		<input
 			id="name"

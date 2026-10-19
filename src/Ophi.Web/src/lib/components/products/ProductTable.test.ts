@@ -414,6 +414,7 @@ describe('ProductTable', () => {
 			expect(api.createAlert).toHaveBeenCalledWith('product-123', 89.99, 'below');
 			await waitFor(() => {
 				expect(table.getByText('Alert set ✓')).toBeInTheDocument();
+				expect(table.getByText('Alert set ✓')).toHaveClass('text-success');
 			});
 		});
 

@@ -58,7 +58,7 @@
 	<div
 		data-testid="offline-banner"
 		role="status"
-		class="flex items-center gap-2 px-4 py-2 text-sm bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300"
+		class="flex items-center gap-2 px-4 py-2 text-sm bg-warning/10 border-b border-warning/30 text-warning"
 	>
 		<WifiOff size={16} class="shrink-0" />
 		<span>
