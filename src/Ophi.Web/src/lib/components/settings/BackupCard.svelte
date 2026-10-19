@@ -43,7 +43,7 @@
 </script>
 
 <div
-	class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3"
+	class="bg-surface-1 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3"
 	data-testid="backup-card"
 >
 	<div>
@@ -94,7 +94,7 @@
 	{#if result}
 		<div
 			role="status"
-			class="p-3 rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-sm text-green-800 dark:text-green-300 space-y-1"
+			class="p-3 rounded-md bg-success/10 border border-success/30 text-sm text-success space-y-1"
 		>
 			<p>
 				{result.productsAdded} products added{#if result.productsSkipped > 0}, {result.productsSkipped}
@@ -104,7 +104,7 @@
 				{result.settingsRestored ? 'Settings restored.' : ''}
 			</p>
 			{#each result.warnings as warning, i (i)}
-				<p class="text-amber-700 dark:text-amber-400">{warning}</p>
+				<p class="text-warning">{warning}</p>
 			{/each}
 		</div>
 	{/if}

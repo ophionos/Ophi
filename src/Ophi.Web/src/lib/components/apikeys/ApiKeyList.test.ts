@@ -43,7 +43,7 @@ describe('ApiKeyList', () => {
 		render(ApiKeyList, {
 			props: { keys: [expired], onCreate: vi.fn(), onDelete: vi.fn() }
 		});
-		expect(screen.getByText('expired')).toBeInTheDocument();
+		expect(screen.getByText('expired')).toHaveClass('text-danger');
 	});
 
 	it('invokes onCreate and onDelete', async () => {

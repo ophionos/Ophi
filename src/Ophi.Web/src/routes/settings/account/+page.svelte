@@ -144,7 +144,7 @@
 	<!-- Profile -->
 	<form
 		onsubmit={handleSaveProfile}
-		class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3"
+		class="bg-surface-1 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3"
 	>
 		<div>
 			<p class="text-sm font-medium text-gray-900 dark:text-white">Profile</p>
@@ -188,7 +188,7 @@
 
 		{#if pendingEmail}
 			<p
-				class="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2"
+				class="text-xs text-warning bg-warning/10 border border-warning/30 rounded-md px-3 py-2"
 				data-testid="profile-pending-email"
 			>
 				Waiting for confirmation from <strong>{pendingEmail}</strong>. You sign in with
@@ -231,7 +231,7 @@
 	<!-- Password -->
 	<form
 		onsubmit={handleChangePassword}
-		class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3"
+		class="bg-surface-1 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3"
 	>
 		<div>
 			<p class="text-sm font-medium text-gray-900 dark:text-white">Password</p>
@@ -289,7 +289,7 @@
 		</div>
 
 		<div class="flex items-center justify-between gap-3">
-			<p aria-live="polite" class="text-xs {passwordError ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'}">
+			<p aria-live="polite" class="text-xs {passwordError ? 'text-danger' : 'text-gray-400 dark:text-gray-500'}">
 				{passwordError || 'At least 8 characters with an uppercase letter, lowercase letter, and digit'}
 			</p>
 			<button
@@ -306,10 +306,10 @@
 	<!-- Danger zone -->
 	<DisplayCurrencySetting />
 
-	<div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-red-300 dark:border-red-900 space-y-3">
+	<div class="bg-surface-1 p-4 rounded-lg border border-danger/40 space-y-3">
 		<div class="flex items-center justify-between gap-3">
 			<div>
-				<p class="text-sm font-medium text-red-600 dark:text-red-400">Delete account</p>
+				<p class="text-sm font-medium text-danger">Delete account</p>
 				<p class="text-xs text-gray-500 dark:text-gray-400">
 					Permanently deletes your account and everything in it — products, price history, alerts,
 					notifications, tags, comparisons, store configs, webhooks, and API keys
@@ -336,8 +336,8 @@
 >
 	<div class="p-6 space-y-4">
 		<div class="flex items-start gap-3">
-			<div class="shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-				<TriangleAlert size={20} class="text-red-600 dark:text-red-400" />
+			<div class="shrink-0 w-10 h-10 rounded-full bg-danger/15 flex items-center justify-center">
+				<TriangleAlert size={20} class="text-danger" />
 			</div>
 			<p class="text-sm text-gray-600 dark:text-gray-300">
 				This permanently deletes your account and <strong>all</strong> of your data. There is no

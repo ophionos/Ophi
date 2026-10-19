@@ -100,10 +100,10 @@
 >
 	<div class="p-6">
 		{#if createdKey}
-			<p class="text-sm text-amber-600 dark:text-amber-400 mb-3">
+			<p class="text-sm text-warning mb-3">
 				Copy this key now — it will not be shown again.
 			</p>
-			<div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-3 rounded-md border border-gray-200 dark:border-gray-700">
+			<div class="flex items-center gap-2 bg-surface-0 p-3 rounded-md border border-gray-200 dark:border-gray-700">
 				<code class="flex-1 text-sm font-mono text-gray-900 dark:text-gray-100 break-all select-all">{createdKey}</code>
 				<button
 					onclick={handleCopyKey}
@@ -111,14 +111,14 @@
 					title="Copy to clipboard"
 				>
 					{#if copied}
-						<Check size={16} class="text-green-500" />
+						<Check size={16} class="text-success" />
 					{:else}
 						<Copy size={16} />
 					{/if}
 				</button>
 			</div>
 			{#if copyFailed}
-				<p class="mt-2 text-xs text-red-600 dark:text-red-400" role="status">
+				<p class="mt-2 text-xs text-danger" role="status">
 					Could not access the clipboard. Select the key and copy it manually.
 				</p>
 			{/if}
