@@ -86,7 +86,7 @@
 				for="product-name"
 				class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 			>
-				Product Name <span class="text-red-500">*</span>
+				Product Name <span class="text-danger">*</span>
 			</label>
 			<input
 				id="product-name"

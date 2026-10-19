@@ -70,5 +70,14 @@ describe('AddUrlModal', () => {
 
 			expect(screen.getByRole('alert')).toHaveTextContent('Please enter a valid URL');
 		});
+
+		it('should mark the invalid input with the danger border', async () => {
+			render(AddUrlModal, { props: defaultProps });
+			const input = screen.getByLabelText('Product URL');
+			await fireEvent.input(input, { target: { value: 'not-a-url' } });
+			await fireEvent.blur(input);
+
+			expect(input).toHaveClass('border-danger');
+		});
 	});
 });
