@@ -71,7 +71,7 @@
 				aria-label="New target price in {currency}"
 				bind:value={targetPrice}
 				disabled={loading}
-				class="block w-32 pl-11 pr-2 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+				class="block w-32 pl-11 pr-2 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-surface-field text-gray-900 dark:text-white"
 			/>
 		</div>
 		<button
