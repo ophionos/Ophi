@@ -22,7 +22,8 @@
 </script>
 
 <div
-	class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+	data-testid="store-card"
+	class="bg-surface-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
 >
 	<div class="flex items-start justify-between">
 		<div class="flex-1">
@@ -36,14 +37,14 @@
 					</span>
 				{:else}
 					<span
-						class="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full"
+						class="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full"
 					>
 						Custom
 					</span>
 				{/if}
 			{#if store.isAutoCreated && !store.isBuiltIn}
 				<span
-					class="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 rounded-full inline-flex items-center gap-1"
+					class="px-2 py-0.5 text-xs font-medium bg-warning/15 text-warning rounded-full inline-flex items-center gap-1"
 				>
 					<Sparkles size={12} />
 					Auto-detected
@@ -75,7 +76,7 @@
 			{#if !store.isBuiltIn && onExport}
 				<button
 					onclick={() => onExport?.(store)}
-					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
 					title="Export"
 				>
 					<Download size={16} />
@@ -93,7 +94,7 @@
 			{#if !store.isBuiltIn && onDelete}
 				<button
 					onclick={() => onDelete?.(store)}
-					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-danger hover:bg-danger/10 rounded"
 					title="Delete"
 				>
 					<Trash2 size={16} />

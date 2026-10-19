@@ -15,7 +15,7 @@ export class StoresPage extends BasePage {
 		super(page);
 		this.pageTitle = page.getByRole('heading', { name: 'Store Configurations' });
 		this.addStoreButton = page.getByRole('button', { name: 'Add Store' });
-		this.storeCards = page.locator('.bg-white.rounded-lg.shadow-sm.border');
+		this.storeCards = page.getByTestId('store-card');
 		this.loadingSpinner = page.locator('[data-testid="page-loading"]');
 		this.emptyState = page.getByText('No stores configured');
 		// The counts live on the filter chips ("All (n)", "Built-in (n)", …).

@@ -244,8 +244,8 @@
 
 	<div>
 		{#if loadError}
-			<div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-red-200 dark:border-red-800">
-				<p role="alert" class="text-red-600 dark:text-red-400 mb-2">{loadError}</p>
+			<div class="text-center py-12 bg-surface-1 rounded-lg border border-danger/30">
+				<p role="alert" class="text-danger mb-2">{loadError}</p>
 			</div>
 		{:else if stores.items.length === 0}
 			<EmptyState
