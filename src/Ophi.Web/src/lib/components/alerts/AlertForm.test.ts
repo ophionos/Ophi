@@ -46,6 +46,15 @@ describe('AlertForm', () => {
 			expect(screen.getByRole('button', { name: /Create Alert/i })).toBeInTheDocument();
 		});
 
+		it('should use the field surface for the input and the cancel button', () => {
+			render(AlertForm, { props: defaultProps });
+			expect(screen.getByLabelText(/Target Price/)).toHaveClass('bg-surface-field');
+			expect(screen.getByRole('button', { name: 'Cancel' })).toHaveClass(
+				'bg-surface-field',
+				'hover:bg-surface-field-hover'
+			);
+		});
+
 		it('should default target price to 90% of current price', () => {
 			render(AlertForm, { props: defaultProps });
 			const input = screen.getByLabelText(/Target Price/) as HTMLInputElement;
