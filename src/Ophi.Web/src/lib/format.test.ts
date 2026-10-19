@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { isValidHttpUrl, formatCheckInterval, formatTimeAgo, formatPrice } from './format';
+import {
+	isValidHttpUrl,
+	formatCheckInterval,
+	formatTimeAgo,
+	formatPrice,
+	formatDate,
+	formatDateTime,
+	formatStatus
+} from './format';
 
 describe('formatPrice', () => {
 	it('should format USD with a leading symbol', () => {
@@ -130,5 +138,38 @@ describe('formatTimeAgo', () => {
 		// Should be a localized date string, not a relative time
 		expect(result).not.toContain('ago');
 		expect(result).not.toBe('just now');
+	});
+});
+
+// Local-time inputs (no "Z"), so the expected calendar day does not depend on the machine's zone.
+describe('formatDate', () => {
+	it('should format a date as a medium en-US date', () => {
+		expect(formatDate('2026-10-17T16:28:00')).toBe('Oct 17, 2026');
+	});
+});
+
+describe('formatDateTime', () => {
+	it('should format a timestamp as a medium en-US date with a short time', () => {
+		expect(formatDateTime('2026-10-17T16:28:00')).toMatch(/^Oct 17, 2026, 4:28\sPM$/);
+	});
+});
+
+describe('formatTimeAgo fallback', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('should fall back to formatDate after a week', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2026-10-30T12:00:00'));
+		expect(formatTimeAgo('2026-10-17T16:28:00')).toBe('Oct 17, 2026');
+	});
+});
+
+describe('formatStatus', () => {
+	// Screen readers read the DOM text, so the capital is in the text, not in CSS.
+	it('should capitalize a status for display', () => {
+		expect(formatStatus('active')).toBe('Active');
+		expect(formatStatus('paused')).toBe('Paused');
 	});
 });

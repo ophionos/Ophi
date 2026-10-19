@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import Modal from '$lib/components/shared/Modal.svelte';
 	import type { ProductDetail, Tag, ProductTag, CustomField, ProductStatus } from '$lib/api/client';
-	import { isValidHttpUrl, CHECK_INTERVAL_OPTIONS } from '$lib/format';
+	import { isValidHttpUrl, CHECK_INTERVAL_OPTIONS, formatStatus } from '$lib/format';
 	import TagPicker from '$lib/components/tags/TagPicker.svelte';
 	import CustomFieldsEditor from '$lib/components/products/CustomFieldsEditor.svelte';
 	import FormError from '$lib/components/shared/FormError.svelte';
@@ -256,7 +256,7 @@
 											: 'translate-x-1'}"
 									></span>
 								</button>
-								<span class="text-sm text-gray-700 dark:text-gray-300 capitalize">{status}</span>
+								<span class="text-sm text-gray-700 dark:text-gray-300">{formatStatus(status)}</span>
 							</div>
 						</div>
 					{/if}

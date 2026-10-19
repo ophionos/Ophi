@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ExternalLink, Trash2, LoaderCircle, TriangleAlert, RotateCcw, Settings, Trophy, Pause, Play, PackageX, ShieldCheck } from 'lucide-svelte';
 	import type { ProductUrl } from '$lib/api/client';
-	import { formatPrice } from '$lib/format';
+	import { formatPrice, formatDate } from '$lib/format';
 	import { onDestroy } from 'svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 
@@ -175,7 +175,7 @@
 				{/if}
 				{#if productUrl.lastCheckedAt}
 					<span class="text-xs text-gray-400">
-						· {new Date(productUrl.lastCheckedAt).toLocaleDateString()}
+						· {formatDate(productUrl.lastCheckedAt)}
 					</span>
 				{/if}
 				{#if productUrl.lastError && productUrl.status !== 'paused'}

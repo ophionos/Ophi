@@ -44,6 +44,7 @@
 	import { bestPriceUrlId as findBestPriceUrlId } from '$lib/utils/bestPrice';
 	import { liveRefresh } from '$lib/utils/liveRefresh';
 	import SectionCard from '$lib/components/shared/SectionCard.svelte';
+	import { formatStatus } from '$lib/format';
 
 	let { data: pageData }: { data: PageData } = $props();
 
@@ -425,11 +426,11 @@
 					{/if}
 					<span
 						data-testid="product-status"
-						class="px-2.5 py-1 text-xs font-medium rounded-full capitalize {getStatusBadgeClass(
+						class="px-2.5 py-1 text-xs font-medium rounded-full {getStatusBadgeClass(
 							product.status
 						)}"
 					>
-						{product.status}
+						{formatStatus(product.status)}
 					</span>
 				{/if}
 			{/snippet}

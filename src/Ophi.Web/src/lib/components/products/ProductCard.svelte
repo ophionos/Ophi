@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { onDestroy } from 'svelte';
 	import type { Product, ProductStatus } from '$lib/api/client';
-	import { formatTimeAgo, formatPrice } from '$lib/format';
+	import { formatTimeAgo, formatPrice, formatDateTime } from '$lib/format';
 	import TagBadge from '$lib/components/tags/TagBadge.svelte';
 	import Sparkline from '$lib/components/products/Sparkline.svelte';
 	import AttentionPill from '$lib/components/products/AttentionPill.svelte';
@@ -151,7 +151,7 @@
 		{/if}
 
 		<div class="mt-auto -mb-2 -mr-2 flex items-center justify-between border-t border-gray-100 pt-1 dark:border-gray-700">
-			<span class="text-xs text-gray-500 dark:text-gray-400" title={product.lastChecked ? new Date(product.lastChecked).toLocaleString() : undefined}>
+			<span class="text-xs text-gray-500 dark:text-gray-400" title={product.lastChecked ? formatDateTime(product.lastChecked) : undefined}>
 				{#if isPending}
 					Processing...
 				{:else if product.lastChecked}

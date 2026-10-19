@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { WifiOff } from 'lucide-svelte';
 	import { DATA_SOURCE_MESSAGE, type DataSourceMessage } from '$lib/offline/cache-policy';
+	import { formatDateTime } from '$lib/format';
 
 	// The browser's own signal, plus the service worker's: it reports a saved copy also when the
 	// network is up but the server is not.
@@ -13,7 +14,7 @@
 	const savedLabel = $derived(
 		oldestSaved === null
 			? null
-			: new Date(oldestSaved).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+			: formatDateTime(oldestSaved)
 	);
 
 	function backOnline() {

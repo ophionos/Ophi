@@ -49,6 +49,29 @@ export const CHECK_INTERVAL_OPTIONS = [
 	{ value: '1440', label: '24 hours' }
 ];
 
+// Pinned to en-US like formatPrice, so every page shows one format ("Oct 17, 2026") in the
+// viewer's time zone.
+const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
+const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+	dateStyle: 'medium',
+	timeStyle: 'short'
+});
+
+/** A calendar date: "Oct 17, 2026". */
+export function formatDate(value: string | number | Date): string {
+	return dateFormatter.format(new Date(value));
+}
+
+/** A moment: "Oct 17, 2026, 4:28 PM". */
+export function formatDateTime(value: string | number | Date): string {
+	return dateTimeFormatter.format(new Date(value));
+}
+
+/** A status for display: "active" → "Active". The capital is in the text so screen readers get it too. */
+export function formatStatus(status: string): string {
+	return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 export function formatTimeAgo(dateStr: string): string {
 	const date = new Date(dateStr);
 	const now = new Date();
@@ -58,5 +81,5 @@ export function formatTimeAgo(dateStr: string): string {
 	if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
 	if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
 	if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-	return date.toLocaleDateString();
+	return formatDate(dateStr);
 }
