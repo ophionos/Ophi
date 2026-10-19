@@ -111,7 +111,7 @@
 				{/if}
 				<a
 					href={resolve('/auth/login')}
-					class="px-8 py-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold text-lg border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:-translate-y-0.5"
+					class="px-8 py-4 bg-surface-1 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold text-lg border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:-translate-y-0.5"
 				>
 					Sign In
 				</a>
@@ -120,7 +120,7 @@
 	</section>
 
 	<!-- Price Ticker Tape -->
-	<section class="relative py-4 bg-gray-50/80 dark:bg-gray-800/50 border-y border-gray-200/50 dark:border-gray-700/30 overflow-hidden" aria-hidden="true">
+	<section class="relative py-4 bg-surface-0/80 dark:bg-surface-1/50 border-y border-gray-200/50 dark:border-gray-700/30 overflow-hidden" aria-hidden="true">
 		<div class="animate-ticker flex whitespace-nowrap">
 			{#each [...tickerItems, ...tickerItems] as item, i (i)}
 				<span class="inline-flex items-center gap-2 mx-6 text-sm font-medium text-gray-400 dark:text-gray-500" aria-hidden="true">
@@ -154,7 +154,7 @@
 						<div
 							class="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 {i === steps.length - 1
 								? 'bg-brand-gradient text-white'
-								: 'bg-gray-100 dark:bg-gray-800 text-brand dark:text-brand-muted'}"
+								: 'bg-surface-2 text-brand dark:text-brand-muted'}"
 						>
 							<step.icon size={24} />
 						</div>
@@ -175,11 +175,11 @@
 	</section>
 
 	<!-- Feature Cards -->
-	<section class="py-16 px-4 bg-gray-50/50 dark:bg-gray-800/20">
+	<section class="py-16 px-4 bg-surface-0/50 dark:bg-surface-1/20">
 		<div class="max-w-5xl mx-auto">
 			<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
 				<div
-					class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
+					class="bg-surface-1 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
 				>
 					<div
 						class="w-10 h-10 bg-brand-subtle dark:bg-brand-dark rounded-xl flex items-center justify-center mb-4"
@@ -194,13 +194,13 @@
 				</div>
 
 				<div
-					class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
+					class="bg-surface-1 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
 					style="animation-delay: 100ms"
 				>
 					<div
-						class="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-xl flex items-center justify-center mb-4"
+						class="w-10 h-10 bg-brand-secondary/10 rounded-xl flex items-center justify-center mb-4"
 					>
-						<Bell class="text-green-600 dark:text-green-400" size={20} />
+						<Bell class="text-brand-secondary dark:text-brand-secondary-dark" size={20} />
 					</div>
 					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Smart Alerts</h3>
 					<p class="text-sm text-gray-500 dark:text-gray-400">
@@ -209,13 +209,13 @@
 				</div>
 
 				<div
-					class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
+					class="bg-surface-1 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
 					style="animation-delay: 200ms"
 				>
 					<div
-						class="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 rounded-xl flex items-center justify-center mb-4"
+						class="w-10 h-10 bg-brand-subtle dark:bg-brand-dark rounded-xl flex items-center justify-center mb-4"
 					>
-						<Gauge class="text-amber-600 dark:text-amber-400" size={20} />
+						<Gauge class="text-brand dark:text-brand-muted" size={20} />
 					</div>
 					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Price in Context</h3>
 					<p class="text-sm text-gray-500 dark:text-gray-400">
@@ -224,7 +224,7 @@
 				</div>
 
 				<div
-					class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
+					class="bg-surface-1 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
 					style="animation-delay: 300ms"
 				>
 					<div
