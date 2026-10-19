@@ -246,7 +246,7 @@
 									onclick={() => (status = status === 'active' ? 'paused' : 'active')}
 									class="tap-area inline-flex h-6 w-11 items-center rounded-full transition-colors {status ===
 									'active'
-										? 'bg-success'
+										? 'bg-brand'
 										: 'bg-gray-300 dark:bg-gray-600'}"
 								>
 									<span
