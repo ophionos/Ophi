@@ -25,6 +25,20 @@ describe('Landing Page', () => {
 		});
 	});
 
+	describe('feature cards', () => {
+		// Green and amber mean "price dropped" and "needs attention" elsewhere, so the decorative
+		// feature icons use the brand colours only.
+		it('should use surface tokens and brand accents only', () => {
+			render(LandingPage);
+
+			for (const title of ['Track Any Product', 'Smart Alerts', 'Price in Context', 'Self-Hosted']) {
+				const card = screen.getByRole('heading', { name: title }).parentElement!;
+				expect(card).toHaveClass('bg-surface-1');
+				expect(card.innerHTML).not.toMatch(/(green|amber)-\d/);
+			}
+		});
+	});
+
 	describe('sign-up calls to action', () => {
 		it('should offer sign-up when sign-up is open', () => {
 			render(LandingPage);
