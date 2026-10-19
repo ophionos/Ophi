@@ -13,7 +13,7 @@
 	import { onDestroy } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import type { Product, ProductStatus } from '$lib/api/client';
-	import { formatTimeAgo, formatPrice } from '$lib/format';
+	import { formatTimeAgo, formatPrice, formatDateTime } from '$lib/format';
 	import { QuickAlert } from '$lib/utils/quickAlert.svelte';
 	import { density } from '$lib/stores/density.svelte';
 	import TagBadge from '$lib/components/tags/TagBadge.svelte';
@@ -292,7 +292,7 @@
 								</div>
 								<div class="text-xs text-gray-500 dark:text-gray-400">
 									{#if oldPrice}
-										<span title={product.lastSucceededAt ? `Last read ${new Date(product.lastSucceededAt).toLocaleString()}` : undefined} data-testid="old-price">old price</span>
+										<span title={product.lastSucceededAt ? `Last read ${formatDateTime(product.lastSucceededAt)}` : undefined} data-testid="old-price">old price</span>
 									{:else}
 										{product.currency}
 									{/if}
@@ -335,7 +335,7 @@
 
 						<!-- Checked -->
 						<td class="{cellPad} text-xs whitespace-nowrap text-gray-500 dark:text-gray-400"
-							title={product.lastChecked && !isPending ? new Date(product.lastChecked).toLocaleString() : undefined}
+							title={product.lastChecked && !isPending ? formatDateTime(product.lastChecked) : undefined}
 						>
 							{#if isPending}
 								Processing...

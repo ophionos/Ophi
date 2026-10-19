@@ -395,7 +395,10 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
 - Shared building blocks: `shared/Modal.svelte`; `shared/SectionCard.svelte` (pass the lucide icon via
   its `icon` prop, and reuse the icon the app already uses for that concept); `menuKeyNav` for dropdown
   a11y; one `QuickAlert` per row in a `Map<productId, QuickAlert>`; `loadChart()` keeps Chart.js in its
-  own chunk; `formatPrice()` in `$lib/format.ts` is pinned to en-US (tests assert `"$99.99"`).
+  own chunk; `formatPrice()` in `$lib/format.ts` is pinned to en-US (tests assert `"$99.99"`), and so
+  are `formatDate()` ("Oct 17, 2026") and `formatDateTime()` ("Oct 17, 2026, 4:28 PM"); no component calls
+  `toLocaleDateString()`. A status shows through `formatStatus()`, not CSS `capitalize`, so screen readers
+  read the visible label.
 - **One page frame.** The `<main>` in `routes/+layout.svelte` is the only page container (max width and
   padding); a page adds no `max-w-*`/`mx-auto` of its own, or its edge drifts from every other page.
   Every authenticated page starts with `shared/PageHeader.svelte` (title, optional description,

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Plus, Key, Trash2 } from 'lucide-svelte';
 	import type { ApiKeyInfo } from '$lib/api/client';
+	import { formatDate } from '$lib/format';
 
 	interface Props {
 		keys: ApiKeyInfo[];
@@ -51,9 +52,9 @@
 							{/each}
 						</div>
 						<p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-							Created {new Date(key.createdAt).toLocaleDateString()}
+							Created {formatDate(key.createdAt)}
 							{#if key.lastUsedAt}
-								&middot; Last used {new Date(key.lastUsedAt).toLocaleDateString()}
+								&middot; Last used {formatDate(key.lastUsedAt)}
 							{:else}
 								&middot; Never used
 							{/if}

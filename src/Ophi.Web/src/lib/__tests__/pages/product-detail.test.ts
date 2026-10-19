@@ -383,7 +383,7 @@ describe('Product Detail Page', () => {
 			renderPage(mockProductWithCustomFields);
 
 			await waitFor(() => {
-				expect(screen.getByText('active')).toBeInTheDocument();
+				expect(screen.getByText('Active')).toBeInTheDocument();
 			});
 		});
 	});
@@ -394,7 +394,7 @@ describe('Product Detail Page', () => {
 			renderPage(mockProductWithCustomFields);
 
 			const hero = await screen.findByTestId('product-hero');
-			expect(within(hero).getByTestId('product-status')).toHaveTextContent('active');
+			expect(within(hero).getByTestId('product-status')).toHaveTextContent('Active');
 			expect(within(hero).getByTitle('Edit product')).toBeInTheDocument();
 		});
 

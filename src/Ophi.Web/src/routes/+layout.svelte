@@ -24,6 +24,7 @@
 	import InstallPrompt from '$lib/components/shared/InstallPrompt.svelte';
 	import NavigationProgress from '$lib/components/shared/NavigationProgress.svelte';
 	import { fx } from '$lib/stores/fx.svelte';
+	import { isApplePlatform, shortcutHint } from '$lib/utils/shortcut';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -102,7 +103,12 @@
 		});
 	});
 
+	// SSR has no navigator, so the hint starts as Ctrl+K and switches to ⌘K on Apple platforms.
+	let paletteHint = $state(shortcutHint('K', false));
+
 	onMount(() => {
+		paletteHint = shortcutHint('K', isApplePlatform(navigator));
+
 		// Hydration marker for Playwright: fills/clicks that land before hydration hit the
 		// native form/anchor behavior instead of the JS handlers. `networkidle` can't serve
 		// as the wait — the app-wide SSE connection keeps the network permanently busy.
@@ -283,7 +289,7 @@
 						>
 							<Search size={13} />
 							<span>Search</span>
-							<kbd class="ml-1 text-[10px] font-medium opacity-60">&#x2318;K</kbd>
+							<kbd class="ml-1 text-[10px] font-medium opacity-60">{paletteHint}</kbd>
 						</button>
 						<ThemeToggle />
 						<NotificationBell />

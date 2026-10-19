@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { Bell, LoaderCircle, Pause, Play, Trash2, TriangleAlert } from 'lucide-svelte';
 	import type { ProductAlert } from '$lib/api/client';
-	import { formatPrice } from '$lib/format';
+	import { formatPrice, formatDate } from '$lib/format';
 	import RedenominateAlertForm from '$lib/components/alerts/RedenominateAlertForm.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 
@@ -205,7 +205,7 @@
 				<p class="text-xs text-gray-500 dark:text-gray-400">
 					{alert.active ? 'Active' : 'Paused'}
 					{#if alert.lastTriggered}
-						&middot; Last triggered {new Date(alert.lastTriggered).toLocaleDateString()}
+						&middot; Last triggered {formatDate(alert.lastTriggered)}
 					{/if}
 				</p>
 			{/if}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { api, type ScrapeLogEntry } from '$lib/api/client';
-	import { formatPrice } from '$lib/format';
+	import { formatPrice, formatDateTime } from '$lib/format';
 	import { CircleCheckBig, CircleX, LoaderCircle, Activity } from 'lucide-svelte';
 	import SectionCard from '$lib/components/shared/SectionCard.svelte';
 
@@ -91,7 +91,7 @@
 					<div class="text-right shrink-0">
 						<span class="text-xs text-gray-400">{formatDuration(entry.durationMs)}</span>
 						<p class="text-xs text-gray-400">
-							{new Date(entry.createdAt).toLocaleString()}
+							{formatDateTime(entry.createdAt)}
 						</p>
 					</div>
 				</div>

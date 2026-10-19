@@ -3,7 +3,7 @@
 	import type { Snippet } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import type { ProductDetail } from '$lib/api/client';
-	import { formatCheckInterval } from '$lib/format';
+	import { formatCheckInterval, formatDateTime } from '$lib/format';
 	import { getPriceStory } from '$lib/utils/priceStory';
 	import TagBadge from '$lib/components/tags/TagBadge.svelte';
 
@@ -89,10 +89,7 @@
 				<span class="inline-flex items-center gap-1 whitespace-nowrap">
 					<Clock size={14} class="opacity-70" />
 					{#if product.lastChecked}
-						Updated {new Date(product.lastChecked).toLocaleString(undefined, {
-							dateStyle: 'medium',
-							timeStyle: 'short'
-						})}
+						Updated {formatDateTime(product.lastChecked)}
 					{:else}
 						Never checked
 					{/if}

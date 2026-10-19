@@ -55,9 +55,7 @@ describe('OfflineBanner', () => {
 
 		const banner = screen.getByTestId('offline-banner');
 		expect(banner).toHaveTextContent('Prices from');
-		expect(banner).toHaveTextContent(
-			new Date(older).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-		);
+		expect(banner).toHaveTextContent(/Oct 1, 2026, 9:30\sAM/);
 	});
 
 	it('should hide when the worker reaches the server again', () => {

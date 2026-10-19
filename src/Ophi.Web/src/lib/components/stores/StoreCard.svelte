@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Pencil, Trash2, Globe, Settings, FlaskConical, Sparkles, Download, Link } from 'lucide-svelte';
 	import type { Store } from '$lib/api/client';
+	import { formatDate } from '$lib/format';
 
 	interface Props {
 		store: Store;
@@ -124,7 +125,7 @@
 	{#if store.createdAt && !store.isBuiltIn}
 		<div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
 			<span class="text-xs text-gray-400 dark:text-gray-500">
-				Created {new Date(store.createdAt).toLocaleDateString()}
+				Created {formatDate(store.createdAt)}
 			</span>
 		</div>
 	{/if}

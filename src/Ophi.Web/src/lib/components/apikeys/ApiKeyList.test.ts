@@ -28,6 +28,13 @@ describe('ApiKeyList', () => {
 		expect(screen.getByText('read')).toBeInTheDocument();
 	});
 
+	it('shows the dates in the shared date format', () => {
+		// Midday UTC lands on the same calendar day in every common time zone.
+		const key = { ...sampleKey, createdAt: '2026-01-15T12:00:00Z', lastUsedAt: '2026-02-03T12:00:00Z' };
+		render(ApiKeyList, { props: { keys: [key], onCreate: vi.fn(), onDelete: vi.fn() } });
+		expect(screen.getByText(/Created Jan 15, 2026/)).toHaveTextContent('Last used Feb 3, 2026');
+	});
+
 	it('marks expired keys', () => {
 		const expired: ApiKeyInfo = {
 			...sampleKey,
