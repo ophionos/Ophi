@@ -70,7 +70,7 @@
 						type="button"
 						onclick={onConfirm}
 						disabled={loading}
-						class="px-4 min-h-11 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+						class="px-4 min-h-11 text-sm font-medium text-white bg-danger-solid rounded-md hover:bg-danger-solid-hover disabled:opacity-50 flex items-center gap-2"
 					>
 						{#if loading}
 							<LoaderCircle size={16} class="animate-spin" />

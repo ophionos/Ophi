@@ -318,7 +318,7 @@
 			<button
 				type="button"
 				onclick={() => (deleteModalOpen = true)}
-				class="shrink-0 px-3 min-h-11 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+				class="shrink-0 px-3 min-h-11 text-sm font-medium text-white bg-danger-solid hover:bg-danger-solid-hover rounded-md transition-colors"
 				data-testid="delete-account-open"
 			>
 				Delete account
@@ -373,7 +373,7 @@
 				type="button"
 				onclick={handleDeleteAccount}
 				disabled={deleteLoading || !deletePassword}
-				class="px-4 min-h-11 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="px-4 min-h-11 text-sm font-medium text-white bg-danger-solid rounded-md hover:bg-danger-solid-hover disabled:opacity-50 disabled:cursor-not-allowed"
 				data-testid="delete-account-confirm"
 			>
 				{deleteLoading ? 'Deleting...' : 'Delete my account'}

@@ -29,6 +29,10 @@ describe('ConfirmModal', () => {
 
 		expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass(
+			'bg-danger-solid',
+			'hover:bg-danger-solid-hover'
+		);
 	});
 
 	it('should render custom button text', () => {
