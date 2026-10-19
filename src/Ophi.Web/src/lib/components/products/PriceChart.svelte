@@ -2,7 +2,13 @@
 	import type { PriceHistoryPoint } from '$lib/api/client';
 	import { theme } from '$lib/stores/theme.svelte';
 	import CurrencyMismatchBanner from '$lib/components/shared/CurrencyMismatchBanner.svelte';
-	import { loadChart, getChartThemeColors, formatChartDate, chartSeriesColor } from '$lib/utils/chart';
+	import {
+		loadChart,
+		getChartThemeColors,
+		formatChartDate,
+		chartSeriesColor,
+		pointRadii
+	} from '$lib/utils/chart';
 	import { formatPrice } from '$lib/format';
 
 	import { ChartNoAxesColumn, LoaderCircle } from 'lucide-svelte';
@@ -113,7 +119,7 @@
 					borderWidth: 2,
 					fill: false,
 					tension: 0.4,
-					pointRadius: 3,
+					pointRadius: pointRadii(data, 3),
 					pointHoverRadius: 6,
 					pointBackgroundColor: color,
 					pointBorderColor: colors.pointBorder,
@@ -138,7 +144,7 @@
 					borderWidth: 3,
 					fill: true,
 					tension: 0.4,
-					pointRadius: 4,
+					pointRadius: pointRadii(prices, 4),
 					pointHoverRadius: 6,
 					pointBackgroundColor: 'rgb(13, 148, 136)',
 					pointBorderColor: colors.pointBorder,

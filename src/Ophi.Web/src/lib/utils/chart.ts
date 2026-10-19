@@ -48,6 +48,30 @@ export function chartSeriesColor(index: number): { border: string; fill: string 
 	return CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length];
 }
 
+/** Above this many points, markers cover the line (a 1-year range has about 75). */
+export const POINT_MARKER_LIMIT = 30;
+
+/**
+ * The `pointRadius` for one dataset: every point up to `limit`, otherwise only the lowest price
+ * (its latest occurrence) and the latest point. Hover still shows every point.
+ */
+export function pointRadii(
+	data: readonly (number | null)[],
+	radius: number,
+	limit = POINT_MARKER_LIMIT
+): number | number[] {
+	if (data.length <= limit) return radius;
+
+	let lowest = -1;
+	let latest = -1;
+	data.forEach((value, i) => {
+		if (value == null) return;
+		latest = i;
+		if (lowest === -1 || value <= (data[lowest] as number)) lowest = i;
+	});
+	return data.map((_, i) => (i === lowest || i === latest ? radius : 0));
+}
+
 export interface ChartThemeColors {
 	tooltipBg: string;
 	tooltipTitle: string;
