@@ -324,11 +324,11 @@
 	function getStatusBadgeClass(status: string) {
 		switch (status) {
 			case 'active':
-				return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+				return 'bg-brand-light dark:bg-brand-dark/30 text-brand dark:text-brand-muted';
 			case 'error':
-				return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+				return 'bg-danger/15 text-danger';
 			case 'paused':
-				return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+				return 'bg-warning/15 text-warning';
 			default:
 				return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
 		}
@@ -357,16 +357,16 @@
 		<!-- Out of Stock Banner -->
 		{#if product.isOutOfStock}
 			<div
-				class="flex items-center gap-3 p-4 mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl"
+				class="flex items-center gap-3 p-4 mb-6 bg-danger/10 border border-danger/30 rounded-xl"
 				data-testid="out-of-stock-banner"
 				in:fly={{ y: 20, duration: 500, delay: 50 }}
 			>
-				<PackageX size={20} class="text-red-600 dark:text-red-400 shrink-0" />
+				<PackageX size={20} class="text-danger shrink-0" />
 				<div>
-					<p class="text-sm font-medium text-red-800 dark:text-red-200">
+					<p class="text-sm font-medium text-danger">
 						This product is out of stock
 					</p>
-					<p class="text-xs text-red-600 dark:text-red-400 mt-0.5">
+					<p class="text-xs text-danger mt-0.5">
 						All tracked URLs report this product as unavailable. The last known price is preserved.
 					</p>
 				</div>
@@ -376,16 +376,16 @@
 		<!-- Price Anomaly Banner -->
 		{#if product.hasPriceAnomaly}
 			<div
-				class="flex items-center gap-3 p-4 mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl"
+				class="flex items-center gap-3 p-4 mb-6 bg-warning/10 border border-warning/30 rounded-xl"
 				data-testid="anomaly-banner"
 				in:fly={{ y: 20, duration: 500, delay: 50 }}
 			>
-				<TriangleAlert size={20} class="text-amber-600 dark:text-amber-400 shrink-0" />
+				<TriangleAlert size={20} class="text-warning shrink-0" />
 				<div>
-					<p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+					<p class="text-sm font-medium text-warning">
 						Price anomaly detected
 					</p>
-					<p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+					<p class="text-xs text-warning mt-0.5">
 						The latest price change exceeded the anomaly threshold. This may indicate a data issue
 						or an unusual price swing.
 					</p>

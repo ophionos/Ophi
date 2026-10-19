@@ -26,8 +26,8 @@
 	);
 
 	const storyVariantClasses: Record<string, string> = {
-		positive: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
-		negative: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
+		positive: 'bg-price-drop-subtle text-price-drop',
+		negative: 'bg-price-increase-subtle text-price-increase',
 		neutral: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400',
 		highlight: 'bg-brand-subtle dark:bg-brand-dark/40 text-brand dark:text-brand-muted'
 	};
