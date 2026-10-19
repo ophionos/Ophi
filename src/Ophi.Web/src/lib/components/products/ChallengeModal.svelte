@@ -158,7 +158,7 @@
 		</p>
 
 		{#if error}
-			<p class="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>
+			<p class="text-sm text-danger" role="alert">{error}</p>
 		{:else if ended}
 			<p class="text-sm text-gray-600 dark:text-gray-300" role="status">
 				The session ended. Open it again to continue.

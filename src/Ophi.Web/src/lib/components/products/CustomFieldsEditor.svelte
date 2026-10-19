@@ -57,7 +57,7 @@
 			<button
 				type="button"
 				onclick={() => removeField(index)}
-				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
+				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-danger hover:bg-danger/10 rounded-md"
 				aria-label="Remove field"
 			>
 				<Trash2 size={16} />

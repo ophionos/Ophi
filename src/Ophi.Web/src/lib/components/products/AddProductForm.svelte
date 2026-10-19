@@ -83,7 +83,7 @@
 			onblur={handleBlur}
 			oninput={clearError}
 			placeholder="Paste product URL..."
-			class="w-full min-h-11 px-4 py-2 border rounded-xl focus:ring-4 focus:ring-brand/20 focus:border-brand transition-all duration-300 outline-none bg-white dark:bg-gray-700/50 dark:focus:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 shadow-sm focus:shadow-md {error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-gray-300 dark:border-gray-600'}"
+			class="w-full min-h-11 px-4 py-2 border rounded-xl focus:ring-4 focus:ring-brand/20 focus:border-brand transition-all duration-300 outline-none bg-surface-field dark:bg-surface-field/50 dark:focus:bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 shadow-sm focus:shadow-md {error ? 'border-danger focus:ring-danger/20 focus:border-danger' : 'border-gray-300 dark:border-gray-600'}"
 			disabled={loading}
 			required
 			aria-invalid={error ? true : undefined}

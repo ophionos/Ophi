@@ -47,6 +47,15 @@ describe('ProductEditModal', () => {
 			expect(screen.queryByText('Edit Product')).not.toBeInTheDocument();
 		});
 
+		it('should fill the status toggle with the success colour when active', async () => {
+			render(ProductEditModal, { props: defaultProps });
+			const toggle = screen.getByLabelText('Toggle product status');
+			expect(toggle).toHaveClass('bg-success');
+
+			await fireEvent.click(toggle);
+			expect(toggle).not.toHaveClass('bg-success');
+		});
+
 		it('should render check interval select', () => {
 			render(ProductEditModal, { props: defaultProps });
 			expect(screen.getByLabelText('Check Interval')).toBeInTheDocument();
