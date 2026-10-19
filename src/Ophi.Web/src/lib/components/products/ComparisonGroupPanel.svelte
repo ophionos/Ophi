@@ -50,7 +50,7 @@
 		<select
 			id="comparison-group-select"
 			onchange={(e) => onAdd(e.currentTarget.value)}
-			class="form-select min-h-11 pl-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+			class="form-select min-h-11 pl-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-brand focus:border-transparent bg-surface-field text-gray-900 dark:text-white"
 		>
 			<option value="">Select a group...</option>
 			{#each availableGroups as group (group.id)}

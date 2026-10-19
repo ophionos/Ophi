@@ -65,7 +65,7 @@
 					{value}
 					oninput={(e) => updateItem(index, e.currentTarget.value)}
 					{placeholder}
-					class="flex-1 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
+					class="flex-1 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand focus:border-transparent"
 				/>
 				<button
 					type="button"

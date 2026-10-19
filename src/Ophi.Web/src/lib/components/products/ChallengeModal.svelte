@@ -185,7 +185,7 @@
 					aria-label="Text to type"
 					maxlength="256"
 					autocomplete="off"
-					class="flex-1 min-w-40 px-3 min-h-11 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+					class="flex-1 min-w-40 px-3 min-h-11 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-surface-field text-gray-900 dark:text-white"
 				/>
 				<button
 					type="submit"
@@ -214,7 +214,7 @@
 			<button
 				type="button"
 				onclick={cancel}
-				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+				class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-200 bg-surface-field border border-gray-300 dark:border-gray-600 rounded-md hover:bg-surface-field-hover"
 			>
 				Cancel
 			</button>

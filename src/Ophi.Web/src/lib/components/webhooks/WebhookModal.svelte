@@ -83,7 +83,7 @@
 				placeholder="My Home Assistant webhook"
 				required
 				maxlength="100"
-				class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
+				class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
 			/>
 		</div>
 
@@ -98,7 +98,7 @@
 				bind:value={url}
 				placeholder="https://..."
 				required
-				class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
+				class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
 			/>
 		</div>
 

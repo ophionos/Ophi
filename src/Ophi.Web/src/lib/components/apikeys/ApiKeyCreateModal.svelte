@@ -147,7 +147,7 @@
 						bind:value={name}
 						placeholder="e.g., Home Assistant, cron script"
 						maxlength="100"
-						class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+						class="w-full px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400"
 					/>
 				</div>
 
@@ -172,7 +172,7 @@
 					<select
 						id="key-expires"
 						bind:value={expiresIn}
-						class="w-full form-select pl-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+						class="w-full form-select pl-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white"
 					>
 						<option value="">Never</option>
 						<option value="30">30 days</option>
@@ -187,7 +187,7 @@
 						type="button"
 						onclick={handleClose}
 						disabled={saving}
-						class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+						class="px-4 min-h-11 text-sm font-medium text-gray-700 dark:text-gray-300 bg-surface-field border border-gray-300 dark:border-gray-600 rounded-md hover:bg-surface-field-hover disabled:opacity-50"
 					>
 						Cancel
 					</button>

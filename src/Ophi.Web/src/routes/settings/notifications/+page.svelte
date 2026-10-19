@@ -271,7 +271,7 @@
 				value={discordWebhookUrl}
 				onchange={handleDiscordWebhookChange}
 				disabled={discordLoading}
-				class="flex-1 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50"
+				class="flex-1 px-3 min-h-11 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-surface-field text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50"
 				data-testid="discord-webhook-url"
 			/>
 			<button

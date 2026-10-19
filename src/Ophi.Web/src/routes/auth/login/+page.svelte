@@ -89,7 +89,7 @@
 						required
 						aria-invalid={getFieldError('email').length > 0}
 						aria-describedby={getFieldError('email').length > 0 ? 'email-errors' : undefined}
-						class="w-full px-3 min-h-11 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
+						class="w-full px-3 min-h-11 border rounded-lg bg-surface-field text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 							'email'
 						).length > 0
 							? 'border-danger bg-danger/10'
@@ -124,7 +124,7 @@
 							aria-describedby={getFieldError('password').length > 0
 								? 'password-errors'
 								: undefined}
-							class="w-full px-3 min-h-11 pr-12 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
+							class="w-full px-3 min-h-11 pr-12 border rounded-lg bg-surface-field text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent {getFieldError(
 								'password'
 							).length > 0
 								? 'border-danger bg-danger/10'
