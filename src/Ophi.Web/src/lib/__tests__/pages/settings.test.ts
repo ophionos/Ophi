@@ -174,6 +174,7 @@ describe('Settings — Notifications page', () => {
 		expect(status).toHaveTextContent(/configured/i);
 		expect(status).not.toHaveTextContent(/not configured/i);
 		expect(screen.getByTestId('email-test-button')).toBeEnabled();
+		expect(status).toHaveClass('text-success');
 	});
 
 	it('should warn and disable the test button when the server has no SMTP configured', () => {
@@ -181,6 +182,7 @@ describe('Settings — Notifications page', () => {
 
 		expect(screen.getByTestId('email-status')).toHaveTextContent(/not configured/i);
 		expect(screen.getByTestId('email-test-button')).toBeDisabled();
+		expect(screen.getByTestId('email-status')).toHaveClass('text-warning');
 	});
 
 	it('should send a test email via the API when the test button is clicked', async () => {

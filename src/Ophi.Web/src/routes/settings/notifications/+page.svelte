@@ -186,7 +186,7 @@
 <div class="space-y-3">
 	<!-- Email — the primary alert channel. Read-only: SMTP is server configuration. -->
 	<div
-		class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3"
+		class="bg-surface-1 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3"
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div class="min-w-0">
@@ -229,11 +229,11 @@
 				and still reach your other channels.
 			</p>
 		{:else if emailConfigured}
-			<p class="text-xs text-green-600 dark:text-green-400" data-testid="email-status">
+			<p class="text-xs text-success" data-testid="email-status">
 				SMTP is configured on this server. Send a test email to confirm it actually delivers.
 			</p>
 		{:else}
-			<p class="text-xs text-amber-600 dark:text-amber-400" data-testid="email-status">
+			<p class="text-xs text-warning" data-testid="email-status">
 				SMTP is not configured on this server, so price alert emails will not be delivered. Set
 				SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM, then restart.
 			</p>
@@ -241,7 +241,7 @@
 	</div>
 
 	<!-- Discord notifications -->
-	<div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+	<div class="bg-surface-1 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
 		<div class="flex items-center justify-between">
 			<div>
 				<p class="text-sm font-medium text-gray-900 dark:text-white">Discord Notifications</p>

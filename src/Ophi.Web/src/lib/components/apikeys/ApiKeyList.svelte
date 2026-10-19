@@ -13,7 +13,7 @@
 	let { keys, deletingId, onCreate, onDelete }: Props = $props();
 </script>
 
-<div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+<div class="bg-surface-1 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
 	<div class="flex items-center justify-between">
 		<div>
 			<p class="text-sm font-medium text-gray-900 dark:text-white">API Keys</p>
@@ -43,7 +43,7 @@
 						<div class="flex items-center gap-2">
 							<span class="text-sm font-medium text-gray-900 dark:text-white truncate">{key.name}</span>
 							{#if key.expiresAt && new Date(key.expiresAt) < new Date()}
-								<span class="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded">expired</span>
+								<span class="text-xs px-1.5 py-0.5 bg-danger/10 text-danger rounded">expired</span>
 							{/if}
 						</div>
 						<div class="flex flex-wrap gap-1 mt-1">
@@ -64,7 +64,7 @@
 						onclick={() => onDelete(key.id)}
 						disabled={deletingId === key.id}
 						title="Revoke API key"
-						class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors disabled:opacity-50 shrink-0"
+						class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-danger rounded transition-colors disabled:opacity-50 shrink-0"
 					>
 						<Trash2 size={14} />
 					</button>

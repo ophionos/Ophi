@@ -15,7 +15,7 @@
 	let { webhooks, testingId, deletingId, onAdd, onEdit, onTest, onDelete }: Props = $props();
 </script>
 
-<div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+<div class="bg-surface-1 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
 	<div class="flex items-center justify-between">
 		<div>
 			<p class="text-sm font-medium text-gray-900 dark:text-white">Outbound Webhooks</p>
@@ -75,7 +75,7 @@
 							onclick={() => onDelete(webhook.id)}
 							disabled={deletingId === webhook.id}
 							title="Delete webhook"
-							class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors disabled:opacity-50"
+							class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-danger rounded transition-colors disabled:opacity-50"
 						>
 							<Trash2 size={14} />
 						</button>
