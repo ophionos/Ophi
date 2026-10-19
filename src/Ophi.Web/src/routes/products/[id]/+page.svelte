@@ -594,7 +594,7 @@
 					</div>
 					<button
 						onclick={() => (showDeleteConfirm = true)}
-						class="shrink-0 whitespace-nowrap px-4 min-h-11 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+						class="shrink-0 whitespace-nowrap px-4 min-h-11 text-sm font-medium text-white bg-danger-solid rounded-md hover:bg-danger-solid-hover"
 					>
 						Delete Product
 					</button>

@@ -136,7 +136,7 @@
 		<Bell size={20} />
 		{#if notifications.unreadCount > 0}
 			<span
-				class="absolute top-1 right-1 flex items-center justify-center min-w-4.5 h-4.5 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full"
+				class="absolute top-1 right-1 flex items-center justify-center min-w-4.5 h-4.5 px-1 text-[10px] font-bold text-white bg-danger-solid rounded-full"
 				data-testid="unread-badge"
 			>
 				{notifications.unreadCount > 99 ? '99+' : notifications.unreadCount}

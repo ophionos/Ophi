@@ -411,10 +411,11 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   own `.dark` value, so a component adds no `dark:` pair for it; a price change maps through
   `$lib/utils/priceColors.ts`. Chart series take `chartSeriesColor(i)` from `$lib/utils/chart.ts`, which
   has no green or red (they mean "dropped" and "rose"). No component uses raw `red-*`/`green-*`/`amber-*`
-  for a status any more; the only raw status-hued classes left are the solid red fills below and the
-  yellow favourite star. `danger`/`success` are text colours (red-400/green-400 in
-  dark mode), so they take tints (`bg-danger/10`) but not solid fills under white text: that fails
-  contrast in dark mode. Solid red buttons and badges stay on raw `red-600` until a solid variant exists.
+  for a status any more; the only raw status-hued class left is the yellow favourite star.
+  `danger`/`success` are text colours (red-400/green-400 in dark mode), so they take tints
+  (`bg-danger/10`) but not solid fills under white text: that fails contrast in dark mode. A solid
+  red fill under white text (delete buttons, the unread badge) takes `bg-danger-solid` and
+  `hover:bg-danger-solid-hover`, which keep red-600/red-700 in both modes.
   `warning` means "needs attention" (a dormant alert); a normal active state (a toggle that is on, an
   active status) takes `brand`, not green or yellow. A category label that is not a state (a "Custom"
   store, a landing feature icon) takes a neutral gray or a brand colour, never a status colour.

@@ -51,6 +51,7 @@ describe('NotificationBell', () => {
 			const badge = screen.getByTestId('unread-badge');
 			expect(badge).toBeInTheDocument();
 			expect(badge.textContent?.trim()).toBe('3');
+			expect(badge).toHaveClass('bg-danger-solid');
 		});
 
 		it('should show 99+ when unread count exceeds 99', () => {
