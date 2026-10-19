@@ -395,6 +395,8 @@ describe('Product Detail Page', () => {
 
 			const hero = await screen.findByTestId('product-hero');
 			expect(within(hero).getByTestId('product-status')).toHaveTextContent('Active');
+			// A normal active state takes brand, not green.
+			expect(within(hero).getByTestId('product-status')).toHaveClass('text-brand');
 			expect(within(hero).getByTitle('Edit product')).toBeInTheDocument();
 		});
 

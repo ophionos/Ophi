@@ -136,7 +136,7 @@
 						{formatPrice(productUrl.currentPrice, productUrl.currency)}
 					</span>
 					{#if isBestPrice}
-						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400" title="Lowest price across all stores">
+						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-price-drop-subtle text-price-drop" title="Lowest price across all stores">
 							<Trophy size={9} />
 							Best
 						</span>
@@ -146,7 +146,7 @@
 				{/if}
 				{#if productUrl.status === 'suspicious'}
 					<span
-						class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400"
+						class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-warning/15 text-warning"
 						title={productUrl.suspiciousReason ?? 'Suspicious scrape detected'}
 						data-testid="suspicious-badge"
 					>
@@ -156,7 +156,7 @@
 				{/if}
 				{#if productUrl.status === 'paused'}
 					<span
-						class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
+						class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-danger/10 text-danger"
 						title={productUrl.suspiciousReason ?? productUrl.lastError ?? 'Tracking paused'}
 						data-testid="paused-badge"
 					>
@@ -166,7 +166,7 @@
 				{/if}
 				{#if productUrl.isOutOfStock}
 					<span
-						class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
+						class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-danger/10 text-danger"
 						data-testid="out-of-stock-badge"
 					>
 						<PackageX size={9} />
@@ -179,7 +179,7 @@
 					</span>
 				{/if}
 				{#if productUrl.lastError && productUrl.status !== 'paused'}
-					<span class="text-xs text-red-500 flex items-center gap-0.5" title={productUrl.lastError}>
+					<span class="text-xs text-danger flex items-center gap-0.5" title={productUrl.lastError}>
 						<TriangleAlert size={12} />
 						Error
 					</span>
@@ -187,7 +187,7 @@
 			</div>
 			{#if failureExplanation}
 				<p
-					class="mt-1 text-xs text-red-600 dark:text-red-400 break-words"
+					class="mt-1 text-xs text-danger break-words"
 					data-testid="url-failure-reason"
 				>
 					{failureExplanation}
@@ -214,7 +214,7 @@
 			<button
 				onclick={handleResume}
 				disabled={resuming}
-				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
 				title="Resume monitoring"
 				aria-label="Resume monitoring"
 				data-testid="resume-url-button"
@@ -279,7 +279,7 @@
 			<button
 				onclick={() => (confirmingDelete = true)}
 				disabled={deleting}
-				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50"
+				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-danger hover:bg-danger/10 rounded disabled:opacity-50"
 				title="Remove URL"
 				aria-label="Remove URL"
 			>

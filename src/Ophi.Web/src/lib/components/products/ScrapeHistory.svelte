@@ -65,9 +65,9 @@
 			{#each entries as entry (entry.id)}
 				<div class="px-4 py-3 flex items-center gap-3">
 					{#if entry.success}
-						<CircleCheckBig size={16} class="text-green-500 shrink-0" />
+						<CircleCheckBig size={16} class="text-success shrink-0" />
 					{:else}
-						<CircleX size={16} class="text-red-500 shrink-0" />
+						<CircleX size={16} class="text-danger shrink-0" />
 					{/if}
 					<div class="flex-1 min-w-0">
 						<div class="flex items-center gap-2">
@@ -83,7 +83,7 @@
 							{/if}
 						</div>
 						{#if entry.error}
-							<p class="text-xs text-red-500 dark:text-red-400 truncate" title={entry.error}>
+							<p class="text-xs text-danger truncate" title={entry.error}>
 								{entry.error}
 							</p>
 						{/if}

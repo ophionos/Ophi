@@ -35,7 +35,6 @@ export class ProductDetailPage extends BasePage {
 	readonly deleteProductButton: Locator;
 
 	readonly loadingSpinner: Locator;
-	readonly errorMessage: Locator;
 
 	constructor(page: Page) {
 		super(page);
@@ -92,7 +91,6 @@ export class ProductDetailPage extends BasePage {
 		this.deleteProductButton = page.getByRole('button', { name: 'Delete Product' });
 
 		this.loadingSpinner = page.locator('[data-testid="page-loading"]');
-		this.errorMessage = page.locator('.text-red-400').locator('..');
 	}
 
 	async goto(productId: string) {

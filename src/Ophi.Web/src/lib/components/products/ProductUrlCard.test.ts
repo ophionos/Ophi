@@ -164,6 +164,7 @@ describe('ProductUrlCard', () => {
 				}
 			});
 			expect(screen.getByTestId('suspicious-badge')).toBeInTheDocument();
+			expect(screen.getByTestId('suspicious-badge')).toHaveClass('text-warning');
 			expect(screen.getByText('Suspicious')).toBeInTheDocument();
 		});
 
@@ -245,6 +246,7 @@ describe('ProductUrlCard', () => {
 			});
 			expect(screen.getByTestId('out-of-stock-badge')).toBeInTheDocument();
 			expect(screen.getByTestId('out-of-stock-badge').textContent).toContain('Out of Stock');
+			expect(screen.getByTestId('out-of-stock-badge')).toHaveClass('text-danger');
 		});
 
 		it('should not show out of stock badge when URL is in stock', () => {
