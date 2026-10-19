@@ -35,6 +35,7 @@ describe('OfflineBanner', () => {
 		flushSync();
 
 		expect(screen.getByTestId('offline-banner')).toHaveTextContent('You are offline');
+		expect(screen.getByTestId('offline-banner')).toHaveClass('text-warning');
 	});
 
 	it('should show when the page loads offline', () => {

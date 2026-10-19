@@ -6,6 +6,7 @@ describe('CurrencyMismatchBanner', () => {
 	it('should render warning with listed currencies when multiple provided', () => {
 		render(CurrencyMismatchBanner, { props: { currencies: ['USD', 'GBP'] } });
 		expect(screen.getByTestId('currency-mismatch-warning')).toBeInTheDocument();
+		expect(screen.getByTestId('currency-mismatch-warning')).toHaveClass('text-warning');
 		expect(screen.getByText(/USD, GBP/)).toBeInTheDocument();
 		expect(
 			screen.getByText(/Direct comparison may not be accurate/)

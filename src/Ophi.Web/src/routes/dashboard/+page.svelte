@@ -537,7 +537,7 @@
 				<button
 					onclick={() => (bulkDeleteConfirmOpen = true)}
 					disabled={bulkBusy || selectedIds.size === 0}
-					class="flex min-h-11 items-center gap-1 px-3 text-sm rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
+					class="flex min-h-11 items-center gap-1 px-3 text-sm rounded-md text-danger hover:bg-danger/10 disabled:opacity-50"
 					data-testid="bulk-delete"
 				>
 					<Trash2 size={14} />
@@ -550,8 +550,8 @@
 		<div class="grid gap-6 {isEmptyAccount ? '' : 'lg:grid-cols-[minmax(0,1fr)_20rem]'}">
 		<div class="min-w-0">
 		{#if loadError}
-			<div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-red-200 dark:border-red-800" data-testid="load-error">
-				<p role="alert" class="text-red-600 dark:text-red-400 mb-2">{loadError}</p>
+			<div class="text-center py-12 bg-surface-1 rounded-lg border border-danger/30" data-testid="load-error">
+				<p role="alert" class="text-danger mb-2">{loadError}</p>
 				<button
 					onclick={() => refreshProducts()}
 					class="text-sm text-brand dark:text-brand-muted hover:underline"

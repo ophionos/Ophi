@@ -167,7 +167,7 @@
 		{#if quickAlert.open}
 			<div class="absolute inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-surface-1 px-3 py-2 dark:border-gray-700" role="region" aria-label="Quick price alert for {product.name}">
 				{#if quickAlert.success}
-					<p class="py-1 text-sm text-green-600 dark:text-green-400">Alert set ✓</p>
+					<p class="py-1 text-sm text-success">Alert set ✓</p>
 				{:else}
 					<div class="flex items-center gap-2">
 						<label for="quick-alert-price-{product.id}" class="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">Alert below</label>
@@ -187,7 +187,7 @@
 							type="button"
 							onclick={submitQuickAlert}
 							disabled={quickAlert.loading}
-							class="flex min-h-11 min-w-11 items-center justify-center rounded text-green-600 hover:bg-green-50 disabled:opacity-50 dark:hover:bg-green-900/30"
+							class="flex min-h-11 min-w-11 items-center justify-center rounded text-success hover:bg-success/10 disabled:opacity-50"
 							aria-label="Create alert"
 						>
 							<Check size={16} />

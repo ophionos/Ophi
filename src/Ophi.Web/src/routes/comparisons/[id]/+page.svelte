@@ -167,7 +167,7 @@
 					</button>
 					<button
 						onclick={handleOpenDeleteGroup}
-						class="whitespace-nowrap px-4 min-h-11 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+						class="whitespace-nowrap px-4 min-h-11 text-danger border border-danger/30 rounded-lg hover:bg-danger/10 flex items-center gap-2"
 					>
 						<Trash2 size={18} />
 						Delete Group
@@ -360,7 +360,7 @@
 								</a>
 								<button
 									onclick={() => handleOpenRemoveProduct(product.id)}
-									class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+									class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-danger hover:bg-danger/10 rounded"
 									title="Remove from group"
 								>
 									<Trash2 size={18} />

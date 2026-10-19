@@ -265,6 +265,7 @@ describe('ProductCard', () => {
 
 			await waitFor(() => {
 				expect(screen.getByText('Alert set ✓')).toBeInTheDocument();
+				expect(screen.getByText('Alert set ✓')).toHaveClass('text-success');
 			});
 		});
 

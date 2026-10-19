@@ -11,7 +11,7 @@
 {#if currencies.length > 1}
 	<div
 		data-testid="currency-mismatch-warning"
-		class="flex items-center gap-2 p-3 mb-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm"
+		class="flex items-center gap-2 p-3 mb-3 rounded-lg bg-warning/10 border border-warning/30 text-warning text-sm"
 	>
 		<TriangleAlert size={18} class="shrink-0" />
 		<span>

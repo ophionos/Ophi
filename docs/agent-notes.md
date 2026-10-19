@@ -410,11 +410,14 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   secondary buttons take `bg-surface-field` and `hover:bg-surface-field-hover`). Each token carries its
   own `.dark` value, so a component adds no `dark:` pair for it; a price change maps through
   `$lib/utils/priceColors.ts`. Chart series take `chartSeriesColor(i)` from `$lib/utils/chart.ts`, which
-  has no green or red (they mean "dropped" and "rose"). Pages still on raw `green-*`/`bg-white` utilities
-  move to the tokens when they are next changed. `danger`/`success` are text colours (red-400/green-400 in
+  has no green or red (they mean "dropped" and "rose"). No component uses raw `red-*`/`green-*`/`amber-*`
+  for a status any more; the only raw status-hued classes left are the solid red fills below and the
+  yellow favourite star. `danger`/`success` are text colours (red-400/green-400 in
   dark mode), so they take tints (`bg-danger/10`) but not solid fills under white text: that fails
   contrast in dark mode. Solid red buttons and badges stay on raw `red-600` until a solid variant exists.
-  `warning` means "needs attention" (a dormant alert); a normal active state takes `brand`, not yellow.
+  `warning` means "needs attention" (a dormant alert); a normal active state (a toggle that is on, an
+  active status) takes `brand`, not green or yellow. A category label that is not a state (a "Custom"
+  store, a landing feature icon) takes a neutral gray or a brand colour, never a status colour.
 - **Native form controls are themed once in `app.css`.** `accent-color` and `color-scheme` are set on
   `:root`/`.dark`, so a checkbox or radio adds no `accent-*` class. Number fields have no spinners. A
   `<select>` takes the `form-select` utility (chevron and right padding) and sets `pl-*`, never `px-*`,
