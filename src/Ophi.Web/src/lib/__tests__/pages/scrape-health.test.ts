@@ -56,7 +56,7 @@ describe('Scrape Health Page — success rate card', () => {
 		renderScrapeHealth();
 
 		const value = within(successRateCard()).getByText('No data');
-		expect(value.className).not.toMatch(/text-green/);
+		expect(value.className).not.toMatch(/text-success/);
 		expect(value.className).toMatch(/text-gray/);
 	});
 
@@ -65,7 +65,7 @@ describe('Scrape Health Page — success rate card', () => {
 
 		const value = within(successRateCard()).getByText('100%');
 		expect(value).toBeInTheDocument();
-		expect(value.className).toMatch(/text-green/);
+		expect(value.className).toMatch(/text-success/);
 	});
 
 	it('should show 0% in red when every scrape failed', () => {
@@ -79,7 +79,7 @@ describe('Scrape Health Page — success rate card', () => {
 		// A genuine zero is real data, not "no data".
 		const value = within(successRateCard()).getByText('0%');
 		expect(value).toBeInTheDocument();
-		expect(value.className).toMatch(/text-red/);
+		expect(value.className).toMatch(/text-danger/);
 	});
 
 	it('should show an amber rate when the success rate is degraded', () => {
@@ -91,6 +91,6 @@ describe('Scrape Health Page — success rate card', () => {
 		});
 
 		const value = within(successRateCard()).getByText('85%');
-		expect(value.className).toMatch(/text-amber/);
+		expect(value.className).toMatch(/text-warning/);
 	});
 });

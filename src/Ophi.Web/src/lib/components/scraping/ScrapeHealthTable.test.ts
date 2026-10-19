@@ -65,6 +65,14 @@ describe('ScrapeHealthTable', () => {
 		expect(screen.getAllByText('50%').length).toBeGreaterThanOrEqual(1);
 	});
 
+	it('should colour the success rate badges by health', () => {
+		render(ScrapeHealthTable, { props: { domains: [healthyDomain, degradedDomain, unhealthyDomain] } });
+
+		expect(screen.getAllByText('98%')[0]).toHaveClass('text-success');
+		expect(screen.getAllByText('85%')[0]).toHaveClass('text-warning');
+		expect(screen.getAllByText('50%')[0]).toHaveClass('text-danger');
+	});
+
 	it('should render scrape counts', () => {
 		render(ScrapeHealthTable, { props: { domains: [healthyDomain] } });
 

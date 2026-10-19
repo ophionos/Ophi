@@ -46,12 +46,12 @@
 
 	{#if loadError}
 		<div
-			class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
+			class="bg-danger/10 border border-danger/30 rounded-lg p-4"
 		>
-			<p role="alert" class="text-red-700 dark:text-red-400">{loadError}</p>
+			<p role="alert" class="text-danger">{loadError}</p>
 			<button
 				onclick={handleRefresh}
-				class="mt-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-500"
+				class="mt-2 text-sm font-medium text-danger hover:text-danger/80"
 			>
 				Try again
 			</button>
@@ -73,27 +73,27 @@
 				valueClass={summary.overallSuccessRate === null
 					? 'text-gray-400 dark:text-gray-500'
 					: summary.overallSuccessRate >= 0.95
-						? 'text-green-600 dark:text-green-400'
+						? 'text-success'
 						: summary.overallSuccessRate >= 0.8
-							? 'text-amber-600 dark:text-amber-400'
-							: 'text-red-600 dark:text-red-400'}
+							? 'text-warning'
+							: 'text-danger'}
 			/>
 			<StatCard label="Status">
 				<div class="flex items-center gap-3">
 					{#if summary.domainsHealthy > 0}
-						<span class="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+						<span class="flex items-center gap-1 text-xs text-success">
 							<CircleCheckBig size={12} />
 							{summary.domainsHealthy}
 						</span>
 					{/if}
 					{#if summary.domainsDegraded > 0}
-						<span class="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+						<span class="flex items-center gap-1 text-xs text-warning">
 							<AlertTriangle size={12} />
 							{summary.domainsDegraded}
 						</span>
 					{/if}
 					{#if summary.domainsUnhealthy > 0}
-						<span class="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+						<span class="flex items-center gap-1 text-xs text-danger">
 							<CircleAlert size={12} />
 							{summary.domainsUnhealthy}
 						</span>

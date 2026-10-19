@@ -17,7 +17,7 @@
 <div class="space-y-2" data-testid="tag-list">
 	{#each sortedTags as tag (tag.id)}
 		<div
-			class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-sm transition-shadow"
+			class="flex items-center justify-between p-3 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-sm transition-shadow"
 			data-testid="tag-list-item"
 		>
 			<div class="flex items-center gap-3">
@@ -44,7 +44,7 @@
 				</button>
 				<button
 					onclick={() => onDelete(tag)}
-					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+					class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-danger hover:bg-danger/10 rounded"
 					title="Delete tag"
 					data-testid="tag-delete-button"
 				>
