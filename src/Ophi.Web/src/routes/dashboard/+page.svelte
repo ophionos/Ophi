@@ -546,8 +546,9 @@
 			</div>
 		{/if}
 
-		<!-- min-w-0: the table scrolls inside its own column instead of pushing the rail away. -->
-		<div class="grid gap-6 {isEmptyAccount ? '' : 'lg:grid-cols-[minmax(0,1fr)_20rem]'}">
+		<!-- The rail sits beside the gallery only: the table needs the full frame width, so in
+		     table view the feed drops below it. min-w-0 keeps a wide child inside its column. -->
+		<div class="grid gap-6 {!isEmptyAccount && viewMode.current === 'grid' ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : ''}">
 		<div class="min-w-0">
 		{#if loadError}
 			<div class="text-center py-12 bg-surface-1 rounded-lg border border-danger/30" data-testid="load-error">

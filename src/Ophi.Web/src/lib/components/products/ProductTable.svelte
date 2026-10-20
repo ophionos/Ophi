@@ -76,6 +76,10 @@
 	// The direction a column sorts in when it is first chosen.
 	const SORTABLE: Record<string, string> = { name: 'asc', price: 'asc', pricechange: 'asc', lastchecked: 'desc' };
 	const columnCount = $derived(selectable ? 10 : 9);
+	// The 30-day and 90-day columns repeat the product page; they drop out when the table's own
+	// container is too narrow for every column, so the row menu never scrolls out of view.
+	const wideOnly = 'hidden @min-[68rem]:table-cell';
+	const firstWideColumn = $derived(selectable ? 5 : 4);
 
 	// The failure count only explains a scrape problem; out of stock or paused have none to show.
 	const FAILURE_KINDS = new Set(['failing', 'blocked', 'priceNotFound']);
@@ -171,7 +175,7 @@
 {/snippet}
 
 <!-- Desktop table -->
-<div class="hidden md:block bg-surface-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" data-testid="product-table">
+<div class="@container hidden md:block bg-surface-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" data-testid="product-table">
 	<div class="overflow-x-auto">
 		<table class="w-full text-sm text-left">
 			<thead class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-surface-2 border-b border-gray-200 dark:border-gray-700">
@@ -183,8 +187,8 @@
 					<th scope="col" class="px-3 py-3">Status</th>
 					{@render sortHeader('price', 'Price', 'right')}
 					{@render sortHeader('pricechange', 'Change')}
-					<th scope="col" class="px-3 py-3 whitespace-nowrap">30 days</th>
-					<th scope="col" class="px-3 py-3 whitespace-nowrap">90-day range</th>
+					<th scope="col" class="{wideOnly} px-3 py-3 whitespace-nowrap">30 days</th>
+					<th scope="col" class="{wideOnly} px-3 py-3 whitespace-nowrap">90-day range</th>
 					<th scope="col" class="px-3 py-3">Alert</th>
 					{@render sortHeader('lastchecked', 'Checked')}
 					<th scope="col" class="px-3 py-3 w-12"><span class="sr-only">Actions</span></th>
@@ -195,7 +199,7 @@
 					{#each Array(5) as _, i (i)}
 						<tr data-testid="desktop-row-skeleton">
 							{#each Array(columnCount) as _, c (c)}
-								<td class="px-3 py-3"><div class="h-4 bg-surface-3 rounded animate-shimmer {c === 0 ? 'w-40' : 'w-12'}"></div></td>
+								<td class="px-3 py-3 {c === firstWideColumn || c === firstWideColumn + 1 ? wideOnly : ''}"><div class="h-4 bg-surface-3 rounded animate-shimmer {c === 0 ? 'w-40' : 'w-12'}"></div></td>
 							{/each}
 						</tr>
 					{/each}
@@ -310,14 +314,14 @@
 						</td>
 
 						<!-- 30 days -->
-						<td class={cellPad}>
+						<td class="{wideOnly} {cellPad}">
 							{#if product.sparkline && product.sparkline.length >= 3}
 								<Sparkline data={product.sparkline} width={72} height={22} />
 							{/if}
 						</td>
 
 						<!-- 90-day range -->
-						<td class={cellPad}>
+						<td class="{wideOnly} {cellPad}">
 							{#if product.priceMin != null && product.priceMax != null && product.currentPrice != null}
 								<PriceRangeBar min={product.priceMin} max={product.priceMax} current={product.currentPrice} currency={product.currency} />
 							{/if}

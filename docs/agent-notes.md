@@ -405,6 +405,9 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   `actions` snippet). Counts go in `shared/InlineStats.svelte`; `StatCard` is only for numbers that
   are the page's content (product price stats, scrape health). A page whose filter chips already show
   the counts (stores) has no stat row.
+- **The dashboard table needs the full frame width.** The Recent activity rail sits beside the gallery
+  only; in table view it drops below. The table is an `@container` and hides its 30-day and 90-day
+  columns under 68rem of its own width, so the row menu never scrolls out of view.
 - **Colours come from the semantic tokens in `app.css`** (`price-drop/increase/unchanged` and their
   `-subtle` backgrounds, `success`, `warning`, `danger`, `surface-*`, `brand*`; inputs, selects and
   secondary buttons take `bg-surface-field` and `hover:bg-surface-field-hover`). Each token carries its
