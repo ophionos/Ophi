@@ -27,7 +27,7 @@ public static class GetProducts
         .WithName("GetProducts")
         .WithTags("Products")
         .WithSummary("List products with filtering")
-        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price, pricechange, dateadded, lastchecked, or favourites (favourites first, then newest); no sort pins favourites otherwise. Pass includeSparkline=true to include the 30-day daily lows and the 90-day price range, which includes the current price (more expensive query). atLowest means at the 90-day low. Each item carries `attention` (its worst URL state, or null) and `closestAlert` (the active below/above target nearest the price, in the product's currency); needsAction=true and nearTarget=true filter on them, and needsActionCount/nearTargetCount count them account-wide. productCount, urlCount and stores (the stores the account's URLs use) are account-wide too.")
+        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price (grouped by currency, then by price), pricechange (change7d), dateadded, lastchecked, or favourites (favourites first, then newest); no sort pins favourites otherwise. Each item carries `change7d`, the percent change of the product price over 7 days across the same URLs (null with less than 7 days of history), and `trackedSince`, its first price point; priceDrop=true and priceDropCount use change7d < 0. Pass includeSparkline=true to include the product price at the end of each of the last 30 days and the 90-day price range, which includes the current price (more expensive query). atLowest means at a real 90-day low: a first price point 30+ days old and a different price in the window. Each item carries `attention` (its worst URL state, or null) and `closestAlert` (the active below/above target nearest the price, in the product's currency); needsAction=true and nearTarget=true filter on them, and needsActionCount/nearTargetCount count them account-wide. productCount, urlCount and stores (the stores the account's URLs use) are account-wide too.")
         .Produces<Response>(200)
         .RequireAuthorization();
     }
@@ -74,17 +74,84 @@ public static class GetProducts
     /// <summary>PriceMin/PriceMax and the "at lowest" filter cover this many days.</summary>
     public const int RangeDays = 90;
 
+    /// <summary><c>Change7d</c>, the price-drop filter and the price-change sort compare with this many days ago.</summary>
+    public const int ChangeDays = 7;
+
+    /// <summary>A product is at a real low only once its first price point is this many days old.</summary>
+    public const int RealLowMinDays = 30;
+
     /// <summary>
-    /// At or below the lowest price recorded since <paramref name="cutoff"/>, in the product's own
-    /// currency: a URL re-pointed to another region leaves points the price can't be measured
-    /// against. The filter and the count share it, so the chip's number equals its rows.
+    /// At a real low: at or below every price held in the last <see cref="RangeDays"/> days — the
+    /// points inside the window and the price each URL held when it opened — with at least one of
+    /// them different, and a first price point at least <see cref="RealLowMinDays"/> days old. In
+    /// the product's own currency: a URL re-pointed to another region leaves points the price can't
+    /// be measured against. The filter and the count share it, so the chip's number equals its rows.
     /// </summary>
-    internal static Expression<Func<Product, bool>> AtLowestSince(DateTime cutoff) => p =>
-        p.CurrentPrice != null &&
-        p.PriceHistory.Any(pp => pp.Currency == p.Currency && pp.RecordedAt >= cutoff) &&
-        p.CurrentPrice <= p.PriceHistory
-            .Where(pp => pp.Currency == p.Currency && pp.RecordedAt >= cutoff)
-            .Min(pp => pp.Price);
+    internal static Expression<Func<Product, bool>> AtRealLow(DateTime now)
+    {
+        var windowStart = now.AddDays(-RangeDays);
+        var matured = now.AddDays(-RealLowMinDays);
+        Expression<Func<Product, IEnumerable<PricePoint>>> windowPrices = p => p.PriceHistory.Where(pp =>
+            pp.Currency == p.Currency &&
+            (pp.RecordedAt >= windowStart ||
+             !p.PriceHistory.Any(q => q.ProductUrlId == pp.ProductUrlId && q.RecordedAt > pp.RecordedAt && q.RecordedAt < windowStart)));
+        Expression<Func<Product, IEnumerable<PricePoint>, bool>> rule = (p, window) =>
+            p.CurrentPrice != null &&
+            p.PriceHistory.Any(pp => pp.RecordedAt <= matured) &&
+            window.Any(pp => pp.Price != p.CurrentPrice) &&
+            p.CurrentPrice <= window.Min(pp => pp.Price);
+
+        var product = Expression.Parameter(typeof(Product), "p");
+        return Expression.Lambda<Func<Product, bool>>(
+            Inline(rule, product, Inline(windowPrices, product)), product);
+    }
+
+    /// <summary>
+    /// The change of the product price since <paramref name="cutoff"/>, in percent, over the same
+    /// URLs at both ends: those that held a price in the product's currency at the cutoff and are
+    /// live now (not paused, in stock, priced). Adding or removing a URL is therefore not a change.
+    /// Null when no URL is in both sets — including a product with less history than the window.
+    /// One expression serves the value, the filter, the count and the sort.
+    /// </summary>
+    internal static Expression<Func<Product, decimal?>> Change7d(DateTime cutoff)
+    {
+        Expression<Func<Product, IEnumerable<ProductUrl>>> sameUrls = p => p.ProductUrls.Where(u =>
+            u.Status != ProductUrlStatus.Paused && !u.IsOutOfStock && u.CurrentPrice != null && u.Currency == p.Currency &&
+            u.PriceHistory.Where(pp => pp.RecordedAt <= cutoff).OrderByDescending(pp => pp.RecordedAt)
+                .Select(pp => pp.Currency).FirstOrDefault() == p.Currency);
+        Expression<Func<IEnumerable<ProductUrl>, decimal?>> thenMin = urls => urls.Min(u =>
+            u.PriceHistory.Where(pp => pp.RecordedAt <= cutoff).OrderByDescending(pp => pp.RecordedAt)
+                .Select(pp => (decimal?)pp.Price).FirstOrDefault());
+        Expression<Func<IEnumerable<ProductUrl>, decimal?>> nowMin = urls => urls.Min(u => u.CurrentPrice);
+        Expression<Func<decimal?, decimal?, decimal?>> percent = (current, then) =>
+            then > 0 ? (current - then) / then * 100 : null;
+
+        var product = Expression.Parameter(typeof(Product), "p");
+        var urls = Inline(sameUrls, product);
+        return Expression.Lambda<Func<Product, decimal?>>(
+            Inline(percent, Inline(nowMin, urls), Inline(thenMin, urls)), product);
+    }
+
+    /// <summary>Builds <c>p => body(p, value(p))</c>, so a filter, a sort or a projection can use <paramref name="value"/>.</summary>
+    private static Expression<Func<Product, TOut>> With<TOut>(
+        Expression<Func<Product, decimal?>> value, Expression<Func<Product, decimal?, TOut>> body)
+    {
+        var product = body.Parameters[0];
+        return Expression.Lambda<Func<Product, TOut>>(Inline(body, product, Inline(value, product)), product);
+    }
+
+    /// <summary>The body of <paramref name="lambda"/> with its parameters replaced by <paramref name="args"/>.</summary>
+    private static Expression Inline(LambdaExpression lambda, params Expression[] args) =>
+        new Substitution(lambda.Parameters.Zip(args).ToDictionary(pair => (Expression)pair.First, pair => pair.Second))
+            .Visit(lambda.Body)!;
+
+    private sealed class Substitution(Dictionary<Expression, Expression> map) : ExpressionVisitor
+    {
+        public override Expression? Visit(Expression? node) =>
+            node is not null && map.TryGetValue(node, out var replacement) ? replacement : base.Visit(node);
+    }
+
+    private sealed record RowValues(Guid Id, decimal? Change7d, DateTime? TrackedSince);
 
     public record ProductDto(
          Guid Id,
@@ -113,7 +180,9 @@ public static class GetProducts
         AlertTargetDto? ClosestAlert = null,
         string? BestUrl = null,
         string? BestStoreName = null,
-        DateTime? LastSucceededAt = null
+        DateTime? LastSucceededAt = null,
+        decimal? Change7d = null,
+        DateTime? TrackedSince = null
     );
 
     /// <summary>
@@ -194,7 +263,9 @@ public static class GetProducts
             }
 
             var now = timeProvider.GetUtcNow().UtcDateTime;
-            var isAtLowest = AtLowestSince(now.AddDays(-RangeDays));
+            var isAtLowest = AtRealLow(now);
+            var change7d = Change7d(now.AddDays(-ChangeDays));
+            var isPriceDrop = With(change7d, (p, change) => change < 0m);
 
             if (!string.IsNullOrWhiteSpace(request.StoreId))
             {
@@ -213,12 +284,10 @@ public static class GetProducts
                 query = query.Where(p => p.IsFavourite);
             }
 
-            // "Price drop" mirrors the DTO's PriceChange < 0: both prices known, previous != 0, current lower.
+            // "Price drop" is the DTO's Change7d < 0.
             if (request.PriceDrop == true)
             {
-                query = query.Where(p =>
-                    p.CurrentPrice != null && p.PreviousPrice != null && p.PreviousPrice != 0 &&
-                    p.CurrentPrice < p.PreviousPrice);
+                query = query.Where(isPriceDrop);
             }
 
             if (request.HasAlerts == true)
@@ -247,9 +316,11 @@ public static class GetProducts
                 "name" => sortDirection == "desc"
                     ? query.OrderByDescending(p => p.Name)
                     : query.OrderBy(p => p.Name),
+                // Prices in different currencies are not comparable (no conversion, agent-notes
+                // § Pricing), so the currency groups them first.
                 "price" => sortDirection == "desc"
-                    ? query.OrderByDescending(p => (double?)p.CurrentPrice)
-                    : query.OrderBy(p => (double?)p.CurrentPrice),
+                    ? query.OrderBy(p => p.Currency).ThenByDescending(p => (double?)p.CurrentPrice)
+                    : query.OrderBy(p => p.Currency).ThenBy(p => (double?)p.CurrentPrice),
                 "dateadded" => sortDirection == "desc"
                     ? query.OrderByDescending(p => p.CreatedAt)
                     : query.OrderBy(p => p.CreatedAt),
@@ -257,14 +328,8 @@ public static class GetProducts
                     ? query.OrderByDescending(p => p.ProductUrls.Max(pu => pu.LastCheckedAt))
                     : query.OrderBy(p => p.ProductUrls.Max(pu => pu.LastCheckedAt)),
                 "pricechange" => sortDirection == "desc"
-                    ? query.OrderByDescending(p =>
-                        p.CurrentPrice.HasValue && p.PreviousPrice.HasValue && p.PreviousPrice != 0
-                            ? (double?)((p.CurrentPrice.Value - p.PreviousPrice.Value) / p.PreviousPrice.Value * 100)
-                            : null)
-                    : query.OrderBy(p =>
-                        p.CurrentPrice.HasValue && p.PreviousPrice.HasValue && p.PreviousPrice != 0
-                            ? (double?)((p.CurrentPrice.Value - p.PreviousPrice.Value) / p.PreviousPrice.Value * 100)
-                            : null),
+                    ? query.OrderByDescending(With(change7d, (p, change) => (double?)change))
+                    : query.OrderBy(With(change7d, (p, change) => (double?)change)),
                 "favourites" => query.OrderByDescending(p => p.IsFavourite).ThenByDescending(p => p.UpdatedAt),
                 _ => query.OrderByDescending(p => p.UpdatedAt)
             };
@@ -289,9 +354,6 @@ public static class GetProducts
                 {
                     Products = g.Count(),
                     Urls = g.Sum(p => p.ProductUrls.Count),
-                    PriceDrops = g.Count(p =>
-                        p.CurrentPrice != null && p.PreviousPrice != null && p.PreviousPrice != 0 &&
-                        p.CurrentPrice < p.PreviousPrice),
                     WithAlerts = g.Count(p => p.Alerts.Any())
                 })
                 .FirstOrDefaultAsync(cancellationToken);
@@ -300,10 +362,10 @@ public static class GetProducts
             var needsActionCount = await userProducts.CountAsync(ProductAttention.NeedsAction, cancellationToken);
             var atLowestCount = await userProducts.CountAsync(isAtLowest, cancellationToken);
             var nearTargetCount = await userProducts.CountAsync(AlertProximity.NearTarget, cancellationToken);
+            var priceDropCount = await userProducts.CountAsync(isPriceDrop, cancellationToken);
 
             var productCount = counts?.Products ?? 0;
             var urlCount = counts?.Urls ?? 0;
-            var priceDropCount = counts?.PriceDrops ?? 0;
             var withAlertsCount = counts?.WithAlerts ?? 0;
             var total = await query.CountAsync(cancellationToken);
 
@@ -362,54 +424,61 @@ public static class GetProducts
             Dictionary<Guid, List<SparklinePointDto>>? sparklineData = null;
             Dictionary<Guid, (decimal Min, decimal Max)>? priceStats = null;
 
+            // The 7-day change and the first price point, for this page only.
+            var rowValues = entityIds.Count == 0
+                ? new Dictionary<Guid, RowValues>()
+                : await dbContext.Products
+                    .AsNoTracking()
+                    .Where(p => entityIds.Contains(p.Id))
+                    .Select(With(change7d, (p, change) =>
+                        new RowValues(p.Id, change, p.PriceHistory.Min(pp => (DateTime?)pp.RecordedAt))))
+                    .ToDictionaryAsync(r => r.Id, cancellationToken);
+
             if (request.IncludeSparkline == true && entities.Count > 0)
             {
                 var productIds = entities.Select(e => e.Id).ToList();
-                var sparklineCutoff = now.AddDays(-SparklineDays);
-                var rangeCutoff = now.AddDays(-RangeDays);
+                var rangeStart = now.AddDays(-RangeDays);
 
-                var pricePoints = await dbContext.PricePoints
-                    .Where(pp => productIds.Contains(pp.ProductId) && pp.RecordedAt >= sparklineCutoff &&
-                                 pp.Currency == pp.Product.Currency)
-                    .OrderBy(pp => pp.RecordedAt)
-                    .Select(pp => new { pp.ProductId, pp.Price, pp.RecordedAt })
+                // Points are written only when a price changes. So the series needs the points in the
+                // window and the price each URL held when it opened: its latest point before.
+                var points = await dbContext.PricePoints
+                    .AsNoTracking()
+                    .Where(pp => productIds.Contains(pp.ProductId) &&
+                                 (pp.RecordedAt >= rangeStart ||
+                                  !dbContext.PricePoints.Any(q => q.ProductId == pp.ProductId &&
+                                      q.ProductUrlId == pp.ProductUrlId &&
+                                      q.RecordedAt > pp.RecordedAt && q.RecordedAt < rangeStart)))
+                    .Select(pp => new { pp.ProductId, pp.ProductUrlId, pp.RecordedAt, pp.Price, pp.Currency })
                     .ToListAsync(cancellationToken);
+                var pointsByProduct = points.ToLookup(pp => pp.ProductId);
 
-                var grouped = pricePoints.GroupBy(pp => pp.ProductId).ToList();
+                sparklineData = [];
+                priceStats = [];
+                foreach (var entity in entities)
+                {
+                    // A URL that is gone (null id) or no longer scraped does not hold its last price up to now.
+                    var urls = pointsByProduct[entity.Id]
+                        .GroupBy(pp => pp.ProductUrlId)
+                        .Select(g => new PriceSeries.UrlSeries(
+                            g.OrderBy(pp => pp.RecordedAt)
+                                .Select(pp => new PriceSeries.Point(pp.RecordedAt, pp.Price, pp.Currency))
+                                .ToList(),
+                            entity.ProductUrls.FirstOrDefault(u => u.Id == g.Key) is { } url &&
+                            url.Status != ProductUrlStatus.Paused && !url.IsOutOfStock))
+                        .ToList();
 
-                // The range spans more days than the sparkline draws, so it is aggregated in SQL
-                // rather than loaded point by point.
-                var ranges = await dbContext.PricePoints
-                    .Where(pp => productIds.Contains(pp.ProductId) && pp.RecordedAt >= rangeCutoff &&
-                                 pp.Currency == pp.Product.Currency)
-                    .GroupBy(pp => pp.ProductId)
-                    .Select(g => new { ProductId = g.Key, Min = g.Min(pp => pp.Price), Max = g.Max(pp => pp.Price) })
-                    .ToDictionaryAsync(r => r.ProductId, r => (r.Min, r.Max), cancellationToken);
+                    sparklineData[entity.Id] = PriceSeries.Daily(urls, entity.Currency, now, SparklineDays)
+                        .Select(d => new SparklinePointDto(d.Day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), d.Price))
+                        .ToList();
 
-                sparklineData = grouped.ToDictionary(
-                    g => g.Key,
-                    g => g.GroupBy(pp => pp.RecordedAt.Date)
-                          .OrderBy(dg => dg.Key)
-                          // The day's low, matching the product price (the MIN across URLs).
-                          .Select(dg => new SparklinePointDto(
-                              dg.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                              dg.Min(pp => pp.Price)))
-                          .ToList()
-                );
-
-                // Points are written only when a price changes, so the current price may predate the
-                // window; it always belongs in the range.
-                priceStats = entities
-                    .Where(e => ranges.ContainsKey(e.Id))
-                    .ToDictionary(
-                        e => e.Id,
-                        e =>
-                        {
-                            var (min, max) = ranges[e.Id];
-                            return e.CurrentPrice is { } current
-                                ? (Math.Min(min, current), Math.Max(max, current))
-                                : (min, max);
-                        });
+                    // The live price always belongs in the range, even when no point says so yet.
+                    if (PriceSeries.Range(urls, entity.Currency, rangeStart, now) is var (min, max))
+                    {
+                        priceStats[entity.Id] = entity.CurrentPrice is { } current
+                            ? (Math.Min(min, current), Math.Max(max, current))
+                            : (min, max);
+                    }
+                }
             }
 
             var affiliates = await AffiliateUrlResolver.LoadAsync(dbContext, request.UserId, cancellationToken);
@@ -473,7 +542,9 @@ public static class GetProducts
                         : null,
                     bestUrl?.Url,
                     bestUrl?.StoreId is { } bestStoreId ? storeNames.GetValueOrDefault(bestStoreId) : null,
-                    p.ProductUrls.Max(pu => pu.LastSucceededAt)
+                    p.ProductUrls.Max(pu => pu.LastSucceededAt),
+                    rowValues.GetValueOrDefault(p.Id)?.Change7d is { } change ? Math.Round(change, 2) : null,
+                    rowValues.GetValueOrDefault(p.Id)?.TrackedSince
                 );
             }).ToList();
 
