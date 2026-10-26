@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { AlertTarget, Product } from '$lib/api/client';
+import { formatPrice } from '$lib/format';
 import {
 	attentionLabel,
 	storeLabel,
@@ -10,6 +11,10 @@ import {
 	fixAction,
 	attentionCause,
 	hostOf,
+	trackedText,
+	rangeTitle,
+	storeLine,
+	PENDING_TEXT,
 	STALE_AFTER_HOURS
 } from './watchlist';
 
@@ -129,5 +134,62 @@ describe('hostOf', () => {
 	it('should drop www. and survive a bad URL', () => {
 		expect(hostOf('https://www.shop.example/p/1')).toBe('shop.example');
 		expect(hostOf('not a url')).toBe('');
+	});
+});
+
+describe('trackedText', () => {
+	const now = new Date('2026-10-26T12:00:00Z');
+	const ago = (hours: number) => new Date(now.getTime() - hours * 3_600_000).toISOString();
+
+	it('should return null when the tracking start is missing', () => {
+		expect(trackedText(base, now)).toBeNull();
+		expect(trackedText({ ...base, trackedSince: null }, now)).toBeNull();
+	});
+
+	it('should say tracked today within the first day', () => {
+		expect(trackedText({ ...base, trackedSince: ago(5) }, now)).toBe('tracked today');
+	});
+
+	it('should say tracked 1 day after one whole day', () => {
+		expect(trackedText({ ...base, trackedSince: ago(30) }, now)).toBe('tracked 1 day');
+	});
+
+	it('should count whole days with a plural', () => {
+		expect(trackedText({ ...base, trackedSince: ago(24 * 4 + 20) }, now)).toBe('tracked 4 days');
+	});
+});
+
+describe('rangeTitle', () => {
+	it('should word the 90-day range with an en dash', () => {
+		expect(rangeTitle({ ...base, currency: 'EUR', priceMin: 15.8, priceMax: 18.83 })).toBe(
+			`90 days: ${formatPrice(15.8, 'EUR')}–${formatPrice(18.83, 'EUR')}`
+		);
+	});
+
+	it('should return undefined when the range is missing', () => {
+		expect(rangeTitle(base)).toBeUndefined();
+		expect(rangeTitle({ ...base, priceMin: 1 })).toBeUndefined();
+	});
+});
+
+describe('storeLine', () => {
+	it('should be the store alone for a single-store product', () => {
+		expect(storeLine({ ...base, bestStoreName: 'The Shop' })).toBe('The Shop');
+	});
+
+	it('should count the other stores', () => {
+		expect(storeLine({ ...base, bestStoreName: 'The Shop', storeCount: 3 })).toBe('The Shop · 2 more');
+	});
+
+	it('should end with the new cheapest store note when the flag is set', () => {
+		expect(storeLine({ ...base, bestStoreName: 'The Shop', storeCount: 2, newCheapestStore: true })).toBe(
+			'The Shop · 1 more · new cheapest store'
+		);
+	});
+});
+
+describe('PENDING_TEXT', () => {
+	it('should be one wording with the ellipsis character', () => {
+		expect(PENDING_TEXT).toBe('Fetching price…');
 	});
 });

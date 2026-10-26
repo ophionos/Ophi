@@ -56,6 +56,15 @@ beforeEach(() => {
 	auth.logout();
 });
 
+describe('Account Settings — Table density', () => {
+	it('should render the table density setting', () => {
+		renderPage();
+
+		expect(screen.getByText('Table density')).toBeInTheDocument();
+		expect(screen.getByRole('radio', { name: 'Compact' })).toBeInTheDocument();
+	});
+});
+
 describe('Account Settings — Profile card', () => {
 	it('should hydrate name and email from the loader user', () => {
 		renderPage();

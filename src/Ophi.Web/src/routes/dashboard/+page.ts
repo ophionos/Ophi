@@ -27,7 +27,9 @@ const ACTION_CARD_SIZE = 10;
  */
 function parseProductParams(searchParams: URLSearchParams): GetProductsParams {
 	const opportunity = searchParams.get('filter');
-	const sortBy = searchParams.get('sortBy') ?? undefined;
+	// "Favourites first" left the sort (#154): an old link with it gets the default sort.
+	const rawSort = searchParams.get('sortBy');
+	const sortBy = rawSort && rawSort !== 'favourites' ? rawSort : undefined;
 	const pageNum = parseInt(searchParams.get('page') ?? '', 10);
 
 	return {
@@ -39,6 +41,7 @@ function parseProductParams(searchParams: URLSearchParams): GetProductsParams {
 		sortDirection: sortBy ? (searchParams.get('sortDirection') ?? undefined) : undefined,
 		page: Number.isFinite(pageNum) && pageNum > 1 ? pageNum : undefined,
 		includeSparkline: true,
+		priceDrop: opportunity === 'drop' || undefined,
 		atLowest: opportunity === 'lowest' || undefined,
 		nearTarget: opportunity === 'near' || undefined,
 		needsAction: opportunity === 'action' || undefined,
