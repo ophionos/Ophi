@@ -8,11 +8,8 @@
 	import { resolve } from '$app/paths';
 	import Modal from '$lib/components/shared/Modal.svelte';
 	import DisplayCurrencySetting from '$lib/components/settings/DisplayCurrencySetting.svelte';
-<<<<<<< HEAD
 	import ShowLandedPricesSetting from '$lib/components/settings/ShowLandedPricesSetting.svelte';
-=======
 	import DensitySetting from '$lib/components/settings/DensitySetting.svelte';
->>>>>>> 70711d227b6902de49895d14d747600280e7e05c
 	import { liveUpdates } from '$lib/stores/liveUpdates.svelte';
 	import { notifications } from '$lib/stores/notifications.svelte';
 	import { products } from '$lib/stores/products.svelte';
@@ -310,11 +307,8 @@
 
 	<!-- Danger zone -->
 	<DisplayCurrencySetting />
-<<<<<<< HEAD
 	<ShowLandedPricesSetting />
-=======
 	<DensitySetting />
->>>>>>> 70711d227b6902de49895d14d747600280e7e05c
 
 	<div class="bg-surface-1 p-4 rounded-lg border border-danger/40 space-y-3">
 		<div class="flex items-center justify-between gap-3">
