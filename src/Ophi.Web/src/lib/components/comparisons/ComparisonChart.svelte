@@ -2,7 +2,15 @@
 	import type { ComparisonProduct } from '$lib/api/client';
 	import { theme } from '$lib/stores/theme.svelte';
 	import CurrencyMismatchBanner from '$lib/components/shared/CurrencyMismatchBanner.svelte';
-	import { loadChart, getChartThemeColors, chartSeriesColor, pointRadii } from '$lib/utils/chart';
+	import {
+		loadChart,
+		getChartThemeColors,
+		chartSeriesColor,
+		pointRadii,
+		alignTimeSeries,
+		timeAxis,
+		formatChartDate
+	} from '$lib/utils/chart';
 	import { formatPrice } from '$lib/format';
 
 	interface Props {
@@ -18,14 +26,6 @@
 	let uniqueCurrencies = $derived([...new Set(products.map((p) => p.currency))]);
 	let hasMismatch = $derived(uniqueCurrencies.length > 1);
 
-	function getAllDates(): string[] {
-		const dateSet = new Set<string>();
-		products.forEach((product) => {
-			product.priceHistory.forEach((h) => dateSet.add(h.date));
-		});
-		return Array.from(dateSet).sort();
-	}
-
 	$effect(() => {
 		if (!canvas || products.length === 0) return;
 
@@ -39,29 +39,17 @@
 		const themeColors = getChartThemeColors(isDark);
 		const mismatch = uniqueCurrencies.length > 1;
 
-		const allDates = getAllDates();
-		const labels = allDates.map((date) => {
-			const d = new Date(date);
-			return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-		});
+		// Points sit at their real time on a linear axis (#134). The history is change-only with no
+		// point at "now", so a price holds from its first known point to the end of the axis. Before
+		// that point it stays null: we do not know the price back then.
+		const aligned = alignTimeSeries(
+			products.map((p) => p.priceHistory),
+			{ holdToEnd: true }
+		);
 
 		const datasets = products.map((product, index) => {
 			const colorSet = chartSeriesColor(index);
-
-			const priceMap = new Map<string, number>();
-			product.priceHistory.forEach((h) => {
-				priceMap.set(h.date, h.price);
-			});
-
-			// Carry-forward: a price holds at its last known value until it changes, so a product with
-			// only one or two points still reads as a line instead of a lone floating dot. Dates before
-			// a product's first known price stay null — we genuinely don't know the price back then.
-			let lastKnown: number | null = null;
-			const data = allDates.map((date) => {
-				const price = priceMap.get(date);
-				if (price !== undefined) lastKnown = price;
-				return lastKnown;
-			});
+			const data = aligned[index];
 			const truncatedName =
 				product.name.length > 30 ? product.name.substring(0, 30) + '...' : product.name;
 			const label = mismatch ? `${truncatedName} (${product.currency})` : truncatedName;
@@ -74,17 +62,20 @@
 				borderWidth: 2,
 				fill: false,
 				// Stepped: price stays flat until it actually changes (matches the carry-forward data),
-				// instead of diagonally interpolating between sparse points.
-				stepped: 'after' as const,
+				// instead of diagonally interpolating between sparse points. Chart.js 'before' runs
+				// flat to the next point, then steps; 'after' steps at the previous point, which drew
+				// every change at the time of the scrape before it.
+				stepped: 'before' as const,
 				tension: 0,
-				pointRadius: pointRadii(data, 3),
+				pointRadius: pointRadii(data.map((p) => p.y), 3),
 				pointHoverRadius: 5,
 				pointBackgroundColor: colorSet.border,
 				pointBorderColor: themeColors.pointBorder,
 				pointBorderWidth: 1,
-				spanGaps: true
+				spanGaps: false
 			};
 		});
+		const { tickLabel, ...xAxis } = timeAxis(aligned);
 
 		loadChart().then((Chart) => {
 			if (cancelled || !canvas) return;
@@ -92,7 +83,6 @@
 			chart = new Chart(ctx, {
 				type: 'line',
 				data: {
-					labels,
 					datasets
 				},
 				options: {
@@ -121,16 +111,7 @@
 							borderWidth: 1,
 							padding: 12,
 							callbacks: {
-								title: (tooltipItems) => {
-									const idx = tooltipItems[0].dataIndex;
-									const date = new Date(allDates[idx]);
-									return date.toLocaleDateString('en-US', {
-										weekday: 'short',
-										month: 'short',
-										day: 'numeric',
-										year: 'numeric'
-									});
-								},
+								title: (tooltipItems) => formatChartDate(new Date(Number(tooltipItems[0].parsed.x)), true),
 								label: (context) => {
 									const value = context.parsed.y;
 									if (value === null) return '';
@@ -142,11 +123,12 @@
 					},
 					scales: {
 						x: {
+							...xAxis,
 							grid: {
 								display: false
 							},
 							ticks: {
-								maxTicksLimit: 7,
+								callback: tickLabel,
 								color: themeColors.tickColor,
 								font: {
 									size: 11

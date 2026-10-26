@@ -2,9 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import type { ComparisonProduct } from '$lib/api/client';
 
+// Captures the config handed to `new Chart(ctx, config)`: only the slice the tests read.
+interface CapturedChartConfig {
+	data: { labels?: unknown[]; datasets: { stepped?: string; data: { x: number; y: number | null }[] }[] };
+	options: { scales: { x: { type?: string; min?: number; max?: number } } };
+}
+const chartConfigs: CapturedChartConfig[] = [];
+
 // Mock Chart.js to prevent actual chart creation
 vi.mock('chart.js', () => {
-	function MockChart() {
+	function MockChart(_ctx: unknown, config: unknown) {
+		chartConfigs.push(config as CapturedChartConfig);
 		return {
 			destroy: vi.fn(),
 			update: vi.fn()
@@ -69,6 +77,45 @@ describe('ComparisonChart', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		chartConfigs.length = 0;
+	});
+
+	describe('time axis (#134)', () => {
+		async function configFor(products: ComparisonProduct[]) {
+			render(ComparisonChart, { props: { products } });
+			await vi.waitFor(() => expect(chartConfigs.length).toBeGreaterThan(0));
+			return chartConfigs[chartConfigs.length - 1];
+		}
+
+		it('should plot each price at its real time on a linear axis', async () => {
+			const config = await configFor(mockProducts);
+
+			expect(config.options.scales.x.type).toBe('linear');
+			expect(config.data.labels).toBeUndefined();
+			expect(config.data.datasets[0].data.map((p) => p.x)).toEqual(
+				['2024-01-01', '2024-01-02', '2024-01-03'].map((d) => Date.parse(d))
+			);
+		});
+
+		it('should step at the new point, not at the point before it', async () => {
+			const config = await configFor(mockProducts);
+			expect(config.data.datasets[0].stepped).toBe('before');
+		});
+
+		it('should give the axis width when every price is from the same day', async () => {
+			const sameDay = mockProducts.map((p) => ({ ...p, priceHistory: [p.priceHistory[0]] }));
+			const x = (await configFor(sameDay)).options.scales.x;
+
+			expect(x.max!).toBeGreaterThan(x.min!);
+		});
+
+		it('should hold a price to the end of the axis and draw nothing before its first point', async () => {
+			// Comparison history is change-only with no point at "now", so the last change still holds.
+			const held = { ...mockProducts[1], priceHistory: [{ date: '2024-01-02', price: 110 }] };
+			const config = await configFor([mockProducts[0], held]);
+
+			expect(config.data.datasets[1].data.map((p) => p.y)).toEqual([null, 110, 110]);
+		});
 	});
 
 	describe('empty states', () => {

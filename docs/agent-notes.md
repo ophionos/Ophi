@@ -131,6 +131,18 @@ other kind of fact. Link to owners; don't restate them here.
   - **A re-anchor clears `PreviousPrice`.** It has no currency of its own, so a USD baseline next to a
     EUR price showed USD 100 → EUR 92 as an 8 % drop (dashboard, price-drop filter, webhook `OldPrice`).
     The frontend already renders a null `previousPrice` as "no change".
+- **A history series covers only the time its price is known** (`GetPriceHistory`). History is
+  change-only (`RecordPriceHistoryHandler` skips an unchanged price), so a series is: the price held
+  before the window, drawn from the window start; the changes in the window; and the last price at
+  now while the URL is scraped (not paused, not out of stock; suspicious counts as scraped). A URL
+  first scraped inside the window starts at its first point, never earlier. A paused or out-of-stock
+  URL with no point in the window draws nothing. Statistics leave out the point at now. The charts
+  (`PriceChart`, `ComparisonChart`) plot `{x, y}` on a linear axis in epoch ms with one tick per local
+  midnight (`alignTimeSeries`, `timeAxis` in `$lib/utils/chart.ts`; there is no date adapter for the
+  `time` scale) and draw `stepped: 'before'` (Chart.js `'after'` draws the vertical at the previous point, so each
+  change showed at the time of the scrape before it). `GetComparisonGroup` adds no point at now, so
+  `ComparisonChart` holds each last price to the axis end (`holdToEnd`). A category axis spaced points by index, so a scrape at
+  00:00:07 sat a full slot after the day before and repeated that day's label.
 - **Only an unpriced product or URL adopts a scraped currency outside the aggregator**
   (`Product.AdoptCurrencyWhileUnpriced`, `ProductUrl.MarkOutOfStock(now, currency)`). The out-of-stock
   path keeps the last price, so it must keep that price's currency: the forced retry reaches priced
