@@ -351,6 +351,13 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   process (Chromium only with `INSTALL_CHROMIUM`). `GET /challenge` re-checks the blocked URLs with
   top-level `RetryScrapeProductUrl` invokes from the endpoint, not from inside the handler.
   `ChallengeSessionBrowserTests` (Integration trait) proves the loop in a real Chromium.
+- **The Playwright driver is recycled** (`PlaywrightBrowserManager`): the node `run-driver` process
+  grows for as long as it lives (about 100 MiB/day on the worker), so the manager disposes the
+  `IPlaywright` (which ends the driver) and the browser after 200 contexts or 6 hours, at the next
+  `NewPageAsync` with no context open. Open contexts are counted per driver generation through
+  `IBrowserContext.Close`, so callers must close the **context**, not only the page, or every recycle
+  waits (logged once per generation). `PlaywrightDriverRecycleTests` (Integration trait) proves the old
+  driver process exits.
 - **Empty 2xx:** `client.ts` special-cases body-less `202`/`204`; treating them as errors once showed a
   false "Failed to retry scrape" toast.
 - **TimeProvider:** production code uses injected `TimeProvider` (static Wolverine handlers take it as a
