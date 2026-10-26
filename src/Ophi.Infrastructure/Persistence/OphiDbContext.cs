@@ -21,6 +21,8 @@ public class OphiDbContext(DbContextOptions<OphiDbContext> options) : DbContext(
     public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
     public DbSet<StoreClearance> StoreClearances => Set<StoreClearance>();
     public DbSet<ShippingRate> ShippingRates => Set<ShippingRate>();
+    public DbSet<Basket> Baskets => Set<Basket>();
+    public DbSet<BasketItem> BasketItems => Set<BasketItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

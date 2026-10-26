@@ -46,6 +46,19 @@ public static class ExportBackup
                 .Select(r => new BackupShippingRate(r.Host, r.Amount, r.Currency, r.FreeAbove))
                 .ToListAsync(cancellationToken);
 
+            var baskets = (await dbContext.Baskets.AsNoTracking()
+                    .Where(b => b.UserId == query.UserId)
+                    .Select(b => new
+                    {
+                        b.Name,
+                        b.Description,
+                        Items = b.Items.OrderBy(i => i.AddedAt).Select(i => new BackupBasketItem(i.ProductId, i.Quantity)).ToList()
+                    })
+                    .ToListAsync(cancellationToken))
+                .OrderBy(b => b.Name, StringComparer.Ordinal)
+                .Select(b => new BackupBasket(b.Name, b.Description, b.Items))
+                .ToList();
+
             var products = await dbContext.Products.AsNoTracking()
                 .Where(p => p.UserId == query.UserId)
                 .Include(p => p.ProductUrls)
@@ -81,7 +94,8 @@ public static class ExportBackup
                 history[p.Id].Select(pp => new BackupPricePoint(pp.ProductUrlId, pp.Price, pp.Currency, pp.RecordedAt)).ToList(),
                 p.Alerts.OrderBy(a => a.CreatedAt).Select(a => new BackupAlert(
                     a.Condition.ToApiString(), a.TargetPrice, a.ReferencePrice, a.Currency, a.IsActive,
-                    a.LastTriggeredAt, a.TriggerCount)).ToList()
+                    a.LastTriggeredAt, a.TriggerCount)).ToList(),
+                p.Id
             )).ToList();
 
             logger.LogInformation("Backup exported for user {UserId}: {Products} products", query.UserId, bundleProducts.Count);
@@ -105,7 +119,8 @@ public static class ExportBackup
                 groups,
                 stores,
                 bundleProducts,
-                shippingRates);
+                shippingRates,
+                baskets);
         }
     }
 
@@ -121,7 +136,7 @@ public static class ExportBackup
         .WithTags("Account")
         .WithSummary("Download a backup of the whole account")
         .WithDescription("One JSON file: settings, tags, comparison groups, stores, products with URLs, " +
-                         "full price history, alerts and shipping rates. Credentials (password, API keys, notification " +
+                         "full price history, alerts, shipping rates and baskets. Credentials (password, API keys, notification " +
                          "channel URLs/ids, outbound webhooks) are never included — see its 'excluded' list.")
         .Produces(200, contentType: "application/json")
         .RequireAuthorization();

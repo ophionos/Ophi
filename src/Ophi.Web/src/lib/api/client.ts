@@ -647,6 +647,7 @@ export const api = new ApiClient();
 export interface BackupImportResult {
 	settingsRestored: boolean;
 	shippingRatesRestored: number;
+	basketsRestored: number;
 	tagsAdded: number;
 	comparisonGroupsAdded: number;
 	storesAdded: number;

@@ -2,6 +2,7 @@ using Ophi.Api.Features.Account;
 using Ophi.Api.Features.Alerts;
 using Ophi.Api.Features.ApiKeys;
 using Ophi.Api.Features.Auth;
+using Ophi.Api.Features.Baskets;
 using Ophi.Api.Features.Comparisons;
 using Ophi.Api.Features.Events;
 using Ophi.Api.Features.Fx;
@@ -94,6 +95,16 @@ internal static class EndpointRouting
         app.MapAddProductsToGroupEndpoint();
         app.MapRemoveProductFromGroupEndpoint();
         app.MapGetComparisonGroupEndpoint();
+
+        // Baskets
+        app.MapGetBasketsEndpoint();
+        app.MapGetBasketEndpoint();
+        app.MapCreateBasketEndpoint();
+        app.MapUpdateBasketEndpoint();
+        app.MapDeleteBasketEndpoint();
+        app.MapAddBasketItemsEndpoint();
+        app.MapSetBasketItemQuantityEndpoint();
+        app.MapRemoveBasketItemEndpoint();
 
         // Stores
         app.MapGetStoresEndpoint();
