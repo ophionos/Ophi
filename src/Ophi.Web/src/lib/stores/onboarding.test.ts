@@ -85,6 +85,20 @@ describe('onboarding store', () => {
 		expect(onboarding.completed).toBe(false);
 	});
 
+	it('should take the step count from init and keep the saved step inside it', () => {
+		onboarding.nextStep();
+		onboarding.nextStep();
+		onboarding.nextStep();
+		onboarding.nextStep();
+
+		onboarding.init(3);
+
+		expect(onboarding.totalSteps).toBe(3);
+		expect(onboarding.currentStep).toBe(2);
+		onboarding.nextStep();
+		expect(onboarding.currentStep).toBe(2);
+	});
+
 	it('should expose totalSteps', () => {
 		expect(onboarding.totalSteps).toBe(5);
 	});
