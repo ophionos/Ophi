@@ -42,6 +42,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.PushoverUserKey).HasMaxLength(64);
         builder.Property(u => u.NtfyTopicUrl).HasMaxLength(2048);
         builder.Property(u => u.DisplayCurrency).HasMaxLength(3);
+        builder.Property(u => u.ShowLandedPrices).HasDefaultValue(false);
 
         builder.HasMany(u => u.Products)
             .WithOne(p => p.User)

@@ -6,6 +6,7 @@ using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Api.Common.Helpers;
 using Ophi.Api.Features.Settings;
+using Ophi.Api.Features.Shipping;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
 using Ophi.Infrastructure.Persistence;
@@ -22,7 +23,7 @@ namespace Ophi.Api.Features.Account;
 /// <b>Merge only</b> — never deletes or overwrites: tags and comparison groups are matched by name
 /// and reused, an existing store config with the same <c>storeId</c> is kept as it is, and a product
 /// with any already-tracked URL is skipped whole, and settings are restored only into an account
-/// with no products yet. Everything created gets a new ID. Active alerts
+/// with no products yet. Shipping rates are the exception: they are upserted on host. Everything created gets a new ID. Active alerts
 /// still count against <see cref="AlertSettings.MaxAlertsPerUser"/>; any beyond it arrive paused.
 /// One transaction: a failure leaves the account untouched.
 /// </para>
@@ -47,6 +48,7 @@ public static class ImportBackup
         int PricePointsAdded,
         int AlertsAdded,
         int AlertsPaused,
+        int ShippingRatesRestored,
         IReadOnlyList<string> Warnings);
 
     public class Handler(OphiDbContext dbContext, IOptions<AlertSettings> alertSettings, ILogger<Handler> logger)
@@ -268,6 +270,39 @@ public static class ImportBackup
                 productsAdded++;
             }
 
+            // --- Shipping rates: upsert on host. A rate is a per-host setting, not a collection, so the
+            // file's value wins. Each rate runs the PUT validator, so a file can't store what the API refuses. ---
+            var shippingRatesRestored = 0;
+            if (bundle.ShippingRates is { Count: > 0 })
+            {
+                var existingRates = await dbContext.ShippingRates.Where(r => r.UserId == userId)
+                    .ToDictionaryAsync(r => r.Host, cancellationToken);
+                var shippingValidator = new PutShippingRate.Validator();
+                foreach (var r in bundle.ShippingRates)
+                {
+                    // A hand-edited file can leave any member null.
+                    var asCommand = new PutShippingRate.Command(r?.Host!, r?.Amount ?? -1m, r?.Currency!, r?.FreeAbove);
+                    if (r is null || !shippingValidator.Validate(asCommand).IsValid)
+                    {
+                        warnings.Add($"Shipping rate for '{r?.Host}' skipped: invalid host, amount or currency");
+                        continue;
+                    }
+                    var host = PutShippingRate.NormalizeHost(r.Host);
+                    var currency = r.Currency.ToUpperInvariant();
+                    if (existingRates.TryGetValue(host, out var rate))
+                    {
+                        rate.Update(r.Amount, currency, r.FreeAbove);
+                    }
+                    else
+                    {
+                        rate = new ShippingRate { Id = Guid.NewGuid(), UserId = userId, Host = host, Amount = r.Amount, Currency = currency, FreeAbove = r.FreeAbove };
+                        dbContext.ShippingRates.Add(rate);
+                        existingRates[host] = rate;
+                    }
+                    shippingRatesRestored++;
+                }
+            }
+
             if (alertsPaused > 0)
             {
                 warnings.Add($"{alertsPaused} alert(s) were imported paused: the account reached its limit of {maxAlerts} active alerts.");
@@ -281,7 +316,7 @@ public static class ImportBackup
                 userId, productsAdded, productsSkipped);
 
             return new Response(settingsRestored, tagsAdded, groupsAdded, storesAdded, storesKept,
-                productsAdded, productsSkipped, pricePointsAdded, alertsAdded, alertsPaused, warnings);
+                productsAdded, productsSkipped, pricePointsAdded, alertsAdded, alertsPaused, shippingRatesRestored, warnings);
         }
 
         /// <summary>Runs the same validator as <see cref="UpdateSettings"/>, so a file can't set what the UI couldn't.</summary>
@@ -290,7 +325,8 @@ public static class ImportBackup
             var asCommand = new UpdateSettings.Command(
                 s.AffiliatesEnabled, s.DefaultCheckIntervalMinutes, s.PageFetchDelaySeconds, s.ScrapeCacheTtlMinutes,
                 AnomalyThresholdPercent: s.AnomalyThresholdPercent, AutoPauseAfterFailures: s.AutoPauseAfterFailures,
-                EmailNotificationsEnabled: s.EmailNotificationsEnabled, DisplayCurrency: s.DisplayCurrency);
+                EmailNotificationsEnabled: s.EmailNotificationsEnabled, DisplayCurrency: s.DisplayCurrency,
+                ShowLandedPrices: s.ShowLandedPrices);
             var validation = new UpdateSettings.Validator().Validate(asCommand);
             if (!validation.IsValid)
             {
@@ -306,6 +342,7 @@ public static class ImportBackup
             user.AutoPauseAfterFailures = s.AutoPauseAfterFailures;
             user.EmailNotificationsEnabled = s.EmailNotificationsEnabled;
             user.DisplayCurrency = string.IsNullOrWhiteSpace(s.DisplayCurrency) ? null : s.DisplayCurrency.ToUpperInvariant();
+            user.ShowLandedPrices = s.ShowLandedPrices;
             return true;
         }
 

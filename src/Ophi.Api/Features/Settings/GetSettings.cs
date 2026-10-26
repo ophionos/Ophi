@@ -63,7 +63,8 @@ public static class GetSettings
         bool PushoverNotificationsEnabled,
         string? DisplayCurrency,
         bool NtfyConfigured,
-        bool NtfyNotificationsEnabled);
+        bool NtfyNotificationsEnabled,
+        bool ShowLandedPrices);
 
     public class Handler(
         OphiDbContext dbContext,
@@ -100,7 +101,8 @@ public static class GetSettings
                 user.PushoverNotificationsEnabled,
                 user.DisplayCurrency,
                 !string.IsNullOrWhiteSpace(user.NtfyTopicUrl),
-                user.NtfyNotificationsEnabled);
+                user.NtfyNotificationsEnabled,
+                user.ShowLandedPrices);
         }
     }
 }

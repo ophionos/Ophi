@@ -11,6 +11,7 @@ using Ophi.Api.Features.Products;
 using Ophi.Api.Features.Scraping;
 using Ophi.Api.Features.Settings;
 using Ophi.Api.Features.Stores;
+using Ophi.Api.Features.Shipping;
 using Ophi.Api.Features.Tags;
 using Ophi.Api.Features.Webhooks;
 
@@ -79,6 +80,11 @@ internal static class EndpointRouting
         app.MapDeleteTagEndpoint();
         app.MapAddTagToProductEndpoint();
         app.MapRemoveTagFromProductEndpoint();
+
+        // Shipping
+        app.MapGetShippingRatesEndpoint();
+        app.MapPutShippingRateEndpoint();
+        app.MapDeleteShippingRateEndpoint();
 
         // Comparisons
         app.MapCreateComparisonGroupEndpoint();

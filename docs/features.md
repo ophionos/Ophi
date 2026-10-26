@@ -29,6 +29,10 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
   the native price first. Rates older than 4 days are labelled with their date. Conversion is display
   only — alerts, comparisons and the best-price rollup never use it.
 
+- **Shipping rates** (`/api/v1/shipping-rates`, one per site host, per user): a flat cost with an optional
+  free-above threshold, in its own currency. `User.ShowLandedPrices` is the display setting. Both travel
+  in the account backup.
+
 ## Alerts and notifications
 
 - Each channel (email, Discord, Telegram, Pushover, ntfy) has its own per-account switch. Turning one off

@@ -488,6 +488,47 @@ namespace Ophi.Infrastructure.Migrations
                     b.ToTable("ScrapeLogs");
                 });
 
+            modelBuilder.Entity("Ophi.Domain.Entities.ShippingRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<decimal?>("FreeAbove")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Host")
+                        .IsUnique();
+
+                    b.ToTable("ShippingRates");
+                });
+
             modelBuilder.Entity("Ophi.Domain.Entities.StoreClearance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -735,6 +776,11 @@ namespace Ophi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("ShowLandedPrices")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("TelegramChatId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -962,6 +1008,17 @@ namespace Ophi.Infrastructure.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("ProductUrl");
+                });
+
+            modelBuilder.Entity("Ophi.Domain.Entities.ShippingRate", b =>
+                {
+                    b.HasOne("Ophi.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Ophi.Domain.Entities.StoreClearance", b =>

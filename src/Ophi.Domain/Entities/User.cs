@@ -39,6 +39,12 @@ public class User : BaseEntity
     public string? DisplayCurrency { get; set; }
 
     /// <summary>
+    /// Show price plus the user's per-host shipping (<see cref="ShippingRate"/>) as a landed price.
+    /// Off by default; display only.
+    /// </summary>
+    public bool ShowLandedPrices { get; set; }
+
+    /// <summary>
     /// Whether price-alert email is delivered to this account. Defaults to on — email is the
     /// channel the product promises, so an account that never touches this keeps receiving it.
     /// Governs alert email only: password-reset mail and the SMTP test send are unconditional.

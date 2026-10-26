@@ -34,7 +34,8 @@ public static class UpdateSettings
                 request.PushoverNotificationsEnabled,
                 request.DisplayCurrency,
                 request.NtfyTopicUrl,
-                request.NtfyNotificationsEnabled
+                request.NtfyNotificationsEnabled,
+                request.ShowLandedPrices
             )
             {
                 UserId = context.User.GetUserId()
@@ -66,7 +67,8 @@ public static class UpdateSettings
         bool? PushoverNotificationsEnabled = null,
         string? DisplayCurrency = null,
         [property: Sensitive] string? NtfyTopicUrl = null,
-        bool? NtfyNotificationsEnabled = null
+        bool? NtfyNotificationsEnabled = null,
+        bool? ShowLandedPrices = null
     )
     {
         protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
@@ -88,7 +90,8 @@ public static class UpdateSettings
         bool? PushoverNotificationsEnabled = null,
         string? DisplayCurrency = null,
         [property: Sensitive] string? NtfyTopicUrl = null,
-        bool? NtfyNotificationsEnabled = null
+        bool? NtfyNotificationsEnabled = null,
+        bool? ShowLandedPrices = null
     )
     {
         protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
@@ -112,7 +115,8 @@ public static class UpdateSettings
         bool PushoverNotificationsEnabled,
         string? DisplayCurrency,
         bool NtfyConfigured,
-        bool NtfyNotificationsEnabled);
+        bool NtfyNotificationsEnabled,
+        bool ShowLandedPrices);
 
     public class Validator : AbstractValidator<Command>
     {
@@ -303,6 +307,11 @@ public static class UpdateSettings
                 user.NtfyNotificationsEnabled = command.NtfyNotificationsEnabled.Value;
             }
 
+            if (command.ShowLandedPrices.HasValue)
+            {
+                user.ShowLandedPrices = command.ShowLandedPrices.Value;
+            }
+
             if (command.DisplayCurrency != null)
             {
                 user.DisplayCurrency = string.IsNullOrWhiteSpace(command.DisplayCurrency)
@@ -330,7 +339,8 @@ public static class UpdateSettings
                 user.PushoverNotificationsEnabled,
                 user.DisplayCurrency,
                 !string.IsNullOrWhiteSpace(user.NtfyTopicUrl),
-                user.NtfyNotificationsEnabled);
+                user.NtfyNotificationsEnabled,
+                user.ShowLandedPrices);
         }
     }
 }

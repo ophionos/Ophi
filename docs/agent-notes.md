@@ -106,6 +106,8 @@ other kind of fact. Link to owners; don't restate them here.
   Never feed rates into `ProductPriceAggregator`, alert checks, comparisons or stored prices: targets
   are denominated on purpose, and a converted MIN would pick a "cheapest" store off a mid-market rate
   the user never pays. A currency the ECB doesn't publish gets no conversion, never a guess.
+- **Shipping is keyed by normalized host and never converted: `LandedPrice` is the one owner; a rate in
+  another currency makes the landed price unknown.**
 - **A price must be > 0, enforced at the parser boundary.** `PriceParser` keeps the ASCII hyphen, so
   `-$15.00` (a discount element) parses to `-15.00` and `$0.00` placeholders to zero; downstream, a
   non-positive value won the MIN, became history, and fired every "below" alert. Every

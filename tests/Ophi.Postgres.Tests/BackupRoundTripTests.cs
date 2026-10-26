@@ -34,6 +34,7 @@ public class BackupRoundTripTests(PostgresFixture fixture)
             ctx.ProductTags.Add(new ProductTag { ProductId = product.Id, TagId = tag.Id });
             ctx.PricePoints.Add(new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 299m, Currency = "USD", RecordedAt = new DateTime(2026, 9, 20, 12, 30, 0, DateTimeKind.Utc) });
             ctx.Alerts.Add(TestEntityFactory.Alert(product.Id, source).WithTarget(250m).Build());
+            ctx.ShippingRates.Add(new ShippingRate { Id = Guid.NewGuid(), UserId = source, Host = "shop.test", Amount = 4.99m, Currency = "EUR", FreeAbove = 29m });
             await ctx.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
@@ -63,6 +64,9 @@ public class BackupRoundTripTests(PostgresFixture fixture)
         await using var verify = fixture.CreateContext();
         var imported = await verify.Products.Include(p => p.ProductTags).Include(p => p.Alerts)
             .SingleAsync(p => p.UserId == target, TestContext.Current.CancellationToken);
+        (await verify.ShippingRates.SingleAsync(r => r.UserId == target, TestContext.Current.CancellationToken))
+            .Should().Match<ShippingRate>(r => r.Host == "shop.test" && r.Amount == 4.99m && r.Currency == "EUR" && r.FreeAbove == 29m,
+                "a re-import upserts on host, so the second pass leaves exactly one rate");
         imported.ProductTags.Should().ContainSingle();
         imported.Alerts.Should().ContainSingle(a => a.TargetPrice == 250m && a.UserId == target);
         (await verify.PricePoints.SingleAsync(pp => pp.ProductId == imported.Id, TestContext.Current.CancellationToken))

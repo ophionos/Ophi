@@ -76,11 +76,5 @@ internal static class ScrapeHelpers
     /// <summary>
     /// Normalizes a URI host by lowercasing and stripping the "www." prefix.
     /// </summary>
-    public static string NormalizeHost(string host)
-    {
-        host = host.ToLowerInvariant();
-        if (host.StartsWith("www.", StringComparison.Ordinal))
-            host = host[4..];
-        return host;
-    }
+    public static string NormalizeHost(string host) => Ophi.Domain.Services.SiteHost.Normalize(host);
 }
