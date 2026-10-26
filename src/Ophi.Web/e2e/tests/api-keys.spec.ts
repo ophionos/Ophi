@@ -57,6 +57,8 @@ test.describe('API Keys', () => {
 		await expect(apiKeys.copyButton).toBeVisible();
 
 		await apiKeys.doneButton.click();
+		// The list behind the modal already shows the key, so assert the modal itself closed.
+		await expect(apiKeys.createdKey).not.toBeVisible();
 
 		// Now listed (read scope by default).
 		const item = apiKeys.keyItem(name);

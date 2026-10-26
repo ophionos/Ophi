@@ -76,6 +76,49 @@ describe('ApiKeyCreateModal', () => {
 		expect(onClose).toHaveBeenCalled();
 	});
 
+	// The real flow: the parent sets createdKey inside onSave, so the modal switches
+	// to the created view while the submit is still in flight.
+	describe('after a successful create', () => {
+		async function createKey(onClose: () => void) {
+			const view = render(ApiKeyCreateModal, { props: { ...defaultProps, onClose } });
+			const onSave = vi.fn().mockImplementation(async () => {
+				await view.rerender({ ...defaultProps, onClose, onSave, createdKey: 'ophi_test_key_abc123' });
+			});
+			await view.rerender({ ...defaultProps, onClose, onSave });
+			await fireEvent.input(screen.getByLabelText('Name'), { target: { value: 'Test Key' } });
+			await fireEvent.click(screen.getByText('Create Key'));
+			await screen.findByText('ophi_test_key_abc123');
+			await Promise.resolve();
+		}
+
+		it('should call onClose when Done is clicked', async () => {
+			const onClose = vi.fn();
+			await createKey(onClose);
+
+			await fireEvent.click(screen.getByText('Done'));
+
+			expect(onClose).toHaveBeenCalled();
+		});
+
+		it('should call onClose when the close button is clicked', async () => {
+			const onClose = vi.fn();
+			await createKey(onClose);
+
+			await fireEvent.click(screen.getByRole('button', { name: /close/i }));
+
+			expect(onClose).toHaveBeenCalled();
+		});
+
+		it('should call onClose when Escape is pressed', async () => {
+			const onClose = vi.fn();
+			await createKey(onClose);
+
+			await fireEvent.keyDown(document, { key: 'Escape' });
+
+			expect(onClose).toHaveBeenCalled();
+		});
+	});
+
 	describe('copy to clipboard', () => {
 		afterEach(() => {
 			vi.unstubAllGlobals();
