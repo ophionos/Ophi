@@ -112,6 +112,30 @@ public class WatchlistDataTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ANewCheaperUrl_IsANewCheapestStore()
+    {
+        AddProduct("New store", new UrlSpec((20, 20m)), new UrlSpec((2, 15m)));
+
+        (await List()).Items.Single().NewCheapestStore.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_AnOldUrlThatDroppedItsPrice_IsNotANewCheapestStore()
+    {
+        AddProduct("Old store", new UrlSpec((20, 20m), (2, 15m)), new UrlSpec((3, 18m)));
+
+        (await List()).Items.Single().NewCheapestStore.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_AProductYoungerThanSevenDays_IsNotANewCheapestStore()
+    {
+        AddProduct("Young", new UrlSpec((5, 20m)), new UrlSpec((2, 15m)));
+
+        (await List()).Items.Single().NewCheapestStore.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Handle_AUrlThatDroppedItsPrice_IsADrop()
     {
         AddProduct("Dropped", new UrlSpec((20, 20m), (2, 15m)));

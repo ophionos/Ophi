@@ -21,16 +21,18 @@
 	import FormError from '$lib/components/shared/FormError.svelte';
 	import ActionMenu from '$lib/components/shared/ActionMenu.svelte';
 	import { productMenuItems } from '$lib/components/products/productMenu';
-	import AttentionPill from '$lib/components/products/AttentionPill.svelte';
-	import PriceChangeChip from '$lib/components/products/PriceChangeChip.svelte';
-	import PriceRangeBar from '$lib/components/products/PriceRangeBar.svelte';
+	import AttentionIcon from '$lib/components/products/AttentionIcon.svelte';
+	import SevenDayChange from '$lib/components/products/SevenDayChange.svelte';
 	import Sparkline from '$lib/components/products/Sparkline.svelte';
 	import {
+		PENDING_TEXT,
 		alertDistanceText,
 		alertTargetText,
 		isPriceOld,
 		productInitial,
-		storeLabel
+		rangeTitle,
+		storeLine,
+		trackedText
 	} from '$lib/utils/watchlist';
 
 	interface Props {
@@ -49,6 +51,8 @@
 		sortBy?: string;
 		sortDirection?: string;
 		onSortChange?: (sortBy: string, sortDirection: string) => void;
+		/** Whether the account has any alert; without one the Alert column is left out. */
+		hasAlerts?: boolean;
 	}
 
 	let {
@@ -64,7 +68,8 @@
 		onSelectToggle,
 		sortBy = '',
 		sortDirection = 'asc',
-		onSortChange
+		onSortChange,
+		hasAlerts = false
 	}: Props = $props();
 
 	// Density-driven cell metrics for the desktop table (mobile cards are unaffected).
@@ -75,11 +80,8 @@
 
 	// The direction a column sorts in when it is first chosen.
 	const SORTABLE: Record<string, string> = { name: 'asc', price: 'asc', pricechange: 'asc', lastchecked: 'desc' };
-	const columnCount = $derived(selectable ? 10 : 9);
-	// The 30-day and 90-day columns repeat the product page; they drop out when the table's own
-	// container is too narrow for every column, so the row menu never scrolls out of view.
-	const wideOnly = 'hidden @min-[68rem]:table-cell';
-	const firstWideColumn = $derived(selectable ? 5 : 4);
+	// Product, price, 7 days, checked and the actions menu, plus the optional columns.
+	const columnCount = $derived(5 + (selectable ? 1 : 0) + (hasAlerts ? 1 : 0));
 
 	// The failure count only explains a scrape problem; out of stock or paused have none to show.
 	const FAILURE_KINDS = new Set(['failing', 'blocked', 'priceNotFound']);
@@ -184,12 +186,11 @@
 						<th scope="col" class="px-3 py-3 w-10"><span class="sr-only">Select</span></th>
 					{/if}
 					{@render sortHeader('name', 'Product')}
-					<th scope="col" class="px-3 py-3">Status</th>
 					{@render sortHeader('price', 'Price', 'right')}
-					{@render sortHeader('pricechange', 'Change')}
-					<th scope="col" class="{wideOnly} px-3 py-3 whitespace-nowrap">30 days</th>
-					<th scope="col" class="{wideOnly} px-3 py-3 whitespace-nowrap">90-day range</th>
-					<th scope="col" class="px-3 py-3">Alert</th>
+					{@render sortHeader('pricechange', '7 days')}
+					{#if hasAlerts}
+						<th scope="col" class="px-3 py-3">Alert</th>
+					{/if}
 					{@render sortHeader('lastchecked', 'Checked')}
 					<th scope="col" class="px-3 py-3 w-12"><span class="sr-only">Actions</span></th>
 				</tr>
@@ -199,7 +200,7 @@
 					{#each Array(5) as _, i (i)}
 						<tr data-testid="desktop-row-skeleton">
 							{#each Array(columnCount) as _, c (c)}
-								<td class="px-3 py-3 {c === firstWideColumn || c === firstWideColumn + 1 ? wideOnly : ''}"><div class="h-4 bg-surface-3 rounded animate-shimmer {c === 0 ? 'w-40' : 'w-12'}"></div></td>
+								<td class="px-3 py-3"><div class="h-4 bg-surface-3 rounded animate-shimmer {c === 0 ? 'w-40' : 'w-12'}"></div></td>
 							{/each}
 						</tr>
 					{/each}
@@ -208,7 +209,6 @@
 					{@const isPending = product.status === 'pending'}
 					{@const qa = quickAlertFor(product.id)}
 					{@const oldPrice = isPriceOld(product)}
-					{@const store = storeLabel(product)}
 					{@const failures = product.attention && FAILURE_KINDS.has(product.attention.kind) ? product.attention.consecutiveFailures : 0}
 					<tr class="hover:bg-surface-2 transition-colors" in:fade={{ duration: 200 }} out:fade={{ duration: 150 }} data-testid="product-row">
 						{#if selectable}
@@ -230,7 +230,7 @@
 									<div class="{avatarSize} shrink-0 bg-surface-2 rounded flex items-center justify-center">
 										<LoaderCircle size={14} class="animate-spin text-gray-400 dark:text-gray-500" />
 									</div>
-									<span class="text-gray-500 dark:text-gray-400">Loading product data...</span>
+									<span class="text-gray-500 dark:text-gray-400">{PENDING_TEXT}</span>
 								{:else}
 									{#if product.imageUrl}
 										<img src={product.imageUrl} alt="" loading="lazy" class="{avatarSize} shrink-0 rounded object-cover" />
@@ -258,9 +258,12 @@
 											{:else if product.isFavourite}
 												<Star size={14} class="shrink-0 text-yellow-500 fill-yellow-500" aria-label="Favourite" />
 											{/if}
+											{#if product.attention}
+												<AttentionIcon attention={product.attention} productId={product.id} />
+											{/if}
 										</div>
 										<p class="text-xs text-gray-500 dark:text-gray-400" data-testid="product-store">
-											{store}{#if product.storeCount > 1}{` · ${product.storeCount - 1} more`}{/if}
+											{storeLine(product)}
 										</p>
 										{#if (product.tags ?? []).length > 0}
 											<div class="flex flex-wrap gap-1 mt-0.5">
@@ -274,75 +277,57 @@
 							</div>
 						</td>
 
-						<!-- Status: empty while the product is healthy -->
-						<td class={cellPad}>
-							{#if isPending}
-								<span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-									<LoaderCircle size={12} class="animate-spin" />
-									Pending
-								</span>
-							{:else if product.attention}
-								<AttentionPill attention={product.attention} productId={product.id} />
-							{/if}
-						</td>
-
 						<!-- Price -->
 						<td class="{cellPad} text-right whitespace-nowrap">
 							{#if isPending}
-								<span class="text-gray-500 dark:text-gray-400">Fetching...</span>
+								<span class="text-gray-500 dark:text-gray-400">{PENDING_TEXT}</span>
 							{:else if product.currentPrice != null}
 								<div class="font-semibold tabular-nums {oldPrice ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}" data-testid="product-price">
 									{formatPrice(product.currentPrice, product.currency)}
 								</div>
-								<div class="text-xs text-gray-500 dark:text-gray-400">
-									{#if oldPrice}
+								{#if oldPrice}
+									<div class="text-xs text-gray-500 dark:text-gray-400">
 										<span title={product.lastSucceededAt ? `Last read ${formatDateTime(product.lastSucceededAt)}` : undefined} data-testid="old-price">old price</span>
-									{:else}
-										{product.currency}
-									{/if}
-								</div>
+									</div>
+								{/if}
+								<!-- 3+ points: a shorter series is only a stub, so a young product shows its age instead. -->
+								{#if product.sparkline && product.sparkline.length >= 3}
+									<span class="mt-0.5 inline-block" title={rangeTitle(product)} data-testid="price-sparkline">
+										<Sparkline data={product.sparkline} width={72} height={18} />
+									</span>
+								{:else if trackedText(product)}
+									<div class="text-xs text-gray-500 dark:text-gray-400" data-testid="tracked-days">{trackedText(product)}</div>
+								{/if}
 							{:else}
 								<span class="text-gray-500 dark:text-gray-400">No price</span>
 							{/if}
 						</td>
 
-						<!-- Change -->
+						<!-- 7 days -->
 						<td class={cellPad}>
 							{#if !isPending}
-								<PriceChangeChip change={product.priceChange} />
+								<SevenDayChange {product} />
 							{/if}
 						</td>
 
-						<!-- 30 days -->
-						<td class="{wideOnly} {cellPad}">
-							{#if product.sparkline && product.sparkline.length >= 3}
-								<Sparkline data={product.sparkline} width={72} height={22} />
-							{/if}
-						</td>
-
-						<!-- 90-day range -->
-						<td class="{wideOnly} {cellPad}">
-							{#if product.priceMin != null && product.priceMax != null && product.currentPrice != null}
-								<PriceRangeBar min={product.priceMin} max={product.priceMax} current={product.currentPrice} currency={product.currency} />
-							{/if}
-						</td>
-
-						<!-- Alert -->
-						<td class="{cellPad} whitespace-nowrap" data-testid="product-alert">
-							{#if product.closestAlert}
-								<div class="tabular-nums text-gray-900 dark:text-white">{alertTargetText(product.closestAlert, product.currency)}</div>
-								<div class="text-xs tabular-nums {product.closestAlert.isNear ? 'font-medium text-brand dark:text-brand-muted' : 'text-gray-500 dark:text-gray-400'}">
-									{alertDistanceText(product.closestAlert, product.currency)}
-								</div>
-							{/if}
-						</td>
+						<!-- Alert: only when the account has one -->
+						{#if hasAlerts}
+							<td class="{cellPad} whitespace-nowrap" data-testid="product-alert">
+								{#if product.closestAlert}
+									<div class="tabular-nums text-gray-900 dark:text-white">{alertTargetText(product.closestAlert, product.currency)}</div>
+									<div class="text-xs tabular-nums {product.closestAlert.isNear ? 'font-medium text-brand dark:text-brand-muted' : 'text-gray-500 dark:text-gray-400'}">
+										{alertDistanceText(product.closestAlert, product.currency)}
+									</div>
+								{/if}
+							</td>
+						{/if}
 
 						<!-- Checked -->
 						<td class="{cellPad} text-xs whitespace-nowrap text-gray-500 dark:text-gray-400"
 							title={product.lastChecked && !isPending ? formatDateTime(product.lastChecked) : undefined}
 						>
 							{#if isPending}
-								Processing...
+								{PENDING_TEXT}
 							{:else if product.lastChecked}
 								{formatTimeAgo(product.lastChecked)}
 							{:else}

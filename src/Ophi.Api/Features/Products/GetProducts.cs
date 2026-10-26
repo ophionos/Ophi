@@ -27,7 +27,7 @@ public static class GetProducts
         .WithName("GetProducts")
         .WithTags("Products")
         .WithSummary("List products with filtering")
-        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price (grouped by currency, then by price), pricechange (change7d), dateadded, lastchecked, or favourites (favourites first, then newest); no sort pins favourites otherwise. Each item carries `change7d`, the percent change of the product price over 7 days across the same URLs (null with less than 7 days of history), and `trackedSince`, its first price point; priceDrop=true and priceDropCount use change7d < 0. Pass includeSparkline=true to include the product price at the end of each of the last 30 days and the 90-day price range, which includes the current price (more expensive query). atLowest means at a real 90-day low: a first price point 30+ days old and a different price in the window. Each item carries `attention` (its worst URL state, or null) and `closestAlert` (the active below/above target nearest the price, in the product's currency); needsAction=true and nearTarget=true filter on them, and needsActionCount/nearTargetCount count them account-wide. productCount, urlCount and stores (the stores the account's URLs use) are account-wide too.")
+        .WithDescription("Returns a paginated list of products for the current user. Supports filtering by tag, search text, and status. Sortable by name, price (grouped by currency, then by price), pricechange (change7d), dateadded, lastchecked, or favourites (favourites first, then newest); no sort pins favourites otherwise. Each item carries `change7d`, the percent change of the product price over 7 days across the same URLs (null with less than 7 days of history), `trackedSince`, its first price point, and `newCheapestStore`, true when the store that gives the price had no price 7 days ago while the product had one; priceDrop=true and priceDropCount use change7d < 0. Pass includeSparkline=true to include the product price at the end of each of the last 30 days and the 90-day price range, which includes the current price (more expensive query). atLowest means at a real 90-day low: a first price point 30+ days old and a different price in the window. Each item carries `attention` (its worst URL state, or null) and `closestAlert` (the active below/above target nearest the price, in the product's currency); needsAction=true and nearTarget=true filter on them, and needsActionCount/nearTargetCount count them account-wide. productCount, urlCount and stores (the stores the account's URLs use) are account-wide too.")
         .Produces<Response>(200)
         .RequireAuthorization();
     }
@@ -182,7 +182,8 @@ public static class GetProducts
         string? BestStoreName = null,
         DateTime? LastSucceededAt = null,
         decimal? Change7d = null,
-        DateTime? TrackedSince = null
+        DateTime? TrackedSince = null,
+        bool NewCheapestStore = false
     );
 
     /// <summary>
@@ -434,6 +435,17 @@ public static class GetProducts
                         new RowValues(p.Id, change, p.PriceHistory.Min(pp => (DateTime?)pp.RecordedAt))))
                     .ToDictionaryAsync(r => r.Id, cancellationToken);
 
+            // Each URL's first price point, to tell a store added in the last 7 days from a price drop.
+            var urlFirstPoints = entityIds.Count == 0
+                ? new Dictionary<Guid, DateTime>()
+                : await dbContext.PricePoints
+                    .AsNoTracking()
+                    .Where(pp => entityIds.Contains(pp.ProductId) && pp.ProductUrlId != null)
+                    .GroupBy(pp => pp.ProductUrlId!.Value)
+                    .Select(g => new { UrlId = g.Key, First = g.Min(pp => pp.RecordedAt) })
+                    .ToDictionaryAsync(x => x.UrlId, x => x.First, cancellationToken);
+            var changeCutoff = now.AddDays(-ChangeDays);
+
             if (request.IncludeSparkline == true && entities.Count > 0)
             {
                 var productIds = entities.Select(e => e.Id).ToList();
@@ -506,7 +518,12 @@ public static class GetProducts
                                  string.Equals(pu.Currency, p.Currency, StringComparison.OrdinalIgnoreCase))
                     .OrderBy(pu => pu.CurrentPrice)
                     .ThenBy(pu => pu.Id)
-                    .FirstOrDefault() ?? firstUrl;
+                    .FirstOrDefault();
+                var trackedSince = rowValues.GetValueOrDefault(p.Id)?.TrackedSince;
+                // The headline store is new: it had no price 7 days ago, while the product had one.
+                var newCheapestStore = bestUrl != null && trackedSince < changeCutoff &&
+                    urlFirstPoints.TryGetValue(bestUrl.Id, out var bestFirst) && bestFirst > changeCutoff;
+                bestUrl ??= firstUrl;
 
                 return new ProductDto(
                     p.Id,
@@ -544,7 +561,8 @@ public static class GetProducts
                     bestUrl?.StoreId is { } bestStoreId ? storeNames.GetValueOrDefault(bestStoreId) : null,
                     p.ProductUrls.Max(pu => pu.LastSucceededAt),
                     rowValues.GetValueOrDefault(p.Id)?.Change7d is { } change ? Math.Round(change, 2) : null,
-                    rowValues.GetValueOrDefault(p.Id)?.TrackedSince
+                    trackedSince,
+                    newCheapestStore
                 );
             }).ToList();
 

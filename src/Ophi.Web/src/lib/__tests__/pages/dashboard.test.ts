@@ -108,6 +108,18 @@ describe('Dashboard Page — header', () => {
 	});
 });
 
+describe('Dashboard Page — alert column', () => {
+	it('should leave the Alert column out when the account has no alert', () => {
+		renderDashboard('http://localhost/dashboard', { withAlertsCount: 0 });
+		expect(within(screen.getByTestId('product-table')).queryByRole('columnheader', { name: 'Alert' })).not.toBeInTheDocument();
+	});
+
+	it('should show the Alert column when the account has an alert', () => {
+		renderDashboard('http://localhost/dashboard', { withAlertsCount: 2 });
+		expect(within(screen.getByTestId('product-table')).getByRole('columnheader', { name: 'Alert' })).toBeInTheDocument();
+	});
+});
+
 describe('Dashboard Page — delete', () => {
 	beforeEach(() => {
 		vi.mocked(api.deleteProduct).mockResolvedValue(undefined as unknown as void);
