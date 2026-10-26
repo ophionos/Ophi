@@ -21,7 +21,8 @@
 	import NeedsActionCard from '$lib/components/products/NeedsActionCard.svelte';
 	import ChallengeModal from '$lib/components/products/ChallengeModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { ListChecks, Pause, Play, Trash2, ShoppingBag, TrendingDown } from 'lucide-svelte';
+	import { ListChecks, Pause, Play, Trash2, ShoppingBag, ShoppingBasket, TrendingDown } from 'lucide-svelte';
+	import AddToBasketModal from '$lib/components/baskets/AddToBasketModal.svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
 	import OnboardingTour from '$lib/components/shared/OnboardingTour.svelte';
@@ -39,6 +40,7 @@
 	let selectedIds = $state<ReadonlySet<string>>(new Set());
 	let bulkBusy = $state(false);
 	let bulkDeleteConfirmOpen = $state(false);
+	let addToBasketOpen = $state(false);
 
 	let loadError = $state('');
 	// Account-wide, whatever the filters: the header, the chips and the store select use them.
@@ -537,6 +539,15 @@
 					Resume
 				</button>
 				<button
+					onclick={() => (addToBasketOpen = true)}
+					disabled={bulkBusy || selectedIds.size === 0}
+					class="flex min-h-11 items-center gap-1 px-3 text-sm rounded-md text-gray-700 dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
+					data-testid="bulk-add-to-basket"
+				>
+					<ShoppingBasket size={14} />
+					Add to basket
+				</button>
+				<button
 					onclick={() => (bulkDeleteConfirmOpen = true)}
 					disabled={bulkBusy || selectedIds.size === 0}
 					class="flex min-h-11 items-center gap-1 px-3 text-sm rounded-md text-danger hover:bg-danger/10 disabled:opacity-50"
@@ -669,6 +680,16 @@
 	onConfirm={confirmBulkDelete}
 	onCancel={() => (bulkDeleteConfirmOpen = false)}
 	loading={bulkBusy}
+/>
+
+<AddToBasketModal
+	open={addToBasketOpen}
+	productIds={[...selectedIds]}
+	onClose={() => (addToBasketOpen = false)}
+	onAdded={() => {
+		selectionMode = false;
+		selectedIds = new Set();
+	}}
 />
 
 <CreateProductModal

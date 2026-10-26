@@ -91,6 +91,7 @@ public class BasketValidatorTests
     public void SetBasketItemQuantity_WithQuantityOutsideRange_HasError(int quantity)
     {
         new SetBasketItemQuantity.Validator().TestValidate(new SetBasketItemQuantity.Command(Id, ProductId, quantity))
-            .ShouldHaveValidationErrorFor(x => x.Quantity);
+            .ShouldHaveValidationErrorFor(x => x.Quantity)
+            .WithErrorMessage("Quantity must be between 1 and 999");
     }
 }

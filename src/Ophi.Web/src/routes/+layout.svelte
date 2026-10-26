@@ -225,6 +225,13 @@
 								Comparisons
 							</a>
 							<a
+								href={resolve('/baskets')}
+								class="px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/baskets'))} rounded-md transition-colors"
+								aria-current={isActive(resolve('/baskets')) ? 'page' : undefined}
+							>
+								Baskets
+							</a>
+							<a
 								href={resolve('/alerts')}
 								class="px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/alerts'))} rounded-md transition-colors"
 								aria-current={isActive(resolve('/alerts')) ? 'page' : undefined}
@@ -354,6 +361,14 @@
 							aria-current={isActive(resolve('/comparisons')) ? 'page' : undefined}
 						>
 							Comparisons
+						</a>
+						<a
+							href={resolve('/baskets')}
+							onclick={() => (mobileMenuOpen = false)}
+							class="flex min-h-11 items-center px-3 text-base font-medium {navLinkClass(resolve('/baskets'))} rounded-md"
+							aria-current={isActive(resolve('/baskets')) ? 'page' : undefined}
+						>
+							Baskets
 						</a>
 						<a
 							href={resolve('/alerts')}

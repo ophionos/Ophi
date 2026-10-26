@@ -27,7 +27,8 @@ public static class SetBasketItemQuantity
                 .NotEmpty();
 
             RuleFor(x => x.Quantity)
-                .InclusiveBetween(1, AddBasketItems.MaxQuantity);
+                .InclusiveBetween(1, AddBasketItems.MaxQuantity)
+                .WithMessage($"Quantity must be between 1 and {AddBasketItems.MaxQuantity}");
         }
     }
 

@@ -52,6 +52,7 @@ describe('CommandPalette', () => {
 			render(CommandPalette, { props: defaultProps });
 			expect(screen.getByText('Dashboard')).toBeInTheDocument();
 			expect(screen.getByText('Comparisons')).toBeInTheDocument();
+			expect(screen.getByText('Baskets')).toBeInTheDocument();
 			expect(screen.getByText('Tags')).toBeInTheDocument();
 			expect(screen.getByText('Stores')).toBeInTheDocument();
 		});

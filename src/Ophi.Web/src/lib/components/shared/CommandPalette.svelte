@@ -37,6 +37,7 @@
 	const staticItems: CommandItem[] = [
 		{ id: 'nav-dashboard', label: 'Dashboard', description: 'View your products', href: resolve('/dashboard'), section: 'Pages' },
 		{ id: 'nav-comparisons', label: 'Comparisons', description: 'Compare product prices', href: resolve('/comparisons'), section: 'Pages' },
+		{ id: 'nav-baskets', label: 'Baskets', description: 'Totals per store for products you buy together', href: resolve('/baskets'), section: 'Pages' },
 		{ id: 'nav-alerts', label: 'Alerts', description: 'Every price alert in one place', href: resolve('/alerts'), section: 'Pages' },
 		{ id: 'nav-settings', label: 'Settings', description: 'Scraping, notifications, API keys, data', href: resolve('/settings'), section: 'Pages' },
 		{ id: 'nav-tags', label: 'Tags', description: 'Manage product tags', href: resolve('/tags'), section: 'Pages' },

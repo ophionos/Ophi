@@ -45,7 +45,9 @@ public record BasketSplitDto(
     decimal? Total,
     bool Complete);
 
-public record BasketSummaryDto(Guid Id, string Name, string? Description, int ItemCount, DateTime UpdatedAt);
+/// <summary>A basket in the list, with its best store's total when it has one (<see cref="BasketDto.BestStore"/>).</summary>
+public record BasketSummaryDto(Guid Id, string Name, string? Description, int ItemCount, DateTime UpdatedAt,
+    string? BestStore = null, decimal? BestTotal = null, string? BestCurrency = null);
 
 /// <summary>The one read of a basket, shared by every basket slice that answers with a <see cref="BasketDto"/>.</summary>
 public static class BasketReader
