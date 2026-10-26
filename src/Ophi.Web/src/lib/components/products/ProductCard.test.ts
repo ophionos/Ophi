@@ -63,10 +63,29 @@ describe('ProductCard', () => {
 			expect(screen.getByTestId('product-price')).toHaveClass('tabular-nums');
 		});
 
-		it('should show the price change chip when the price moved', () => {
-			render(ProductCard, { props: { product: mockProduct } });
+		it('should show the 7-day change chip when the price moved', () => {
+			render(ProductCard, { props: { product: { ...mockProduct, change7d: -6.2 } } });
 
-			expect(screen.getByText('9.1%')).toBeInTheDocument();
+			expect(screen.getByLabelText('Down 6.2%')).toBeInTheDocument();
+		});
+
+		it('should show New on its own line when there is no 7-day change', () => {
+			render(ProductCard, { props: { product: { ...mockProduct, change7d: null } } });
+
+			expect(screen.getByTestId('change-new')).toHaveTextContent('New');
+		});
+
+		it('should end the store line with the new cheapest store note when it is set', () => {
+			render(ProductCard, { props: { product: { ...mockProduct, storeCount: 2, newCheapestStore: true } } });
+
+			expect(screen.getByTestId('product-store')).toHaveTextContent('example.com · 1 more · new cheapest store');
+		});
+
+		it('should show the tracked days when there is no sparkline', () => {
+			const product = { ...mockProduct, trackedSince: new Date(Date.now() - 3 * 86_400_000 - 3_600_000).toISOString() };
+			render(ProductCard, { props: { product } });
+
+			expect(screen.getByTestId('tracked-days')).toHaveTextContent('tracked 3 days');
 		});
 
 		it('should render the image when imageUrl is provided', () => {
@@ -97,9 +116,17 @@ describe('ProductCard', () => {
 			expect(screen.getByRole('link', { name: 'Test Headphones' })).toHaveAttribute('href', '/products/product-123');
 		});
 
-		it('should show the 90-day range when min and max are known', () => {
-			render(ProductCard, { props: { product: { ...mockProduct, priceMin: 89, priceMax: 120 } } });
-			expect(screen.getByTestId('price-range-bar')).toBeInTheDocument();
+		it('should give the sparkline the 90-day range as its tooltip', () => {
+			const product = {
+				...mockProduct,
+				priceMin: 89,
+				priceMax: 120,
+				sparkline: [100, 105, 99.99].map((price, i) => ({ date: `2024-01-1${i}`, price }))
+			};
+			render(ProductCard, { props: { product } });
+
+			expect(screen.getByTestId('price-sparkline')).toHaveAttribute('title', '90 days: $89.00–$120.00');
+			expect(screen.queryByTestId('price-range-bar')).not.toBeInTheDocument();
 		});
 
 		it('should show the closest alert target when one exists', () => {
@@ -114,18 +141,19 @@ describe('ProductCard', () => {
 	});
 
 	describe('Attention', () => {
-		it('should show the attention pill when the product needs action', () => {
+		it('should show the attention icon when the product needs action', () => {
 			const blocked: Product = {
 				...mockProduct,
 				attention: { kind: 'blocked', isAction: true, productUrlId: 'u1', url: mockProduct.url, consecutiveFailures: 3 }
 			};
 			render(ProductCard, { props: { product: blocked } });
-			expect(screen.getByTestId('attention-pill')).toHaveTextContent('Blocked');
+			expect(screen.getByTestId('attention-icon')).toHaveAttribute('data-kind', 'blocked');
+			expect(screen.getByTestId('attention-icon')).toHaveAttribute('aria-label', 'Blocked');
 		});
 
 		it('should not show a status for a healthy product', () => {
 			render(ProductCard, { props: { product: mockProduct } });
-			expect(screen.queryByTestId('attention-pill')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('attention-icon')).not.toBeInTheDocument();
 			expect(screen.queryByText('Active')).not.toBeInTheDocument();
 		});
 	});
@@ -136,9 +164,11 @@ describe('ProductCard', () => {
 		it('should render loading messages instead of the name and price', () => {
 			render(ProductCard, { props: { product: pendingProduct } });
 
-			expect(screen.getByText('Loading product data...')).toBeInTheDocument();
-			expect(screen.getByText('Fetching price...')).toBeInTheDocument();
-			expect(screen.getByText('Processing...')).toBeInTheDocument();
+			// The name slot and the price slot wait with the same wording; so does the footer.
+			expect(screen.getAllByText('Fetching price…')).toHaveLength(3);
+			for (const old of ['Loading product data...', 'Fetching price...', 'Processing...']) {
+				expect(screen.queryByText(old)).not.toBeInTheDocument();
+			}
 		});
 
 		it('should not offer history or an alert for a pending product', async () => {

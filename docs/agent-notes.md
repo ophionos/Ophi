@@ -231,6 +231,8 @@ other kind of fact. Link to owners; don't restate them here.
   the product currency 7 days ago that are live now. Adding a cheaper store is therefore not a drop.
   One expression feeds the value, the price-drop filter and count, and the price-change sort. The
   watchlist does not read `PreviousPrice`. The price sort groups by currency first (no conversion).
+  `NewCheapestStore` marks that case for the UI: the best URL's first point is newer than 7 days
+  and the product's is older.
 - **"Old price" reads `ProductUrl.LastSucceededAt`, never `LastCheckedAt`.** A failed check moves
   `LastCheckedAt`, and price points are written only when the price changes, so neither tells when a
   price was last read. Only `RecordSuccessfulScrape` sets it; the migration backfilled it from
