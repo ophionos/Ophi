@@ -674,4 +674,4 @@
 	onSave={handleCreateProduct}
 />
 
-<OnboardingTour />
+<OnboardingTour emptyAccount={isEmptyAccount} />
