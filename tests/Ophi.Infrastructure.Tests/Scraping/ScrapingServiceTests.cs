@@ -671,6 +671,28 @@ public class ScrapingServiceTests
         result.Price.Should().Be(25.99m);
     }
 
+    [Theory]
+    [InlineData("section class='related products'")]
+    [InlineData("div class='upsells'")]
+    [InlineData("ul class='products'")]
+    public async Task ScrapeProductAsync_GenericRelatedCardBeforeTheMainPrice_IsSkipped(string container)
+    {
+        // A related-product block ahead of the product's own `.price`, and no JSON-LD.
+        var tag = container.Split(' ')[0];
+        const string url = "https://shop.example/product/related-first/";
+        var html = $@"
+            <html><body>
+                <h1>Main item</h1>
+                <{container}><span class='price'>$3.99</span></{tag}>
+                <p class='price'>$25.99</p>
+            </body></html>";
+        _mockHttp.When(url).Respond("text/html", html);
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Price.Should().Be(25.99m);
+    }
+
     [Fact]
     public async Task ScrapeProductAsync_GenericWooCommerceSale_TakesTheSalePriceNotTheStruckOne()
     {

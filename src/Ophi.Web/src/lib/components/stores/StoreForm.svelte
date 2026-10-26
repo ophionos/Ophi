@@ -593,7 +593,7 @@
 			onChange={(v) => (selectors.priceSelectors = v)}
 			placeholder="#price, .product-price, [data-price]"
 			required={true}
-			helpText="CSS selectors to find the product price"
+			helpText="CSS selectors to find the product price, in order. jsonld:product-price reads the price from the page's JSON-LD Product data."
 		/>
 		{#if getFieldError('selectors.priceselectors')}
 			<p role="alert" class="text-sm text-danger">
