@@ -1070,5 +1070,16 @@ describe('ApiClient', () => {
 				expect.objectContaining({ method: 'DELETE' })
 			);
 		});
+
+		it('should get the history for the given days when getBasketHistory is called', async () => {
+			ok({ days: 90, series: [] });
+
+			await api.getBasketHistory('b1', 90);
+
+			expect(fetch).toHaveBeenCalledWith(
+				expect.stringMatching(/\/baskets\/b1\/history\?days=90$/),
+				expect.any(Object)
+			);
+		});
 	});
 });

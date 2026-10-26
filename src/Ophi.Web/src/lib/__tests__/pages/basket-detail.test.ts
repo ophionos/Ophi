@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/svelte';
 import BasketDetailPage from '../../../routes/baskets/[id]/+page.svelte';
-import { api, ApiError, type Basket } from '$lib/api/client';
+import { api, ApiError, type Basket, type BasketHistory } from '$lib/api/client';
 import { goto } from '$app/navigation';
 
 vi.mock('$lib/api/client', async () => {
@@ -13,7 +13,8 @@ vi.mock('$lib/api/client', async () => {
 			updateBasket: vi.fn(),
 			deleteBasket: vi.fn(),
 			setBasketItemQuantity: vi.fn(),
-			removeBasketItem: vi.fn()
+			removeBasketItem: vi.fn(),
+			getBasketHistory: vi.fn()
 		}
 	};
 });
@@ -52,15 +53,30 @@ function basket(overrides: Partial<Basket> = {}): Basket {
 	};
 }
 
-function renderPage(b: Basket) {
+const history: BasketHistory = {
+	days: 30,
+	series: [
+		{
+			host: 'shop-a.es',
+			currency: 'EUR',
+			points: [
+				{ date: '2026-10-01T00:00:00Z', total: 160 },
+				{ date: '2026-10-10T00:00:00Z', total: 155 }
+			]
+		}
+	]
+};
+
+function renderPage(b: Basket, h: BasketHistory | null = history) {
 	return render(BasketDetailPage, {
-		props: { data: { basket: b, shippingRates: [] } } as never
+		props: { data: { basket: b, shippingRates: [], history: h } } as never
 	});
 }
 
 describe('Basket detail page', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(api.getBasketHistory).mockResolvedValue(history);
 	});
 
 	it('should show the name, description and the store table when loaded', () => {
@@ -124,6 +140,31 @@ describe('Basket detail page', () => {
 		await waitFor(() => expect(api.removeBasketItem).toHaveBeenCalledWith('b1', 'p1'));
 		await waitFor(() => expect(api.getBasket).toHaveBeenCalledWith('b1'));
 		await waitFor(() => expect(screen.queryByText('Tent')).not.toBeInTheDocument());
+	});
+
+	it('should show the total over time when the basket has items', () => {
+		renderPage(basket());
+
+		expect(screen.getByRole('heading', { name: /Total over time/ })).toBeInTheDocument();
+		expect(screen.getByText(/current shipping rate/)).toBeInTheDocument();
+	});
+
+	it('should say the history is unavailable when it failed to load', () => {
+		renderPage(basket(), null);
+
+		expect(screen.getByText(/history is not available/i)).toBeInTheDocument();
+	});
+
+	it('should reload the history when the quantity changes', async () => {
+		vi.mocked(api.setBasketItemQuantity).mockResolvedValue(basket());
+		vi.mocked(api.getBasketHistory).mockResolvedValue(history);
+		renderPage(basket());
+
+		const input = screen.getByLabelText('Quantity of Tent');
+		await fireEvent.input(input, { target: { value: '2' } });
+		await fireEvent.change(input);
+
+		await waitFor(() => expect(api.getBasketHistory).toHaveBeenCalledWith('b1', 30));
 	});
 
 	it('should hint how to add products when the basket is empty', () => {

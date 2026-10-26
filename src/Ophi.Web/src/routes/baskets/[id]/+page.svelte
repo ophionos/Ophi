@@ -2,12 +2,13 @@
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { api, ApiError, type Basket, type BasketItem } from '$lib/api/client';
+	import { api, ApiError, type Basket, type BasketHistory, type BasketItem } from '$lib/api/client';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { ArrowLeft, Pencil, Trash2, Package, ListChecks, Scale, Split } from 'lucide-svelte';
+	import { ArrowLeft, Pencil, Trash2, Package, ListChecks, Scale, Split, ChartLine } from 'lucide-svelte';
 	import BasketFormModal from '$lib/components/baskets/BasketFormModal.svelte';
 	import BasketStoreTable from '$lib/components/baskets/BasketStoreTable.svelte';
 	import BasketSplitCard from '$lib/components/baskets/BasketSplitCard.svelte';
+	import BasketHistoryChart from '$lib/components/baskets/BasketHistoryChart.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
 	import PageHeader from '$lib/components/shared/PageHeader.svelte';
@@ -19,11 +20,17 @@
 	// A writable $derived: edits replace it with the server's answer, a new load resets it.
 	let basket = $derived<Basket | null>(data.basket);
 	const shippingRates = $derived(data.shippingRates ?? []);
+	let history = $derived<BasketHistory | null>(data.history ?? null);
 
 	let renameOpen = $state(false);
 	let deleteOpen = $state(false);
 	let deleteLoading = $state(false);
 	let quantityError = $state<{ productId: string; message: string } | null>(null);
+
+	// A quantity or item change moves every past total, so the chart is fetched again.
+	async function refreshHistory(id: string) {
+		history = await api.getBasketHistory(id, history?.days ?? 30).catch(() => null);
+	}
 
 	async function handleRename(name: string, description?: string) {
 		if (!basket) return;
@@ -53,6 +60,7 @@
 		if (quantity === item.quantity) return;
 		try {
 			basket = await api.setBasketItemQuantity(basket.id, item.productId, quantity);
+			void refreshHistory(basket.id);
 		} catch (err) {
 			quantityError = {
 				productId: item.productId,
@@ -70,6 +78,7 @@
 		try {
 			await api.removeBasketItem(basket.id, item.productId);
 			basket = await api.getBasket(basket.id);
+			void refreshHistory(basket.id);
 		} catch (err) {
 			console.error('Failed to remove item:', err);
 			toast.error('Failed to remove item from basket');
@@ -180,6 +189,18 @@
 					</SectionCard>
 				</div>
 			{/if}
+
+			<div class="mt-6">
+				<SectionCard title="Total over time" icon={ChartLine}>
+					{#if history}
+						<BasketHistoryChart series={history.series} />
+					{:else}
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							The history is not available right now.
+						</p>
+					{/if}
+				</SectionCard>
+			</div>
 		{/if}
 	{/if}
 </div>
