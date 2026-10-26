@@ -16,7 +16,6 @@
 	import CreateProductModal from '$lib/components/products/CreateProductModal.svelte';
 	import OpportunityChips, { type Opportunity } from '$lib/components/products/OpportunityChips.svelte';
 	import ViewModeToggle from '$lib/components/products/ViewModeToggle.svelte';
-	import DensityToggle from '$lib/components/products/DensityToggle.svelte';
 	import DashboardPagination from '$lib/components/products/DashboardPagination.svelte';
 	import ActivityFeed from '$lib/components/products/ActivityFeed.svelte';
 	import NeedsActionCard from '$lib/components/products/NeedsActionCard.svelte';
@@ -44,6 +43,7 @@
 	let loadError = $state('');
 	// Account-wide, whatever the filters: the header, the chips and the store select use them.
 	let atLowestCount = $state(0);
+	let priceDropCount = $state(0);
 	let nearTargetCount = $state(0);
 	let withAlertsCount = $state(0);
 	let productCount = $state(0);
@@ -58,12 +58,14 @@
 	// view; every change is mirrored back via syncUrl() (shallow replaceState, no loader re-run).
 	const initParams = page.url.searchParams;
 	// `filter` holds one quick filter: an opportunity chip, or the action card's "Show in table".
-	type QuickFilter = Opportunity | 'action';
+	type QuickFilter = Opportunity;
 	const initFilter = initParams.get('filter');
-	let opportunity = $state<QuickFilter | null>(initFilter === 'lowest' || initFilter === 'near' || initFilter === 'action' ? initFilter : null);
+	let opportunity = $state<QuickFilter | null>(initFilter === 'drop' || initFilter === 'lowest' || initFilter === 'near' || initFilter === 'action' ? initFilter : null);
 	let search = $state(initParams.get('search') ?? '');
 	let status = $state<ProductStatus | ''>((initParams.get('status') as ProductStatus) ?? '');
-	let sortBy = $state(initParams.get('sortBy') ?? '');
+	// "Favourites first" left the sort (#154): an old link with it gets the default sort.
+	const initSort = initParams.get('sortBy');
+	let sortBy = $state(initSort === 'favourites' ? '' : (initSort ?? ''));
 	let sortDirection = $state(initParams.get('sortDirection') === 'desc' ? 'desc' : 'asc');
 	let selectedTagId = $state<string | null>(initParams.get('tag'));
 	let storeId = $state<string | null>(initParams.get('store'));
@@ -111,6 +113,7 @@
 			page: currentPage,
 			// The table and the gallery both draw the sparkline and the range.
 			includeSparkline: true,
+			priceDrop: opportunity === 'drop' ? true : undefined,
 			atLowest: opportunity === 'lowest' ? true : undefined,
 			nearTarget: opportunity === 'near' ? true : undefined,
 			needsAction: opportunity === 'action' ? true : undefined,
@@ -120,6 +123,7 @@
 
 	function applyCounts(p: ProductListResponse) {
 		atLowestCount = p.atLowestCount;
+		priceDropCount = p.priceDropCount;
 		nearTargetCount = p.nearTargetCount;
 		withAlertsCount = p.withAlertsCount;
 		needsActionCount = p.needsActionCount;
@@ -371,7 +375,7 @@
 	}
 
 	const STATUS_LABELS: Record<string, string> = { active: 'Active', paused: 'Paused', error: 'Error' };
-	const OPPORTUNITY_LABELS: Record<QuickFilter, string> = { lowest: 'At their 90-day low', near: 'Alert near target', action: 'Needs your action' };
+	const OPPORTUNITY_LABELS: Record<QuickFilter, string> = { drop: 'Price dropped (7 days)', lowest: 'At a real low', near: 'Alert near target', action: 'Needs your action' };
 	const ACTION_CARD_SIZE = 10;
 
 	// Every filter in effect, in the order of the bar. The sort is not a filter: it hides nothing.
@@ -448,9 +452,11 @@
 		/>
 
 		<OpportunityChips
+			{priceDropCount}
+			{needsActionCount}
 			{atLowestCount}
 			{nearTargetCount}
-			active={opportunity === 'action' ? null : opportunity}
+			active={opportunity}
 			onSelect={(next) => applyFilters(() => (opportunity = next))}
 		/>
 	{/if}
@@ -489,12 +495,6 @@
 							<ListChecks size={15} />
 							{selectionMode ? 'Done' : 'Select'}
 						</button>
-					{#if viewMode.current === 'list'}
-						<!-- Desktop table only; the mobile card stack ignores density. -->
-						<div class="hidden md:flex">
-							<DensityToggle />
-						</div>
-					{/if}
 					<ViewModeToggle mode={viewMode.current} onModeChange={setViewMode} />
 				</div>
 			{/snippet}
