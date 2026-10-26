@@ -6,6 +6,10 @@ namespace Ophi.Api.Features.Account;
 /// <summary>
 /// The account backup file (B-1). Shared by <see cref="ExportBackup"/> and <see cref="ImportBackup"/>.
 /// <para>
+/// Members added after version 1 (<c>ShippingRates</c>, <c>Settings.ShowLandedPrices</c>) default when
+/// the file lacks them, so older backups still import without a version bump.
+/// </para>
+/// <para>
 /// IDs in the file (<c>Ref</c> fields) are references inside the bundle only — import always assigns
 /// new IDs. Credentials, and anything that works as one, are never written: see
 /// <see cref="Excluded"/>.
@@ -20,7 +24,8 @@ public record BackupBundle(
     IReadOnlyList<BackupTag> Tags,
     IReadOnlyList<BackupComparisonGroup> ComparisonGroups,
     IReadOnlyList<BackupStore> Stores,
-    IReadOnlyList<BackupProduct> Products)
+    IReadOnlyList<BackupProduct> Products,
+    IReadOnlyList<BackupShippingRate>? ShippingRates = null)
 {
     public const string FormatName = "ophi-backup";
     public const int CurrentVersion = 1;
@@ -55,7 +60,11 @@ public record BackupSettings(
     int? AnomalyThresholdPercent,
     int? AutoPauseAfterFailures,
     bool EmailNotificationsEnabled,
-    string? DisplayCurrency);
+    string? DisplayCurrency,
+    bool ShowLandedPrices = false);
+
+/// <summary>Optional in the file: backups written before shipping rates existed have none.</summary>
+public record BackupShippingRate(string Host, decimal Amount, string Currency, decimal? FreeAbove);
 
 public record BackupTag(Guid Ref, string Name, string Color, int Weight);
 

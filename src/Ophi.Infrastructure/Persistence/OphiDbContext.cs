@@ -20,6 +20,7 @@ public class OphiDbContext(DbContextOptions<OphiDbContext> options) : DbContext(
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
     public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
     public DbSet<StoreClearance> StoreClearances => Set<StoreClearance>();
+    public DbSet<ShippingRate> ShippingRates => Set<ShippingRate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

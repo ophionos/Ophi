@@ -48,6 +48,7 @@ User
 ├── ComparisonGroup
 ├── StoreConfiguration
 ├── WebhookTarget
+├── ShippingRate           (UserId + normalized Host, unique; flat cost, optional free-above)
 ├── ApiKey                 (SHA-256 hashed)
 └── Notification           (ProductId?)
 

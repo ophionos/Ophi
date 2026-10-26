@@ -41,6 +41,11 @@ public static class ExportBackup
                     s.AffiliateTag, s.CustomUserAgent))
                 .ToListAsync(cancellationToken);
 
+            var shippingRates = await dbContext.ShippingRates.AsNoTracking()
+                .Where(r => r.UserId == query.UserId).OrderBy(r => r.Host)
+                .Select(r => new BackupShippingRate(r.Host, r.Amount, r.Currency, r.FreeAbove))
+                .ToListAsync(cancellationToken);
+
             var products = await dbContext.Products.AsNoTracking()
                 .Where(p => p.UserId == query.UserId)
                 .Include(p => p.ProductUrls)
@@ -94,11 +99,13 @@ public static class ExportBackup
                     user.AnomalyThresholdPercent,
                     user.AutoPauseAfterFailures,
                     user.EmailNotificationsEnabled,
-                    user.DisplayCurrency),
+                    user.DisplayCurrency,
+                    user.ShowLandedPrices),
                 tags,
                 groups,
                 stores,
-                bundleProducts);
+                bundleProducts,
+                shippingRates);
         }
     }
 
@@ -114,7 +121,7 @@ public static class ExportBackup
         .WithTags("Account")
         .WithSummary("Download a backup of the whole account")
         .WithDescription("One JSON file: settings, tags, comparison groups, stores, products with URLs, " +
-                         "full price history and alerts. Credentials (password, API keys, notification " +
+                         "full price history, alerts and shipping rates. Credentials (password, API keys, notification " +
                          "channel URLs/ids, outbound webhooks) are never included — see its 'excluded' list.")
         .Produces(200, contentType: "application/json")
         .RequireAuthorization();

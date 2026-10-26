@@ -52,6 +52,7 @@ public class AccountDeletionCascadeTests(PostgresFixture fixture)
             (await ctx.StoreConfigurations.CountAsync(s => s.UserId == doomedId, TestContext.Current.CancellationToken)).Should().Be(0);
             (await ctx.WebhookTargets.CountAsync(w => w.UserId == doomedId, TestContext.Current.CancellationToken)).Should().Be(0);
             (await ctx.ApiKeys.CountAsync(k => k.UserId == doomedId, TestContext.Current.CancellationToken)).Should().Be(0);
+            (await ctx.ShippingRates.CountAsync(r => r.UserId == doomedId, TestContext.Current.CancellationToken)).Should().Be(0);
 
             // The survivor's identical graph is untouched.
             (await ctx.Users.AnyAsync(u => u.Id == survivorId, TestContext.Current.CancellationToken)).Should().BeTrue();
@@ -65,6 +66,7 @@ public class AccountDeletionCascadeTests(PostgresFixture fixture)
             (await ctx.StoreConfigurations.CountAsync(s => s.UserId == survivorId, TestContext.Current.CancellationToken)).Should().Be(1);
             (await ctx.WebhookTargets.CountAsync(w => w.UserId == survivorId, TestContext.Current.CancellationToken)).Should().Be(1);
             (await ctx.ApiKeys.CountAsync(k => k.UserId == survivorId, TestContext.Current.CancellationToken)).Should().Be(1);
+            (await ctx.ShippingRates.CountAsync(r => r.UserId == survivorId, TestContext.Current.CancellationToken)).Should().Be(1);
         }
     }
 
@@ -119,6 +121,14 @@ public class AccountDeletionCascadeTests(PostgresFixture fixture)
             Name = "Webhook",
             Url = "https://example.com/hook",
             Events = ["price_changed"]
+        });
+        ctx.ShippingRates.Add(new ShippingRate
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Host = "shop.test",
+            Amount = 4.99m,
+            Currency = "EUR"
         });
         ctx.ApiKeys.Add(new ApiKey
         {
