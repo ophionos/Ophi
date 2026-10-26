@@ -48,6 +48,8 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
   The display-currency figure under a total is approximate and never changes the order.
 - The cheapest split buys each item at its cheapest site and adds shipping once per site used. The page
   says how much cheaper or more expensive it is than the best store; no search over store combinations.
+- "Total over time" draws one line per store that is complete now, from the first moment it had every
+  item. Shipping uses the current rate for every day, and out-of-stock periods do not show.
 
 ## Alerts and notifications
 

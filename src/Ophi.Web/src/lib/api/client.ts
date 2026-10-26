@@ -427,6 +427,10 @@ class ApiClient {
 		return this.request(`/baskets/${id}/items/${productId}`, { method: 'DELETE' });
 	}
 
+	async getBasketHistory(id: string, days = 30) {
+		return this.request<BasketHistory>(`/baskets/${id}/history?days=${days}`);
+	}
+
 	// Stores
 	async getStores(search?: string) {
 		const query = new URLSearchParams();
@@ -1261,6 +1265,18 @@ export interface Basket {
 	stores: BasketStore[];
 	bestStore: string | null;
 	split: BasketSplit | null;
+}
+
+/** The basket total at one store over time: change points only, the last one at "now". */
+export interface BasketHistorySeries {
+	host: string;
+	currency: string;
+	points: { date: string; total: number }[];
+}
+
+export interface BasketHistory {
+	days: number;
+	series: BasketHistorySeries[];
 }
 
 export interface ShippingRate {
