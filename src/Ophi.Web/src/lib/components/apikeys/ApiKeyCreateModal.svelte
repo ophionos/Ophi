@@ -70,6 +70,9 @@
 			await onSave({ name: name.trim(), scopes, expiresAt });
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to create API key';
+		} finally {
+			// On success the parent has already switched the modal to the created view;
+			// a stuck `saving` would disable Done, ×, Escape and the backdrop there.
 			saving = false;
 		}
 	}
