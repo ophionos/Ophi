@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Api.Common.Helpers;
+using Ophi.Api.Features.Baskets;
 using Ophi.Api.Features.Settings;
 using Ophi.Api.Features.Shipping;
 using Ophi.Domain.Entities;
@@ -23,7 +24,9 @@ namespace Ophi.Api.Features.Account;
 /// <b>Merge only</b> — never deletes or overwrites: tags and comparison groups are matched by name
 /// and reused, an existing store config with the same <c>storeId</c> is kept as it is, and a product
 /// with any already-tracked URL is skipped whole, and settings are restored only into an account
-/// with no products yet. Shipping rates are the exception: they are upserted on host. Everything created gets a new ID. Active alerts
+/// with no products yet. Shipping rates are the exception: they are upserted on host. Baskets are matched by name
+/// like comparison groups: an existing basket gains the file's products it lacks and keeps its own quantities.
+/// Everything created gets a new ID. Active alerts
 /// still count against <see cref="AlertSettings.MaxAlertsPerUser"/>; any beyond it arrive paused.
 /// One transaction: a failure leaves the account untouched.
 /// </para>
@@ -49,6 +52,7 @@ public static class ImportBackup
         int AlertsAdded,
         int AlertsPaused,
         int ShippingRatesRestored,
+        int BasketsRestored,
         IReadOnlyList<string> Warnings);
 
     public class Handler(OphiDbContext dbContext, IOptions<AlertSettings> alertSettings, ILogger<Handler> logger)
@@ -159,6 +163,8 @@ public static class ImportBackup
             var activeAlerts = await dbContext.Alerts.CountAsync(a => a.UserId == userId && a.IsActive, cancellationToken);
             var maxAlerts = alertSettings.Value.MaxAlertsPerUser;
             int productsAdded = 0, productsSkipped = 0, pricePointsAdded = 0, alertsAdded = 0, alertsPaused = 0;
+            // File product ref -> product id in this account, for the baskets section.
+            var productIds = new Dictionary<Guid, Guid>();
 
             foreach (var p in bundle.Products)
             {
@@ -169,8 +175,10 @@ public static class ImportBackup
                     warnings.Add($"Product '{p.Name}' skipped: no valid URL or invalid name");
                     continue;
                 }
-                if (urls.Any(u => trackedUrls.Contains(u.Url)))
+                if (urls.FirstOrDefault(u => trackedUrls.Contains(u.Url)) is { } trackedUrl)
                 {
+                    // Already tracked: baskets in the file still point at the product that is here.
+                    if (p.Ref is { } skippedRef) productIds.TryAdd(skippedRef, trackedUrls.Find(trackedUrl.Url)!.ProductId);
                     productsSkipped++;
                     continue;
                 }
@@ -191,6 +199,7 @@ public static class ImportBackup
                     CustomFields = p.CustomFields.Select(f => new CustomField(f.Name, f.Value)).ToList()
                 };
                 dbContext.Products.Add(product);
+                if (p.Ref is { } productRef) productIds.TryAdd(productRef, product.Id);
 
                 var urlIds = new Dictionary<Guid, Guid>();
                 foreach (var u in urls)
@@ -303,6 +312,63 @@ public static class ImportBackup
                 }
             }
 
+            // --- Baskets: reuse by name (case-insensitive) like comparison groups, else create. Items map
+            // through the products restored above; an existing basket keeps its quantities. ---
+            var basketsRestored = 0;
+            if (bundle.Baskets is { Count: > 0 })
+            {
+                var basketsByName = new Dictionary<string, Basket>(StringComparer.OrdinalIgnoreCase);
+                foreach (var existing in await dbContext.Baskets.Include(b => b.Items)
+                             .Where(b => b.UserId == userId).ToListAsync(cancellationToken))
+                {
+                    basketsByName.TryAdd(existing.Name, existing);
+                }
+
+                var itemsSkipped = 0;
+                foreach (var b in bundle.Baskets)
+                {
+                    // A hand-edited file can leave any member null.
+                    if (b is null || string.IsNullOrWhiteSpace(b.Name) || b.Name.Length > BasketConfiguration.NameMaxLength)
+                    {
+                        warnings.Add($"Basket '{b?.Name}' skipped: invalid name");
+                        continue;
+                    }
+
+                    var created = !basketsByName.TryGetValue(b.Name, out var basket);
+                    if (created)
+                    {
+                        basket = new Basket
+                        {
+                            Id = Guid.NewGuid(), UserId = userId, Name = b.Name,
+                            Description = b.Description?.Length > BasketConfiguration.DescriptionMaxLength
+                                ? b.Description[..BasketConfiguration.DescriptionMaxLength] : b.Description
+                        };
+                        dbContext.Baskets.Add(basket);
+                        basketsByName[b.Name] = basket;
+                    }
+
+                    var itemsAdded = 0;
+                    foreach (var i in b.Items ?? [])
+                    {
+                        if (i is null || i.Quantity is < 1 or > AddBasketItems.MaxQuantity || !productIds.TryGetValue(i.ProductRef, out var productId))
+                        {
+                            itemsSkipped++;
+                            continue;
+                        }
+                        var before = basket!.Items.Count;
+                        basket.AddItem(productId, i.Quantity);
+                        if (basket.Items.Count > before) itemsAdded++;
+                    }
+
+                    if (created || itemsAdded > 0) basketsRestored++;
+                }
+
+                if (itemsSkipped > 0)
+                {
+                    warnings.Add($"{itemsSkipped} basket item(s) were skipped: the product was not restored or the quantity is outside 1 to {AddBasketItems.MaxQuantity}.");
+                }
+            }
+
             if (alertsPaused > 0)
             {
                 warnings.Add($"{alertsPaused} alert(s) were imported paused: the account reached its limit of {maxAlerts} active alerts.");
@@ -316,7 +382,7 @@ public static class ImportBackup
                 userId, productsAdded, productsSkipped);
 
             return new Response(settingsRestored, tagsAdded, groupsAdded, storesAdded, storesKept,
-                productsAdded, productsSkipped, pricePointsAdded, alertsAdded, alertsPaused, shippingRatesRestored, warnings);
+                productsAdded, productsSkipped, pricePointsAdded, alertsAdded, alertsPaused, shippingRatesRestored, basketsRestored, warnings);
         }
 
         /// <summary>Runs the same validator as <see cref="UpdateSettings"/>, so a file can't set what the UI couldn't.</summary>

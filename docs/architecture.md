@@ -46,6 +46,8 @@ User
 │   └── CustomField           (owned collection)
 ├── Tag
 ├── ComparisonGroup
+├── Basket                 (UserId; products bought together)
+│   └── BasketItem            (BasketId + ProductId, unique; Quantity >= 1; cascades from Product too)
 ├── StoreConfiguration
 ├── WebhookTarget
 ├── ShippingRate           (UserId + normalized Host, unique; flat cost, optional free-above)

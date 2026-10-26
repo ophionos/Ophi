@@ -13,6 +13,7 @@ vi.mock('$lib/utils/download', () => ({ downloadBlob: vi.fn() }));
 const result = {
 	settingsRestored: true,
 	shippingRatesRestored: 3,
+	basketsRestored: 2,
 	tagsAdded: 2,
 	comparisonGroupsAdded: 1,
 	storesAdded: 0,
@@ -57,6 +58,17 @@ describe('BackupCard', () => {
 		expect(summary).toHaveTextContent('2 already tracked');
 		expect(summary).toHaveTextContent('imported paused');
 		expect(summary).toHaveTextContent('3 shipping rates');
+		expect(summary).toHaveTextContent('2 baskets restored');
+	});
+
+	it('should not mention baskets when none were restored', async () => {
+		vi.mocked(api.importBackup).mockResolvedValue({ ...result, basketsRestored: 0 });
+		render(BackupCard);
+		await fireEvent.change(screen.getByLabelText('Restore from a backup file'), {
+			target: { files: [new File(['{}'], 'ophi-backup.json')] }
+		});
+
+		expect(await screen.findByRole('status')).not.toHaveTextContent('basket');
 	});
 
 	it('should announce a failed restore', async () => {

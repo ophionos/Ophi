@@ -56,9 +56,10 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
 
 ## Account backup
 
-`/settings/data` exports one JSON file with settings, tags, groups, stores, products, full price history
-and alerts. Credentials and outbound webhooks are never included. Restore only merges: it never
-overwrites, it skips a product with an already-tracked URL, and it restores settings only into an
+`/settings/data` exports one JSON file with settings, tags, groups, stores, products, full price history,
+alerts, shipping rates and baskets. Credentials and outbound webhooks are never included. Restore only merges: it never
+overwrites, it skips a product with an already-tracked URL (a basket still points at the tracked product), merges
+baskets by name (an existing basket keeps its quantities), and it restores settings only into an
 account with no products. The compose `web` service sets `BODY_SIZE_LIMIT=26M` so uploads above
 adapter-node's 512K default reach the API.
 

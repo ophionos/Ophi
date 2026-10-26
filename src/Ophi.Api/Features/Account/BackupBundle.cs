@@ -6,7 +6,8 @@ namespace Ophi.Api.Features.Account;
 /// <summary>
 /// The account backup file (B-1). Shared by <see cref="ExportBackup"/> and <see cref="ImportBackup"/>.
 /// <para>
-/// Members added after version 1 (<c>ShippingRates</c>, <c>Settings.ShowLandedPrices</c>) default when
+/// Members added after version 1 (<c>ShippingRates</c>, <c>Baskets</c>, <c>Settings.ShowLandedPrices</c>,
+/// <c>BackupProduct.Ref</c>) default when
 /// the file lacks them, so older backups still import without a version bump.
 /// </para>
 /// <para>
@@ -25,7 +26,8 @@ public record BackupBundle(
     IReadOnlyList<BackupComparisonGroup> ComparisonGroups,
     IReadOnlyList<BackupStore> Stores,
     IReadOnlyList<BackupProduct> Products,
-    IReadOnlyList<BackupShippingRate>? ShippingRates = null)
+    IReadOnlyList<BackupShippingRate>? ShippingRates = null,
+    IReadOnlyList<BackupBasket>? Baskets = null)
 {
     public const string FormatName = "ophi-backup";
     public const int CurrentVersion = 1;
@@ -66,6 +68,12 @@ public record BackupSettings(
 /// <summary>Optional in the file: backups written before shipping rates existed have none.</summary>
 public record BackupShippingRate(string Host, decimal Amount, string Currency, decimal? FreeAbove);
 
+/// <summary>Optional in the file: backups written before baskets existed have none.</summary>
+public record BackupBasket(string Name, string? Description, IReadOnlyList<BackupBasketItem> Items);
+
+/// <summary><paramref name="ProductRef"/> is the <see cref="BackupProduct.Ref"/> of a product in the same file.</summary>
+public record BackupBasketItem(Guid ProductRef, int Quantity);
+
 public record BackupTag(Guid Ref, string Name, string Color, int Weight);
 
 public record BackupComparisonGroup(Guid Ref, string Name, string? Description);
@@ -96,7 +104,8 @@ public record BackupProduct(
     Guid? ComparisonGroupRef,
     IReadOnlyList<BackupProductUrl> Urls,
     IReadOnlyList<BackupPricePoint> PriceHistory,
-    IReadOnlyList<BackupAlert> Alerts);
+    IReadOnlyList<BackupAlert> Alerts,
+    Guid? Ref = null);
 
 public record BackupCustomField(string Name, string Value);
 
