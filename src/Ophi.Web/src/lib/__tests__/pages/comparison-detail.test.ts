@@ -141,14 +141,18 @@ function setupPageParams(id: string) {
 	page.params = { id };
 }
 
-function renderPage(group: ComparisonGroupDetail | null = mockGroupDetail) {
+function renderPage(
+	group: ComparisonGroupDetail | null = mockGroupDetail,
+	extraData: Record<string, unknown> = {}
+) {
 	return render(ComparisonDetailPage, {
 		props: {
 			data: {
 				user: null,
 				authChecked: true,
 				isPublic: false,
-				group
+				group,
+				...extraData
 			} as unknown as PageData
 		}
 	});
@@ -463,6 +467,147 @@ describe('Comparison Detail Page', () => {
 				expect(api.deleteComparisonGroup).toHaveBeenCalledWith('g1');
 				expect(goto).toHaveBeenCalledWith('/comparisons');
 			});
+		});
+	});
+
+	describe('landed prices', () => {
+		const product = (id: string, name: string, extra: Record<string, unknown>) => ({
+			id,
+			name,
+			url: `https://${id}.example/x`,
+			currentPrice: 18.99,
+			currency: 'EUR',
+			isBestPrice: false,
+			priceHistory: [],
+			customFields: [],
+			...extra
+		});
+
+		// Scraped cheapest is "Cheap" (18.99), but its shipping makes "Free" the landed best.
+		const landedGroup = {
+			id: 'g1',
+			name: 'Gadgets',
+			updatedAt: '2025-01-15T10:00:00Z',
+			bestPriceProductId: 'cheap',
+			bestPrice: 18.99,
+			bestLandedProductId: 'free',
+			bestLandedPrice: 19.99,
+			products: [
+				product('cheap', 'Cheap', {
+					isBestPrice: true,
+					landedPrice: 21.99,
+					shippingCost: 3,
+					landedHost: 'cheap.example',
+					isBestLandedPrice: false
+				}),
+				product('free', 'Free', {
+					currentPrice: 19.99,
+					landedPrice: 19.99,
+					shippingCost: 0,
+					landedHost: 'free.example',
+					isBestLandedPrice: true
+				}),
+				product('norate', 'NoRate', {
+					currentPrice: 25,
+					landedPrice: 25,
+					shippingCost: 0,
+					landedHost: 'norate.example',
+					isBestLandedPrice: false
+				}),
+				product('foreign', 'Foreign', {
+					currentPrice: 5,
+					landedPrice: null,
+					shippingCost: null,
+					landedHost: 'foreign.example',
+					isBestLandedPrice: false
+				})
+			]
+		} as unknown as ComparisonGroupDetail;
+
+		const rates = [
+			{ host: 'free.example', amount: 4, currency: 'EUR', freeAbove: 15 },
+			{ host: 'cheap.example', amount: 3, currency: 'EUR', freeAbove: null }
+		];
+
+		// Matched on the product link's exact text: the "Cheapest" badge also contains "Cheap".
+		const nameOf = (r: HTMLElement) => r.querySelector('a[href^="/products/"]')?.textContent?.trim();
+		const row = (name: string) =>
+			screen.getAllByTestId('comparison-product-row').find((r) => nameOf(r) === name)!;
+
+		it('should rank by the store price and show no shipping text when the setting is off', () => {
+			renderPage(landedGroup, { showLandedPrices: false, shippingRates: [] });
+			expect(row('Cheap')).toHaveTextContent('Cheapest');
+			expect(row('Free')).not.toHaveTextContent('Cheapest');
+			expect(screen.getByTestId('cheapest-spotlight')).toHaveTextContent('Cheap');
+			expect(screen.getByTestId('cheapest-spotlight')).not.toHaveTextContent('incl. shipping');
+			expect(screen.getByTestId('product-price-cheap')).not.toHaveTextContent(
+				'shipping'
+			);
+		});
+
+		it('should mark the best landed product instead of the best store price when the setting is on', () => {
+			renderPage(landedGroup, { showLandedPrices: true, shippingRates: rates });
+			expect(row('Free')).toHaveTextContent('Cheapest');
+			expect(row('Cheap')).not.toHaveTextContent('Cheapest');
+			const spotlight = screen.getByTestId('cheapest-spotlight');
+			expect(spotlight).toHaveTextContent('Free');
+			expect(spotlight).toHaveTextContent('€19.99');
+			expect(spotlight).toHaveTextContent('incl. shipping');
+		});
+
+		it('should show the landed price with its parts when shipping is above zero', () => {
+			renderPage(landedGroup, { showLandedPrices: true, shippingRates: rates });
+			expect(row('Cheap')).toHaveTextContent('€21.99');
+			expect(row('Cheap')).toHaveTextContent('incl. shipping (€18.99 + €3.00 shipping)');
+		});
+
+		it('should take the parts from the landed URL when it is not the cheapest store price', () => {
+			// The product's cheapest store price (17.00) is at a site whose shipping makes it
+			// dearer; the landed price comes from another site's 18.99 + 3.00.
+			const group = {
+				...landedGroup,
+				products: [
+					product('cheap', 'Cheap', {
+						currentPrice: 17,
+						landedPrice: 21.99,
+						shippingCost: 3,
+						landedHost: 'cheap.example',
+						isBestLandedPrice: true
+					})
+				]
+			} as unknown as ComparisonGroupDetail;
+			renderPage(group, { showLandedPrices: true, shippingRates: rates });
+			expect(row('Cheap')).toHaveTextContent('incl. shipping (€18.99 + €3.00 shipping)');
+		});
+
+		it('should order the rows by landed price, unknown last, when the setting is on', () => {
+			renderPage(landedGroup, { showLandedPrices: true, shippingRates: rates });
+			const names = screen.getAllByTestId('comparison-product-row').map(nameOf);
+			expect(names).toEqual(['Free', 'Cheap', 'NoRate', 'Foreign']);
+		});
+
+		it('should keep the server order when the setting is off', () => {
+			renderPage(landedGroup, { showLandedPrices: false, shippingRates: [] });
+			const names = screen.getAllByTestId('comparison-product-row').map(nameOf);
+			expect(names).toEqual(['Cheap', 'Free', 'NoRate', 'Foreign']);
+		});
+
+		it('should say free shipping when the host has a rate and shipping is zero', () => {
+			renderPage(landedGroup, { showLandedPrices: true, shippingRates: rates });
+			expect(row('Free')).toHaveTextContent('incl. shipping (free shipping)');
+		});
+
+		it('should say no shipping cost set when the host has no rate and shipping is zero', () => {
+			renderPage(landedGroup, { showLandedPrices: true, shippingRates: rates });
+			expect(row('NoRate')).toHaveTextContent('incl. shipping (no shipping cost set)');
+		});
+
+		it('should show the store price with a currency note and never mark it best when landed is unknown', () => {
+			renderPage(landedGroup, { showLandedPrices: true, shippingRates: rates });
+			expect(row('Foreign')).toHaveTextContent('€5.00');
+			expect(row('Foreign')).toHaveTextContent('shipping in another currency');
+			expect(row('Foreign')).not.toHaveTextContent('Cheapest');
+			expect(row('Foreign')).not.toHaveTextContent('incl. shipping');
 		});
 	});
 });

@@ -21,6 +21,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { downloadBlob } from '$lib/utils/download';
 	import { findStoreForDomain } from '$lib/utils/storeMatch';
+	import ShippingRatesSection from '$lib/components/shipping/ShippingRatesSection.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
 
 	let { data: pageData }: { data: PageData } = $props();
@@ -241,6 +242,8 @@
 			</button>
 		{/each}
 	</div>
+
+	<ShippingRatesSection rates={pageData.shippingRates ?? []} />
 
 	<div>
 		{#if loadError}

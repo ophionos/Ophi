@@ -148,5 +148,46 @@ describe('ComparisonCard', () => {
 			expect(screen.queryByTestId('comparison-card-best')).toBeNull();
 		});
 	});
+
+	describe('landed prices', () => {
+		const priced: ComparisonGroup = {
+			...mockGroup,
+			currency: 'EUR',
+			bestPrice: 18.99,
+			bestPriceProductName: 'Cheap Shop Item',
+			bestLandedProductId: 'p2',
+			bestLandedProductName: 'Free Ship Item',
+			bestLandedPrice: 19.99
+		};
+
+		it('should show the scraped cheapest price when the setting is off', () => {
+			render(ComparisonCard, { props: { group: priced } });
+			const best = screen.getByTestId('comparison-card-best');
+			expect(best).toHaveTextContent('€18.99');
+			expect(best).toHaveTextContent('Cheap Shop Item');
+			expect(best).not.toHaveTextContent('incl. shipping');
+		});
+
+		it('should show the best landed product labelled incl. shipping when the setting is on', () => {
+			render(ComparisonCard, { props: { group: priced, showLandedPrices: true } });
+			const best = screen.getByTestId('comparison-card-best');
+			expect(best).toHaveTextContent('€19.99');
+			expect(best).toHaveTextContent('incl. shipping');
+			expect(best).toHaveTextContent('Free Ship Item');
+			expect(best).not.toHaveTextContent('Cheap Shop Item');
+		});
+
+		it('should fall back to the scraped line when no landed price is known', () => {
+			render(ComparisonCard, {
+				props: {
+					group: { ...priced, bestLandedPrice: null, bestLandedProductName: null },
+					showLandedPrices: true
+				}
+			});
+			const best = screen.getByTestId('comparison-card-best');
+			expect(best).toHaveTextContent('€18.99');
+			expect(best).not.toHaveTextContent('incl. shipping');
+		});
+	});
 });
 

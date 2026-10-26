@@ -100,7 +100,7 @@
 				{result.productsAdded} products added{#if result.productsSkipped > 0}, {result.productsSkipped}
 					already tracked (skipped){/if}. {result.pricePointsAdded} price points, {result.alertsAdded}
 				alerts, {result.tagsAdded} tags, {result.comparisonGroupsAdded} comparison groups and {result.storesAdded}
-				stores added{#if result.storesKept > 0} ({result.storesKept} existing kept){/if}.
+				stores added{#if result.storesKept > 0} ({result.storesKept} existing kept){/if}{#if result.shippingRatesRestored > 0}, {result.shippingRatesRestored} shipping rates restored{/if}.
 				{result.settingsRestored ? 'Settings restored.' : ''}
 			</p>
 			{#each result.warnings as warning, i (i)}

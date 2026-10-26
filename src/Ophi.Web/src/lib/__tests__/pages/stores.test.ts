@@ -56,7 +56,11 @@ const customStore: Store = {
 	requiresJavaScript: false
 };
 
-function renderStores(editParam?: string, storeList: Store[] = [customStore]) {
+function renderStores(
+	editParam?: string,
+	storeList: Store[] = [customStore],
+	shippingRates: unknown[] = []
+) {
 	page.url = new URL(
 		editParam
 			? `http://localhost/stores?edit=${encodeURIComponent(editParam)}`
@@ -67,7 +71,8 @@ function renderStores(editParam?: string, storeList: Store[] = [customStore]) {
 		props: {
 			data: {
 				user: { id: '1', email: 'a@b.com', name: 'A' },
-				stores: storeList
+				stores: storeList,
+				shippingRates
 			} as unknown as PageData
 		}
 	});
@@ -84,6 +89,14 @@ describe('Store Configurations Page', () => {
 		expect(screen.getByTestId('store-filter-all')).toHaveTextContent('All (1)');
 		expect(screen.getByTestId('store-filter-custom')).toHaveTextContent('Custom (1)');
 		expect(screen.queryByTestId('stat-total-stores')).not.toBeInTheDocument();
+	});
+
+	it('should list the shipping costs when the user has set some', () => {
+		renderStores(undefined, [customStore], [
+			{ host: 'amazon.es', amount: 3, currency: 'EUR', freeAbove: 50 }
+		]);
+		expect(screen.getByTestId('shipping-rates-section')).toHaveTextContent('amazon.es');
+		expect(screen.getByTestId('shipping-rates-section')).toHaveTextContent('free above €50.00');
 	});
 
 	it('should show the empty state with an add action when no stores exist', () => {

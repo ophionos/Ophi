@@ -8,6 +8,7 @@
 	import { resolve } from '$app/paths';
 	import Modal from '$lib/components/shared/Modal.svelte';
 	import DisplayCurrencySetting from '$lib/components/settings/DisplayCurrencySetting.svelte';
+	import ShowLandedPricesSetting from '$lib/components/settings/ShowLandedPricesSetting.svelte';
 	import DensitySetting from '$lib/components/settings/DensitySetting.svelte';
 	import { liveUpdates } from '$lib/stores/liveUpdates.svelte';
 	import { notifications } from '$lib/stores/notifications.svelte';
@@ -306,6 +307,7 @@
 
 	<!-- Danger zone -->
 	<DisplayCurrencySetting />
+	<ShowLandedPricesSetting />
 	<DensitySetting />
 
 	<div class="bg-surface-1 p-4 rounded-lg border border-danger/40 space-y-3">
