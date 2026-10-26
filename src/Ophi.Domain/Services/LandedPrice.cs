@@ -1,4 +1,5 @@
 using Ophi.Domain.Entities;
+using Ophi.Domain.Enums;
 
 namespace Ophi.Domain.Services;
 
@@ -25,4 +26,39 @@ public static class LandedPrice
     /// <summary>Price + <see cref="Shipping"/>, or null when the shipping is unknown.</summary>
     public static decimal? Of(decimal price, string currency, ShippingRate? rate) =>
         Shipping(price, currency, rate) is { } shipping ? price + shipping : null;
+
+    /// <summary>One URL's site, shipping and landed price. Shipping and landed are null when the URL
+    /// has no price or its site's shipping is in another currency.</summary>
+    public readonly record struct UrlLanded(string? Host, decimal? Shipping, decimal? Price);
+
+    /// <summary>A product's cheapest landed price, the shipping inside it, and the site that gives it.</summary>
+    public readonly record struct ProductLanded(decimal Price, decimal Shipping, string Host);
+
+    public static UrlLanded ForUrl(ProductUrl url, Func<string, ShippingRate?> rateFor)
+    {
+        var host = SiteHost.Of(url.Url);
+        if (url.CurrentPrice is not { } price) return new UrlLanded(host, null, null);
+
+        var shipping = Shipping(price, url.Currency, host is null ? null : rateFor(host));
+        return new UrlLanded(host, shipping, shipping is { } s ? price + s : null);
+    }
+
+    /// <summary>
+    /// The MIN landed price over the URLs <see cref="ProductPriceAggregator"/> lets set the headline
+    /// price: not paused, priced, and in the product's currency. With shipping, a dearer item at a
+    /// site with free shipping can win. URLs whose shipping is unknown take no part; null when no
+    /// URL is left. Equal landed prices break on the host, so every caller names the same site.
+    /// Requires <see cref="Product.ProductUrls"/> to be loaded.
+    /// </summary>
+    public static ProductLanded? ForProduct(Product product, Func<string, ShippingRate?> rateFor) =>
+        product.ProductUrls
+            .Where(u => u.Status != ProductUrlStatus.Paused &&
+                        string.Equals(u.Currency, product.Currency, StringComparison.OrdinalIgnoreCase))
+            .Select(u => ForUrl(u, rateFor))
+            .Where(l => l is { Host: not null, Price: not null })
+            .Select(l => new ProductLanded(l.Price!.Value, l.Shipping!.Value, l.Host!))
+            .OrderBy(l => l.Price)
+            .ThenBy(l => l.Host, StringComparer.Ordinal)
+            .Cast<ProductLanded?>()
+            .FirstOrDefault();
 }

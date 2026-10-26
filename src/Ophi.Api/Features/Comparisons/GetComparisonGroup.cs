@@ -21,7 +21,9 @@ public static class GetComparisonGroup
         List<ProductDto> Products,
         Guid? BestPriceProductId,
         decimal? BestPrice,
-        DateTime UpdatedAt
+        DateTime UpdatedAt,
+        Guid? BestLandedProductId = null,
+        decimal? BestLandedPrice = null
     );
 
     public record ProductDto(
@@ -34,7 +36,11 @@ public static class GetComparisonGroup
         string Currency,
         bool IsBestPrice,
         List<PriceHistoryPointDto> PriceHistory,
-        List<CustomFieldDto> CustomFields
+        List<CustomFieldDto> CustomFields,
+        decimal? LandedPrice = null,
+        decimal? ShippingCost = null,
+        string? LandedHost = null,
+        bool IsBestLandedPrice = false
     );
 
     public record PriceHistoryPointDto( DateTime Date, decimal Price);
@@ -65,15 +71,18 @@ public static class GetComparisonGroup
                 .ToListAsync(cancellationToken);
 
             var affiliates = await AffiliateUrlResolver.LoadAsync(dbContext, request.UserId, cancellationToken);
+            var rateFor = await ShippingRateLookup.LoadAsync(dbContext, request.UserId, cancellationToken);
 
             var products = productEntities.Select(p =>
             {
                 var firstUrl = p.GetPrimaryUrl();
                 var url = firstUrl?.Url ?? "";
                 var affiliateUrl = affiliates.Resolve(url, firstUrl?.StoreId);
+                var landed = LandedPrice.ForProduct(p, rateFor);
 
                 return new
                 {
+                    Landed = landed,
                     p.Id,
                     p.Name,
                     Url = url,
@@ -99,6 +108,8 @@ public static class GetComparisonGroup
             var bestProduct = ProductPriceAggregator.CheapestInDominantCurrency(products, p => p.CurrentPrice, p => p.Currency, p => p.Id);
             var bestPriceProductId = bestProduct?.Id;
             var bestPrice = bestProduct?.CurrentPrice;
+            // The same rule over landed prices; a member whose landed price is unknown cannot win.
+            var bestLanded = ProductPriceAggregator.CheapestInDominantCurrency(products, p => p.Landed?.Price, p => p.Currency, p => p.Id);
 
             // Map to DTOs with IsBestPrice flag
             var productDtos = products.Select(p => new ProductDto(
@@ -111,7 +122,11 @@ public static class GetComparisonGroup
                 p.Currency,
                 p.Id == bestPriceProductId,
                 p.PriceHistory,
-                p.CustomFields
+                p.CustomFields,
+                p.Landed?.Price,
+                p.Landed?.Shipping,
+                p.Landed?.Host,
+                p.Id == bestLanded?.Id
             )).ToList();
 
             logger.LogDebug("Returning comparison group {GroupId} with {ProductCount} products", group.Id, productDtos.Count);
@@ -123,7 +138,9 @@ public static class GetComparisonGroup
                 productDtos,
                 bestPriceProductId,
                 bestPrice,
-                group.UpdatedAt
+                group.UpdatedAt,
+                bestLanded?.Id,
+                bestLanded?.Landed?.Price
             );
         }
     }
@@ -138,7 +155,7 @@ public static class GetComparisonGroup
         .WithName("GetComparisonGroup")
         .WithTags("Comparisons")
         .WithSummary("Get a comparison group")
-        .WithDescription("Returns a comparison group with all member products, their current prices, price history, and the overall best price. Products are sorted by current price ascending.")
+        .WithDescription("Returns a comparison group with all member products, their current prices, price history, and the overall best price. Products are sorted by current price ascending. Each product also carries landedPrice, shippingCost and landedHost (its cheapest price + the user's shipping rate for that site; null when the rate is in another currency, never converted), and bestLandedProductId/bestLandedPrice pick the cheapest landed price by the same rule as the best price.")
         .Produces<Response>(200)
         .RequireAuthorization();
 }

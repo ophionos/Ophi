@@ -108,6 +108,9 @@ other kind of fact. Link to owners; don't restate them here.
   the user never pays. A currency the ECB doesn't publish gets no conversion, never a guess.
 - **Shipping is keyed by normalized host and never converted: `LandedPrice` is the one owner; a rate in
   another currency makes the landed price unknown.**
+  A product's landed price is the MIN over the URLs the aggregator uses (not paused, priced, product
+  currency), so it can come from a dearer URL with free shipping; it is derived per read, never stored,
+  and alerts and history stay on the scraped price.
 - **A price must be > 0, enforced at the parser boundary.** `PriceParser` keeps the ASCII hyphen, so
   `-$15.00` (a discount element) parses to `-15.00` and `$0.00` placeholders to zero; downstream, a
   non-positive value won the MIN, became history, and fired every "below" alert. Every

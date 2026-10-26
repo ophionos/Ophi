@@ -3,6 +3,7 @@ using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
 using Ophi.Api.Common.Helpers;
 using Ophi.Domain.Extensions;
+using Ophi.Domain.Services;
 using Ophi.Infrastructure.Persistence;
 using Wolverine;
 
@@ -21,7 +22,7 @@ public static class GetProduct
         .WithName("GetProduct")
         .WithTags("Products")
         .WithSummary("Get a product by ID")
-        .WithDescription("Returns full product details including all URLs, price statistics (min, max, average over 90 days), custom fields, tags, alerts, and currency mismatch detection.")
+        .WithDescription("Returns full product details including all URLs, price statistics (min, max, average over 90 days), custom fields, tags, alerts, and currency mismatch detection. Each URL carries shippingCost and landedPrice (price + the user's shipping rate for its site; both null when the rate is in another currency, as rates are never converted). landedPrice/shippingCost/landedHost on the product are the cheapest landed price over the URLs that set the headline price.")
         .Produces<Response>(200)
         .RequireAuthorization();
     }
@@ -49,7 +50,10 @@ public static class GetProduct
         List<ProductUrlDto> Urls,
         List<CustomFieldDto> CustomFields,
         int? CheckIntervalMinutes = null,
-        bool HasPriceAnomaly = false
+        bool HasPriceAnomaly = false,
+        decimal? LandedPrice = null,
+        decimal? ShippingCost = null,
+        string? LandedHost = null
     );
 
     public record ProductUrlDto(
@@ -64,7 +68,9 @@ public static class GetProduct
         int FailureCount,
         string Status,
         string? SuspiciousReason,
-        bool IsOutOfStock
+        bool IsOutOfStock,
+        decimal? ShippingCost = null,
+        decimal? LandedPrice = null
     );
 
     public record StatisticsDto( decimal Min, decimal Max, decimal Average, decimal? Current);
@@ -144,15 +150,21 @@ public static class GetProduct
                 .ToList();
 
             var affiliates = await AffiliateUrlResolver.LoadAsync(dbContext, request.UserId, cancellationToken);
+            var rateFor = await ShippingRateLookup.LoadAsync(dbContext, request.UserId, cancellationToken);
 
             // Map product URLs
             var urls = product.ProductUrls
-                .Select(pu => new ProductUrlDto(
-                    pu.Id, pu.Url, affiliates.Resolve(pu.Url, pu.StoreId), pu.StoreId, pu.CurrentPrice,
-                    pu.Currency, pu.LastCheckedAt, pu.LastError, pu.FailureCount,
-                    pu.Status.ToApiString(), pu.SuspiciousReason, pu.IsOutOfStock
-                ))
+                .Select(pu =>
+                {
+                    var landed = LandedPrice.ForUrl(pu, rateFor);
+                    return new ProductUrlDto(
+                        pu.Id, pu.Url, affiliates.Resolve(pu.Url, pu.StoreId), pu.StoreId, pu.CurrentPrice,
+                        pu.Currency, pu.LastCheckedAt, pu.LastError, pu.FailureCount,
+                        pu.Status.ToApiString(), pu.SuspiciousReason, pu.IsOutOfStock,
+                        landed.Shipping, landed.Price);
+                })
                 .ToList();
+            var productLanded = LandedPrice.ForProduct(product, rateFor);
 
             // Detect currency mismatch across tracked URLs (only compare URLs that have been scraped)
             var hasCurrencyMismatch = product.ProductUrls
@@ -198,7 +210,10 @@ public static class GetProduct
                 urls,
                 product.CustomFields.Select(cf => new CustomFieldDto(cf.Name, cf.Value)).ToList(),
                 product.CheckIntervalMinutes,
-                product.HasPriceAnomaly
+                product.HasPriceAnomaly,
+                productLanded?.Price,
+                productLanded?.Shipping,
+                productLanded?.Host
             );
         }
     }
