@@ -2,28 +2,51 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import OpportunityChips from './OpportunityChips.svelte';
 
+function baseProps(overrides: Record<string, unknown> = {}) {
+	return {
+		priceDropCount: 1,
+		nearTargetCount: 1,
+		needsActionCount: 1,
+		atLowestCount: 1,
+		active: null,
+		onSelect: vi.fn(),
+		...overrides
+	};
+}
+
 describe('OpportunityChips', () => {
-	it('should show a chip per opportunity with its count', () => {
+	it('should show the four chips in order with their labels and counts', () => {
 		render(OpportunityChips, {
-			props: { atLowestCount: 3, nearTargetCount: 1, active: null, onSelect: vi.fn() }
+			props: baseProps({ priceDropCount: 5, nearTargetCount: 1, needsActionCount: 2, atLowestCount: 3 })
 		});
 
-		expect(screen.getByTestId('opportunity-lowest')).toHaveTextContent('3 at their 90-day low');
-		expect(screen.getByTestId('opportunity-near')).toHaveTextContent('1 alert near target');
+		const chips = screen.getByTestId('opportunity-chips').querySelectorAll('button');
+		expect([...chips].map((c) => c.dataset.testid)).toEqual([
+			'opportunity-drop',
+			'opportunity-near',
+			'opportunity-action',
+			'opportunity-lowest'
+		]);
+		expect(screen.getByTestId('opportunity-drop')).toHaveTextContent('Price dropped (7 days)');
+		expect(screen.getByTestId('opportunity-drop')).toHaveTextContent('5');
+		expect(screen.getByTestId('opportunity-near')).toHaveTextContent('Near target');
+		expect(screen.getByTestId('opportunity-action')).toHaveTextContent('Needs action');
+		expect(screen.getByTestId('opportunity-action')).toHaveTextContent('2');
+		expect(screen.getByTestId('opportunity-lowest')).toHaveTextContent('At a real low');
+		expect(screen.getByTestId('opportunity-lowest')).toHaveTextContent('3');
 	});
 
 	it('should hide a chip whose count is zero', () => {
-		render(OpportunityChips, {
-			props: { atLowestCount: 0, nearTargetCount: 2, active: null, onSelect: vi.fn() }
-		});
+		render(OpportunityChips, { props: baseProps({ atLowestCount: 0, needsActionCount: 0 }) });
 
 		expect(screen.queryByTestId('opportunity-lowest')).not.toBeInTheDocument();
-		expect(screen.getByTestId('opportunity-near')).toHaveTextContent('2 alerts near target');
+		expect(screen.queryByTestId('opportunity-action')).not.toBeInTheDocument();
+		expect(screen.getByTestId('opportunity-near')).toBeInTheDocument();
 	});
 
 	it('should render nothing when every count is zero', () => {
 		render(OpportunityChips, {
-			props: { atLowestCount: 0, nearTargetCount: 0, active: null, onSelect: vi.fn() }
+			props: baseProps({ priceDropCount: 0, nearTargetCount: 0, needsActionCount: 0, atLowestCount: 0 })
 		});
 
 		expect(screen.queryByTestId('opportunity-chips')).not.toBeInTheDocument();
@@ -32,7 +55,7 @@ describe('OpportunityChips', () => {
 	it('should keep the active chip visible at zero so it can be turned off', async () => {
 		const onSelect = vi.fn();
 		render(OpportunityChips, {
-			props: { atLowestCount: 0, nearTargetCount: 0, active: 'lowest', onSelect }
+			props: baseProps({ atLowestCount: 0, active: 'lowest', onSelect })
 		});
 
 		const chip = screen.getByTestId('opportunity-lowest');
@@ -41,13 +64,15 @@ describe('OpportunityChips', () => {
 		expect(onSelect).toHaveBeenCalledWith(null);
 	});
 
-	it('should select a chip when it is clicked', async () => {
-		const onSelect = vi.fn();
-		render(OpportunityChips, {
-			props: { atLowestCount: 2, nearTargetCount: 0, active: null, onSelect }
-		});
+	it.each(['drop', 'near', 'action', 'lowest'])(
+		'should select the %s chip when it is clicked',
+		async (key) => {
+			const onSelect = vi.fn();
+			render(OpportunityChips, { props: baseProps({ onSelect }) });
 
-		await fireEvent.click(screen.getByTestId('opportunity-lowest'));
-		expect(onSelect).toHaveBeenCalledWith('lowest');
-	});
+			await fireEvent.click(screen.getByTestId(`opportunity-${key}`));
+
+			expect(onSelect).toHaveBeenCalledWith(key);
+		}
+	);
 });

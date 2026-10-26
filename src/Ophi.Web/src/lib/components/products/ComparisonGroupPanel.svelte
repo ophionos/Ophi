@@ -30,7 +30,7 @@
 		<div class="flex gap-2">
 			<a
 				href={resolve(`/comparisons/${currentGroup.id}`)}
-				class="min-h-11 px-3 text-sm font-medium text-brand dark:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded-md"
+				class="inline-flex min-h-11 items-center px-3 text-sm font-medium text-brand dark:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded-md"
 			>
 				View Group
 			</a>

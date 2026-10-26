@@ -6,13 +6,21 @@
 	import { formatTimeAgo, formatPrice, formatDateTime } from '$lib/format';
 	import TagBadge from '$lib/components/tags/TagBadge.svelte';
 	import Sparkline from '$lib/components/products/Sparkline.svelte';
-	import AttentionPill from '$lib/components/products/AttentionPill.svelte';
-	import PriceChangeChip from '$lib/components/products/PriceChangeChip.svelte';
-	import PriceRangeBar from '$lib/components/products/PriceRangeBar.svelte';
+	import AttentionIcon from '$lib/components/products/AttentionIcon.svelte';
+	import SevenDayChange from '$lib/components/products/SevenDayChange.svelte';
 	import ActionMenu from '$lib/components/shared/ActionMenu.svelte';
 	import { productMenuItems } from '$lib/components/products/productMenu';
 	import { QuickAlert } from '$lib/utils/quickAlert.svelte';
-	import { alertDistanceText, alertTargetText, isPriceOld, productInitial, storeLabel } from '$lib/utils/watchlist';
+	import {
+		PENDING_TEXT,
+		alertDistanceText,
+		alertTargetText,
+		isPriceOld,
+		productInitial,
+		rangeTitle,
+		storeLine,
+		trackedText
+	} from '$lib/utils/watchlist';
 	import FormError from '$lib/components/shared/FormError.svelte';
 	import ConvertedPrice from '$lib/components/shared/ConvertedPrice.svelte';
 
@@ -79,15 +87,20 @@
 			{/if}
 			<div class="min-w-0 flex-1">
 				{#if isPending}
-					<span class="text-sm font-medium text-gray-500 dark:text-gray-400">Loading product data...</span>
+					<span class="text-sm font-medium text-gray-500 dark:text-gray-400">{PENDING_TEXT}</span>
 				{:else}
-					<a
-						href={resolve(`/products/${product.id}`)}
-						class="line-clamp-2 font-semibold leading-snug text-gray-900 hover:text-brand dark:text-white dark:hover:text-brand-muted"
-						title={product.name}
-					>{product.name}</a>
+					<div class="flex items-start gap-1">
+						<a
+							href={resolve(`/products/${product.id}`)}
+							class="line-clamp-2 font-semibold leading-snug text-gray-900 hover:text-brand dark:text-white dark:hover:text-brand-muted"
+							title={product.name}
+						>{product.name}</a>
+						{#if product.attention}
+							<span class="mt-0.5"><AttentionIcon attention={product.attention} productId={product.id} /></span>
+						{/if}
+					</div>
 					<p class="truncate text-xs text-gray-500 dark:text-gray-400" data-testid="product-store">
-						{storeLabel(product)}{#if product.storeCount > 1}{` · ${product.storeCount - 1} more`}{/if}
+						{storeLine(product)}
 					</p>
 				{/if}
 			</div>
@@ -104,35 +117,34 @@
 			{/if}
 		</div>
 
-		{#if !isPending && product.attention}
-			<AttentionPill attention={product.attention} productId={product.id} />
-		{/if}
-
 		<div class="flex items-end justify-between gap-2">
 			<div class="flex flex-wrap items-center gap-2">
 				{#if isPending}
 					<span class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
 						<LoaderCircle size={14} class="animate-spin" />
-						Fetching price...
+						{PENDING_TEXT}
 					</span>
 				{:else if product.currentPrice != null}
 					<span class="text-lg font-bold leading-none tabular-nums {oldPrice ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}" data-testid="product-price">
 						{formatPrice(product.currentPrice, product.currency)}
 					</span>
-					<PriceChangeChip change={product.priceChange} />
 					<ConvertedPrice amount={product.currentPrice} currency={product.currency} />
 				{:else}
 					<span class="text-sm text-gray-500 dark:text-gray-400">No price</span>
 				{/if}
 			</div>
-			<!-- 3+ points: a 2-point series is only a diagonal stub. -->
+			<!-- 3+ points: a shorter series is only a stub, so a young product shows its age instead. -->
 			{#if product.sparkline && product.sparkline.length >= 3}
-				<Sparkline data={product.sparkline} width={72} height={22} />
+				<span title={rangeTitle(product)} data-testid="price-sparkline">
+					<Sparkline data={product.sparkline} width={72} height={22} />
+				</span>
+			{:else if trackedText(product)}
+				<span class="text-xs text-gray-500 dark:text-gray-400" data-testid="tracked-days">{trackedText(product)}</span>
 			{/if}
 		</div>
 
-		{#if product.priceMin != null && product.priceMax != null && product.currentPrice != null}
-			<PriceRangeBar min={product.priceMin} max={product.priceMax} current={product.currentPrice} currency={product.currency} />
+		{#if !isPending}
+			<div><SevenDayChange {product} /></div>
 		{/if}
 
 		{#if product.closestAlert}
@@ -153,7 +165,7 @@
 		<div class="mt-auto -mb-2 -mr-2 flex items-center justify-between border-t border-gray-100 pt-1 dark:border-gray-700">
 			<span class="text-xs text-gray-500 dark:text-gray-400" title={product.lastChecked ? formatDateTime(product.lastChecked) : undefined}>
 				{#if isPending}
-					Processing...
+					{PENDING_TEXT}
 				{:else if product.lastChecked}
 					Checked {formatTimeAgo(product.lastChecked)}
 				{:else}
