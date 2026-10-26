@@ -32,7 +32,7 @@ describe('ProductTableMobileCard', () => {
 
 		expect(screen.getByText('Test Headphones')).toBeInTheDocument();
 		expect(screen.getByText('$99.99')).toBeInTheDocument();
-		expect(screen.getByText('9.1%')).toBeInTheDocument();
+		expect(screen.getByTestId('change-new')).toBeInTheDocument();
 	});
 
 	it('should show the store as the subtitle when the product is healthy', () => {
@@ -67,6 +67,32 @@ describe('ProductTableMobileCard', () => {
 		});
 
 		expect(container.querySelector('[data-testid="mobile-sparkline"] svg')).toBeInTheDocument();
+	});
+
+	it('should give the sparkline the 90-day range as its tooltip', () => {
+		const product = { ...mockProduct, priceMin: 90, priceMax: 120, sparkline: [100, 105, 99.99].map((price, i) => ({ date: `2024-01-1${i}`, price })) };
+		render(ProductTableMobileCard, { props: { product } });
+
+		expect(screen.getByTestId('mobile-sparkline')).toHaveAttribute('title', '90 days: $90.00–$120.00');
+	});
+
+	it('should show New under the price when there is no 7-day change', () => {
+		render(ProductTableMobileCard, { props: { product: { ...mockProduct, change7d: null } } });
+
+		expect(screen.getByTestId('change-new')).toHaveTextContent('New');
+	});
+
+	it('should show the 7-day change chip under the price when it is known', () => {
+		render(ProductTableMobileCard, { props: { product: { ...mockProduct, change7d: -6.2 } } });
+
+		expect(screen.getByLabelText('Down 6.2%')).toBeInTheDocument();
+		expect(screen.queryByTestId('change-new')).not.toBeInTheDocument();
+	});
+
+	it('should end the subtitle with the new cheapest store note when it is set', () => {
+		render(ProductTableMobileCard, { props: { product: { ...mockProduct, storeCount: 2, newCheapestStore: true } } });
+
+		expect(screen.getByTestId('mobile-product-subtitle')).toHaveTextContent('example.com · 1 more · new cheapest store');
 	});
 
 	it('should put the actions in one menu when handlers are given', async () => {
@@ -104,7 +130,8 @@ describe('ProductTableMobileCard', () => {
 		const pending = { ...mockProduct, status: 'pending' as const, currentPrice: undefined, imageUrl: undefined };
 		render(ProductTableMobileCard, { props: { product: pending } });
 
-		expect(screen.getByText('Loading product data...')).toBeInTheDocument();
-		expect(screen.getByText('Fetching...')).toBeInTheDocument();
+		expect(screen.getByText('Fetching price…')).toBeInTheDocument();
+		expect(screen.queryByText('Loading product data...')).not.toBeInTheDocument();
+		expect(screen.queryByText('Fetching...')).not.toBeInTheDocument();
 	});
 });

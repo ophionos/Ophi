@@ -5,7 +5,7 @@ import OnboardingTour from './OnboardingTour.svelte';
 vi.mock('$lib/stores/onboarding.svelte', () => {
 	let shouldShow = true;
 	let currentStep = 0;
-	const totalSteps = 5;
+	let totalSteps = 5;
 	let completed = false;
 
 	return {
@@ -14,14 +14,15 @@ vi.mock('$lib/stores/onboarding.svelte', () => {
 			get currentStep() { return currentStep; },
 			get totalSteps() { return totalSteps; },
 			get completed() { return completed; },
-			init: vi.fn(),
+			init: vi.fn((steps = 5) => { totalSteps = steps; }),
 			nextStep: vi.fn(() => { if (currentStep < totalSteps - 1) currentStep++; }),
 			prevStep: vi.fn(() => { if (currentStep > 0) currentStep--; }),
 			dismiss: vi.fn(() => { shouldShow = false; }),
 			complete: vi.fn(() => { shouldShow = false; completed = true; }),
 			reset: vi.fn(() => { shouldShow = true; currentStep = 0; completed = false; }),
-			// For test reset
-			_reset() { shouldShow = true; currentStep = 0; completed = false; }
+			// For tests: the mock is not reactive, so a step is set before render
+			_setStep(step: number) { currentStep = step; },
+			_reset() { shouldShow = true; currentStep = 0; completed = false; totalSteps = 5; }
 		}
 	};
 });
@@ -68,9 +69,31 @@ describe('OnboardingTour', () => {
 		expect(onboarding.dismiss).toHaveBeenCalled();
 	});
 
-	it('should call init on mount', () => {
+	it('should call init with every step when the account has products', () => {
 		render(OnboardingTour);
-		expect(onboarding.init).toHaveBeenCalled();
+		expect(onboarding.init).toHaveBeenLastCalledWith(5);
+	});
+
+	it('should skip the view and filter steps when the account is empty', () => {
+		render(OnboardingTour, { emptyAccount: true });
+
+		expect(onboarding.init).toHaveBeenLastCalledWith(3);
+		expect(screen.getByTestId('onboarding-counter')).toHaveTextContent('1 / 3');
+	});
+
+	it('should show the notifications step second when the view and filter steps are skipped', () => {
+		(onboarding as unknown as { _setStep(step: number): void })._setStep(1);
+		render(OnboardingTour, { emptyAccount: true });
+
+		expect(screen.getByTestId('onboarding-title')).toHaveTextContent('Stay notified');
+		expect(screen.getByTestId('onboarding-counter')).toHaveTextContent('2 / 3');
+	});
+
+	it('should offer every step again when products arrive after the first render', async () => {
+		const { rerender } = render(OnboardingTour, { emptyAccount: true });
+		await rerender({ emptyAccount: false });
+
+		expect(onboarding.init).toHaveBeenLastCalledWith(5);
 	});
 
 	it('should not render when shouldShow is false', () => {

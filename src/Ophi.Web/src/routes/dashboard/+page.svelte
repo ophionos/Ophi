@@ -45,6 +45,7 @@
 	// Account-wide, whatever the filters: the header, the chips and the store select use them.
 	let atLowestCount = $state(0);
 	let nearTargetCount = $state(0);
+	let withAlertsCount = $state(0);
 	let productCount = $state(0);
 	let urlCount = $state(0);
 	let stores = $state<{ storeId: string; name: string }[]>([]);
@@ -120,6 +121,7 @@
 	function applyCounts(p: ProductListResponse) {
 		atLowestCount = p.atLowestCount;
 		nearTargetCount = p.nearTargetCount;
+		withAlertsCount = p.withAlertsCount;
 		needsActionCount = p.needsActionCount;
 		productCount = p.productCount;
 		urlCount = p.urlCount;
@@ -610,6 +612,7 @@
 				{sortBy}
 				{sortDirection}
 				onSortChange={setSort}
+				hasAlerts={withAlertsCount > 0}
 				onDelete={handleDeleteProduct}
 				onViewHistory={handleViewHistory}
 				onStatusChange={handleProductStatusChange}
@@ -674,4 +677,4 @@
 	onSave={handleCreateProduct}
 />
 
-<OnboardingTour />
+<OnboardingTour emptyAccount={isEmptyAccount} />
