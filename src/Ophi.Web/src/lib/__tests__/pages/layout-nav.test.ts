@@ -76,4 +76,16 @@ describe('main navigation', () => {
 		expect(within(mobile).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
 		expect(within(mobile).queryByText('App Settings')).not.toBeInTheDocument();
 	});
+
+	it('should link Baskets next to Comparisons in the desktop nav', () => {
+		const nav = renderAt('/dashboard');
+
+		expect(within(nav).getByRole('link', { name: 'Baskets' })).toHaveAttribute('href', '/baskets');
+	});
+
+	it('should mark Baskets as the current page when on a basket page', () => {
+		const nav = renderAt('/baskets/b1');
+
+		expect(within(nav).getByRole('link', { name: 'Baskets' })).toHaveAttribute('aria-current', 'page');
+	});
 });

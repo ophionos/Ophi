@@ -966,4 +966,109 @@ describe('ApiClient', () => {
 			expect(fetch).toHaveBeenCalled();
 		});
 	});
+
+	describe('baskets', () => {
+		function ok(body: unknown, status = 200) {
+			vi.mocked(fetch).mockResolvedValueOnce({
+				ok: true,
+				status,
+				json: () => Promise.resolve(body)
+			} as Response);
+		}
+
+		it('should list baskets when listBaskets is called', async () => {
+			ok({ items: [] });
+
+			const result = await api.listBaskets();
+
+			expect(fetch).toHaveBeenCalledWith(
+				expect.stringMatching(/\/baskets$/),
+				expect.any(Object)
+			);
+			expect(result).toEqual({ items: [] });
+		});
+
+		it('should get one basket when getBasket is called', async () => {
+			ok({ id: 'b1' });
+
+			await api.getBasket('b1');
+
+			expect(fetch).toHaveBeenCalledWith(
+				expect.stringMatching(/\/baskets\/b1$/),
+				expect.any(Object)
+			);
+		});
+
+		it('should post name and description when createBasket is called', async () => {
+			ok({ id: 'b1' }, 201);
+
+			await api.createBasket('Trip', 'Gear');
+
+			expect(fetch).toHaveBeenCalledWith(
+				expect.stringMatching(/\/baskets$/),
+				expect.objectContaining({
+					method: 'POST',
+					body: JSON.stringify({ name: 'Trip', description: 'Gear' })
+				})
+			);
+		});
+
+		it('should put name and description when updateBasket is called', async () => {
+			ok({ id: 'b1' });
+
+			await api.updateBasket('b1', 'New', undefined);
+
+			expect(fetch).toHaveBeenCalledWith(
+				expect.stringMatching(/\/baskets\/b1$/),
+				expect.objectContaining({ method: 'PUT', body: JSON.stringify({ name: 'New' }) })
+			);
+		});
+
+		it('should send DELETE when deleteBasket is called', async () => {
+			ok({}, 204);
+
+			await api.deleteBasket('b1');
+
+			expect(fetch).toHaveBeenCalledWith(
+				expect.stringMatching(/\/baskets\/b1$/),
+				expect.objectContaining({ method: 'DELETE' })
+			);
+		});
+
+		it('should post product ids when addBasketItems is called', async () => {
+			ok({ id: 'b1' });
+
+			await api.addBasketItems('b1', { productIds: ['p1', 'p2'] });
+
+			expect(fetch).toHaveBeenCalledWith(
+				expect.stringMatching(/\/baskets\/b1\/items$/),
+				expect.objectContaining({
+					method: 'POST',
+					body: JSON.stringify({ productIds: ['p1', 'p2'] })
+				})
+			);
+		});
+
+		it('should put the quantity when setBasketItemQuantity is called', async () => {
+			ok({ id: 'b1' });
+
+			await api.setBasketItemQuantity('b1', 'p1', 3);
+
+			expect(fetch).toHaveBeenCalledWith(
+				expect.stringMatching(/\/baskets\/b1\/items\/p1$/),
+				expect.objectContaining({ method: 'PUT', body: JSON.stringify({ quantity: 3 }) })
+			);
+		});
+
+		it('should send DELETE when removeBasketItem is called', async () => {
+			ok({}, 204);
+
+			await api.removeBasketItem('b1', 'p1');
+
+			expect(fetch).toHaveBeenCalledWith(
+				expect.stringMatching(/\/baskets\/b1\/items\/p1$/),
+				expect.objectContaining({ method: 'DELETE' })
+			);
+		});
+	});
 });

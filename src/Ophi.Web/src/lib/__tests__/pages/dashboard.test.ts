@@ -18,7 +18,10 @@ vi.mock('$lib/api/client', async () => {
 			addProduct: vi.fn(),
 			createProduct: vi.fn(),
 			updateProduct: vi.fn(),
-			retryScrapeProductUrl: vi.fn()
+			retryScrapeProductUrl: vi.fn(),
+			listBaskets: vi.fn(),
+			createBasket: vi.fn(),
+			addBasketItems: vi.fn()
 		}
 	};
 });
@@ -416,6 +419,41 @@ describe('Dashboard Page — bulk actions', () => {
 
 		await waitFor(() => {
 			expect(api.deleteProduct).toHaveBeenCalledWith('product-123');
+		});
+	});
+
+	it('should disable the add-to-basket button when nothing is selected', async () => {
+		renderDashboard();
+		await fireEvent.click(screen.getByTestId('bulk-select-toggle'));
+
+		expect(screen.getByTestId('bulk-add-to-basket')).toBeDisabled();
+	});
+
+	it('should add the selected products to a basket when add to basket is used', async () => {
+		vi.mocked(api.listBaskets).mockResolvedValue({
+			items: [
+				{
+					id: 'b1',
+					name: 'Camping',
+					description: null,
+					itemCount: 0,
+					updatedAt: '2026-01-01T00:00:00Z',
+					bestStore: null,
+					bestTotal: null,
+					bestCurrency: null
+				}
+			]
+		});
+		vi.mocked(api.addBasketItems).mockResolvedValue({} as never);
+		await enterSelectionAndPick();
+
+		await fireEvent.click(screen.getByTestId('bulk-add-to-basket'));
+		const dialog = await screen.findByRole('dialog', { name: 'Add to basket' });
+		await fireEvent.click(await within(dialog).findByLabelText('Camping'));
+		await fireEvent.click(within(dialog).getByRole('button', { name: 'Add to basket' }));
+
+		await waitFor(() => {
+			expect(api.addBasketItems).toHaveBeenCalledWith('b1', { productIds: ['product-123'] });
 		});
 	});
 

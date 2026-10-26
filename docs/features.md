@@ -38,6 +38,17 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
   by the landed price, always labelled "incl. shipping"; charts, alerts and the dashboard stay on the
   scraped price.
 
+## Baskets
+
+- A basket holds products you buy together, with quantities (`/baskets`; add from a product page or the
+  watchlist's bulk bar). A "store" is a site host, the same key as shipping rates.
+- A store's total is the cheapest live price per item times quantity, plus shipping once per site on
+  the subtotal. A store missing an item shows "n of m items" and is never the best store.
+- No conversion: a site with prices in mixed currencies, or shipping in another currency, has no total.
+  The display-currency figure under a total is approximate and never changes the order.
+- The cheapest split buys each item at its cheapest site and adds shipping once per site used. The page
+  says how much cheaper or more expensive it is than the best store; no search over store combinations.
+
 ## Alerts and notifications
 
 - Each channel (email, Discord, Telegram, Pushover, ntfy) has its own per-account switch. Turning one off

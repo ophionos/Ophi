@@ -381,6 +381,52 @@ class ApiClient {
 		});
 	}
 
+	// Baskets
+	async listBaskets() {
+		return this.request<{ items: BasketSummary[] }>('/baskets');
+	}
+
+	async getBasket(id: string) {
+		return this.request<Basket>(`/baskets/${id}`);
+	}
+
+	async createBasket(name: string, description?: string) {
+		return this.request<Basket>('/baskets', {
+			method: 'POST',
+			body: JSON.stringify({ name, description })
+		});
+	}
+
+	async updateBasket(id: string, name: string, description?: string) {
+		return this.request<Basket>(`/baskets/${id}`, {
+			method: 'PUT',
+			body: JSON.stringify({ name, description })
+		});
+	}
+
+	async deleteBasket(id: string) {
+		return this.request(`/baskets/${id}`, { method: 'DELETE' });
+	}
+
+	/** Products already in the basket keep their quantity. */
+	async addBasketItems(id: string, data: { productIds: string[]; quantity?: number }) {
+		return this.request<Basket>(`/baskets/${id}/items`, {
+			method: 'POST',
+			body: JSON.stringify(data)
+		});
+	}
+
+	async setBasketItemQuantity(id: string, productId: string, quantity: number) {
+		return this.request<Basket>(`/baskets/${id}/items/${productId}`, {
+			method: 'PUT',
+			body: JSON.stringify({ quantity })
+		});
+	}
+
+	async removeBasketItem(id: string, productId: string) {
+		return this.request(`/baskets/${id}/items/${productId}`, { method: 'DELETE' });
+	}
+
 	// Stores
 	async getStores(search?: string) {
 		const query = new URLSearchParams();
@@ -1152,6 +1198,69 @@ export interface Settings {
 	displayCurrency?: string | null;
 	/** Rank and show prices including shipping. */
 	showLandedPrices: boolean;
+}
+
+export interface BasketSummary {
+	id: string;
+	name: string;
+	description?: string | null;
+	itemCount: number;
+	updatedAt: string;
+	bestStore: string | null;
+	bestTotal: number | null;
+	bestCurrency: string | null;
+}
+
+export interface BasketItem {
+	productId: string;
+	productName: string;
+	imageUrl?: string | null;
+	quantity: number;
+}
+
+export interface BasketStoreItem {
+	productId: string;
+	price: number | null;
+	currency: string | null;
+}
+
+/** One site's cost for the basket. `currency`/`subtotal`/`total` are null when the site mixes currencies. */
+export interface BasketStore {
+	host: string;
+	currency: string | null;
+	items: BasketStoreItem[];
+	subtotal: number | null;
+	/** 0 both for "no rate" and "free above reached"; null when the rate is in another currency. */
+	shipping: number | null;
+	total: number | null;
+	complete: boolean;
+	missingCount: number;
+}
+
+export interface BasketSplitLine {
+	productId: string;
+	host: string | null;
+	price: number | null;
+}
+
+export interface BasketSplit {
+	currency: string;
+	lines: BasketSplitLine[];
+	shipping: { host: string; shipping: number | null }[];
+	total: number | null;
+	complete: boolean;
+}
+
+export interface Basket {
+	id: string;
+	name: string;
+	description?: string | null;
+	createdAt: string;
+	updatedAt: string;
+	items: BasketItem[];
+	stores: BasketStore[];
+	bestStore: string | null;
+	split: BasketSplit | null;
 }
 
 export interface ShippingRate {

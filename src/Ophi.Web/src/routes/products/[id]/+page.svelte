@@ -19,6 +19,7 @@
 	import ProductEditModal from '$lib/components/products/ProductEditModal.svelte';
 	import ProductHero from '$lib/components/products/ProductHero.svelte';
 	import PriceStats from '$lib/components/products/PriceStats.svelte';
+	import AddToBasketModal from '$lib/components/baskets/AddToBasketModal.svelte';
 	import ComparisonGroupPanel from '$lib/components/products/ComparisonGroupPanel.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 	import ProductUrlCard from '$lib/components/products/ProductUrlCard.svelte';
@@ -39,7 +40,8 @@
 		PackageX,
 		TriangleAlert,
 		ListTree,
-		Scale
+		Scale,
+		ShoppingBasket
 	} from 'lucide-svelte';
 	import { fly } from 'svelte/transition';
 	import { isBuiltInStoreUrl } from '$lib/utils/storeMatch';
@@ -56,6 +58,7 @@
 	let product = $state<ProductDetail | null>(null);
 	let priceHistory = $state<PriceHistory | null>(null);
 	let comparisonGroups = $state<ComparisonGroup[]>([]);
+	let addToBasketOpen = $state(false);
 
 	$effect(() => {
 		product = pageData.product;
@@ -593,6 +596,23 @@
 						/>
 					</SectionCard>
 				</div>
+
+				<!-- Basket Section -->
+				<div in:fly={{ y: 20, duration: 500, delay: 750 }}>
+					<SectionCard title="Basket" icon={ShoppingBasket}>
+						<div class="flex items-center justify-between gap-3">
+							<p class="text-sm text-gray-500 dark:text-gray-400">
+								Buy it together with other products and compare totals per store.
+							</p>
+							<button
+								onclick={() => (addToBasketOpen = true)}
+								class="shrink-0 whitespace-nowrap min-h-11 px-3 text-sm font-medium text-brand dark:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded-md"
+							>
+								Add to basket
+							</button>
+						</div>
+					</SectionCard>
+				</div>
 			</div>
 		</div>
 
@@ -672,6 +692,12 @@
 			onSolved={handleChallengeSolved}
 		/>
 	{/if}
+
+	<AddToBasketModal
+		open={addToBasketOpen}
+		productIds={[product.id]}
+		onClose={() => (addToBasketOpen = false)}
+	/>
 
 	<!-- Delete Confirmation Modal -->
 	<ConfirmModal

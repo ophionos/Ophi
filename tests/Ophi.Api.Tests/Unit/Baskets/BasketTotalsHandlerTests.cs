@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging.Abstractions;
 using Ophi.Api.Features.Baskets;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
@@ -111,6 +112,25 @@ public class BasketTotalsHandlerTests : IDisposable
         result.Stores.Should().BeEmpty();
         result.BestStore.Should().BeNull();
         result.Split.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetBaskets_EachSummary_CarriesItsBestStoreAndTotal()
+    {
+        var mouse = AddProduct("Mouse", ("one.example", 10m, false), ("two.example", 8m, false));
+        _db.ShippingRates.Add(new ShippingRate { Id = Guid.NewGuid(), UserId = _userId, Host = "two.example", Amount = 5m, Currency = "EUR" });
+        await BasketWith((mouse, 2));
+        await BasketWith();
+
+        var result = await new GetBaskets.Handler(_db, NullLogger<GetBaskets.Handler>.Instance).Handle(new GetBaskets.Query(_userId), Ct);
+
+        var priced = result.Items.Single(i => i.ItemCount == 1);
+        priced.BestStore.Should().Be("one.example"); // 20 vs 16 + 5
+        priced.BestTotal.Should().Be(20m);
+        priced.BestCurrency.Should().Be("EUR");
+        var empty = result.Items.Single(i => i.ItemCount == 0);
+        empty.BestStore.Should().BeNull();
+        empty.BestTotal.Should().BeNull();
     }
 
     public void Dispose()

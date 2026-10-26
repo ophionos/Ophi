@@ -37,7 +37,10 @@ vi.mock('$lib/api/client', async () => {
 			sendChallengeInput: vi.fn(),
 			closeChallenge: vi.fn(),
 			putShippingRate: vi.fn(),
-			listShippingRates: vi.fn()
+			listShippingRates: vi.fn(),
+			listBaskets: vi.fn(),
+			createBasket: vi.fn(),
+			addBasketItems: vi.fn()
 		}
 	};
 });
@@ -425,6 +428,36 @@ describe('Product Detail Page', () => {
 			const rail = await screen.findByTestId('product-rail');
 			expect(within(rail).getByText('Price Alerts')).toBeInTheDocument();
 			expect(within(rail).getByText('Comparison Group')).toBeInTheDocument();
+		});
+
+		it('should open the add-to-basket modal for this product when the action is clicked', async () => {
+			auth.login(mockUser);
+			vi.mocked(api.listBaskets).mockResolvedValue({
+				items: [
+					{
+						id: 'b1',
+						name: 'Camping',
+						description: null,
+						itemCount: 0,
+						updatedAt: '2026-01-01T00:00:00Z',
+						bestStore: null,
+						bestTotal: null,
+						bestCurrency: null
+					}
+				]
+			});
+			vi.mocked(api.addBasketItems).mockResolvedValue({} as never);
+			renderPage(mockProductWithCustomFields);
+
+			const rail = await screen.findByTestId('product-rail');
+			await fireEvent.click(within(rail).getByRole('button', { name: 'Add to basket' }));
+			const dialog = await screen.findByRole('dialog', { name: 'Add to basket' });
+			await fireEvent.click(await within(dialog).findByLabelText('Camping'));
+			await fireEvent.click(within(dialog).getByRole('button', { name: 'Add to basket' }));
+
+			await waitFor(() => {
+				expect(api.addBasketItems).toHaveBeenCalledWith('b1', { productIds: ['p1'] });
+			});
 		});
 
 		it('should place the danger zone after every other section, outside the rail', async () => {
