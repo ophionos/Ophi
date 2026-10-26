@@ -382,10 +382,7 @@ public class ScrapingService(HttpClient httpClient, ILogger<ScrapingService> log
     {
         // Currency priority: store config override > metadata > symbol detection
         var metadataCurrency = currencyOverride ?? ExtractCurrency(document);
-
-        var selectors = customSelector != null
-            ? [customSelector, .. config.PriceSelectors]
-            : config.PriceSelectors;
+        var selectors = ScrapeHelpers.PriceSelectorsWith(customSelector, config);
 
         // Try CSS selectors first
         foreach (var selectorSpec in selectors)
@@ -397,7 +394,10 @@ public class ScrapingService(HttpClient httpClient, ILogger<ScrapingService> log
                 // make us abandon the selector and fall through to a coarser one. Take the
                 // first match that actually parses. (See PlaywrightScrapingService for the
                 // Amazon `.a-price-whole` "17." -> 17.0 USD failure mode this guards against.)
-                foreach (var priceText in ExtractAllWithSelector(document, selectorSpec))
+                var candidates = selectorSpec == CommonSelectors.JsonLdProductPrice
+                    ? JsonPathExtractor.ExtractProductOfferPrices(jsonLdContents ??= JsonPathExtractor.GetJsonLdContents(document))
+                    : ExtractAllWithSelector(document, selectorSpec, config.ExcludeRelatedProducts);
+                foreach (var priceText in candidates)
                 {
                     if (string.IsNullOrWhiteSpace(priceText)) continue;
 
@@ -666,12 +666,14 @@ public class ScrapingService(HttpClient httpClient, ILogger<ScrapingService> log
     /// Yields all matches so the caller can skip empty/placeholder elements and take the first
     /// that parses, rather than abandoning the selector on an empty first match.
     /// </summary>
-    private static IEnumerable<string?> ExtractAllWithSelector(IDocument document, string selectorSpec)
+    private static IEnumerable<string?> ExtractAllWithSelector(IDocument document, string selectorSpec, bool excludeRelated = false)
     {
         var (selector, attributeName) = ParseSelectorSpec(selectorSpec);
 
         foreach (var element in document.QuerySelectorAll(selector))
         {
+            if (excludeRelated && element.Closest(CommonSelectors.RelatedProductContainers) != null) continue;
+
             yield return attributeName != null
                 ? element.GetAttribute(attributeName)
                 // Default attribute extraction order for price elements

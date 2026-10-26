@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using Ophi.Infrastructure.Scraping.Adapters;
 
 namespace Ophi.Infrastructure.Scraping;
 
@@ -40,6 +41,18 @@ internal static class ScrapeHelpers
             RegexCache.Clear();
         return RegexCache.GetOrAdd(pattern, p => new Regex(p, RegexOptions.Compiled, RegexTimeout));
     }
+
+    /// <summary>
+    /// The price selectors to try, with the URL's stored selector first. Every stored selector is
+    /// auto-detected (<c>SelectorType.Auto</c>), so one from <see cref="CommonSelectors.PriceSelectors"/>
+    /// adds nothing but a pinned position: a URL that once matched <c>.price</c> would keep taking it
+    /// ahead of the JSON-LD price, related-product card included (#136). Such a selector is dropped
+    /// and the config's own order applies.
+    /// </summary>
+    public static string[] PriceSelectorsWith(string? storedSelector, StoreSelectorConfig config) =>
+        storedSelector == null || CommonSelectors.PriceSelectors.Contains(storedSelector)
+            ? config.PriceSelectors
+            : [storedSelector, .. config.PriceSelectors];
 
     /// <summary>
     /// Parses a selector specification into selector and optional attribute name.

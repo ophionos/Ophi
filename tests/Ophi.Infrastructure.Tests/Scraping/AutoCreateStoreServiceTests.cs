@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Ophi.Infrastructure.Scraping;
+using Ophi.Infrastructure.Scraping.Adapters;
 
 namespace Ophi.Infrastructure.Tests.Scraping;
 
@@ -92,6 +93,60 @@ public class AutoCreateStoreServiceTests
 
         result.Should().NotBeNull();
         result.Selectors.PriceSelectors.Should().Contain("[itemprop='price']|content");
+    }
+
+    [Fact]
+    public async Task AnalyzeHtmlAsync_WithWooCommerceGraph_DetectsJsonLdPriceAheadOfCss()
+    {
+        // WooCommerce nests the Product in @graph; its main `p.price` holds two amounts and does not
+        // parse, so before #136 nothing was detected and no store was created.
+        const string html = """
+            <html><head>
+                <script type="application/ld+json">
+                {"@context":"https://schema.org/","@graph":[{"@type":"BreadcrumbList"},{"@type":"Product","offers":[{"@type":"Offer","price":"25.99"}]}]}
+                </script>
+            </head><body>
+                <h1>Pinecil</h1>
+                <p class="price"><span>Community price: </span><span class="amount">$25.99</span> (Retail price: $35.99)</p>
+            </body></html>
+            """;
+
+        var result = await _service.AnalyzeHtmlAsync(html, "https://shop.example/product/pinecil/", TestContext.Current.CancellationToken);
+
+        result.Should().NotBeNull();
+        result.Selectors.PriceSelectors.Should().StartWith(CommonSelectors.JsonLdProductPrice);
+    }
+
+    [Fact]
+    public async Task AnalyzeHtmlAsync_WithJsonLdProductButNoItemprop_DoesNotAddItempropSelectors()
+    {
+        const string html = """
+            <html><head>
+                <script type="application/ld+json">{"@type":"Product","offers":{"price":"19.99"}}</script>
+            </head><body><h1>Widget</h1></body></html>
+            """;
+
+        var result = await _service.AnalyzeHtmlAsync(html, "https://widgets.com/product/7", TestContext.Current.CancellationToken);
+
+        result.Should().NotBeNull();
+        result.Selectors.PriceSelectors.Should().NotContain(s => s.StartsWith("[itemprop='price']"));
+    }
+
+    [Fact]
+    public async Task AnalyzeHtmlAsync_WithNoPriceDetected_LogsAtInformation()
+    {
+        var logger = new Mock<ILogger<AutoCreateStoreService>>();
+        var service = new AutoCreateStoreService(logger.Object);
+
+        var result = await service.AnalyzeHtmlAsync("<html><body><h1>About us</h1></body></html>", "https://store.com/about", TestContext.Current.CancellationToken);
+
+        result.Should().BeNull();
+        logger.Verify(x => x.Log(
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v != null && v.ToString()!.Contains("store.com/about")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
     // --- CSS patterns strategy ---

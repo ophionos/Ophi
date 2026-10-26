@@ -405,16 +405,25 @@ public class PlaywrightScrapingService(
     {
         // Currency priority: store config override > metadata > symbol detection
         var metadataCurrency = currencyOverride ?? await ExtractCurrencyAsync(page, jsonLdContents);
-
-        var selectors = customSelector != null
-            ? [customSelector, .. config.PriceSelectors]
-            : config.PriceSelectors;
+        var selectors = ScrapeHelpers.PriceSelectorsWith(customSelector, config);
 
         // Try CSS selectors
         foreach (var selectorSpec in selectors)
         {
             try
             {
+                if (selectorSpec == CommonSelectors.JsonLdProductPrice)
+                {
+                    jsonLdContents ??= await GetJsonLdContentsAsync(page);
+                    foreach (var jsonLdPrice in JsonPathExtractor.ExtractProductOfferPrices(jsonLdContents))
+                    {
+                        var parsedJsonLd = PriceParser.Parse(jsonLdPrice, priceLocale);
+                        if (parsedJsonLd != null)
+                            return (parsedJsonLd.Value.Amount, metadataCurrency ?? parsedJsonLd.Value.Currency, selectorSpec);
+                    }
+                    continue;
+                }
+
                 var (cssSelector, attributeName) = ParseSelectorSpec(selectorSpec);
 
                 // Iterate ALL matches for this selector, not just the first. Amazon (and
@@ -426,6 +435,10 @@ public class PlaywrightScrapingService(
                 var elements = await page.QuerySelectorAllAsync(cssSelector);
                 foreach (var element in elements)
                 {
+                    if (config.ExcludeRelatedProducts &&
+                        await element.EvaluateAsync<bool>("(e, s) => e.closest(s) !== null", CommonSelectors.RelatedProductContainers))
+                        continue;
+
                     string? priceText;
                     if (attributeName != null)
                     {
