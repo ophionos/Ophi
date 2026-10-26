@@ -31,7 +31,9 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
 
 - **Shipping rates** (`/api/v1/shipping-rates`, one per site host, per user): a flat cost with an optional
   free-above threshold, in its own currency. `User.ShowLandedPrices` is the display setting. Both travel
-  in the account backup.
+  in the account backup. The comparison (detail and cards) and product endpoints always return the
+  landed price (price + shipping) next to the scraped one, with its own best product; the setting only
+  chooses what the UI shows first.
 
 ## Alerts and notifications
 

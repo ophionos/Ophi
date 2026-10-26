@@ -108,6 +108,9 @@ other kind of fact. Link to owners; don't restate them here.
   the user never pays. A currency the ECB doesn't publish gets no conversion, never a guess.
 - **Shipping is keyed by normalized host and never converted: `LandedPrice` is the one owner; a rate in
   another currency makes the landed price unknown.**
+  A product's landed price is the MIN over the URLs the aggregator uses (not paused, priced, product
+  currency), so it can come from a dearer URL with free shipping; it is derived per read, never stored,
+  and alerts and history stay on the scraped price.
 - **A price must be > 0, enforced at the parser boundary.** `PriceParser` keeps the ASCII hyphen, so
   `-$15.00` (a discount element) parses to `-15.00` and `$0.00` placeholders to zero; downstream, a
   non-positive value won the MIN, became history, and fired every "below" alert. Every
@@ -128,9 +131,7 @@ other kind of fact. Link to owners; don't restate them here.
   a group can be a wishlist of different products, where the cheapest saves nothing on the others.
   - **Read paths obey the same rule.** History may hold other currencies (a URL that changed
     currency, a re-anchor), so the at-lowest flag, the product statistics, the sparklines and the
-    comparison history filter price points to the product's (or URL's) currency. A watchlist sparkline
-    point is the product price at the end of the day, rebuilt by `PriceSeries` (each URL carries its last
-    price forward, then the MIN across URLs), not the last scrape and not a MIN over one day's points.
+    comparison history filter price points to the product's (or URL's) currency. A sparkline point is the day's MIN, not the last scrape.
     The product page's best-price highlight (`$lib/utils/bestPrice.ts`) also skips paused URLs.
   - **A re-anchor clears `PreviousPrice`.** It has no currency of its own, so a USD baseline next to a
     EUR price showed USD 100 → EUR 92 as an 8 % drop (dashboard, price-drop filter, webhook `OldPrice`).
@@ -222,19 +223,9 @@ other kind of fact. Link to owners; don't restate them here.
   below/above target in the product's currency, compared upper-cased because Postgres text compare
   is case-sensitive.
 - **The watchlist's "at lowest" and its range bar share one 90-day window** (`GetProducts.RangeDays`,
-  `AtRealLow`). Both count the price each URL held when the window opened (its latest earlier point),
-  because points are written only on a change. The range includes the current price and the flag is
-  `<=`, so a product in the chip sits at the left end of its bar. A real low also needs a first point
-  30+ days old and a different price in the window; without them every young or stable product
-  would count.
-  The sparkline is 30 days.
+  `AtLowestSince`). The range includes the current price and the flag is `<=`, so a product in the
+  "at their 90-day low" chip always sits at the left end of its bar. The sparkline is 30 days.
   The list has no silent favourites pin: favourites first is the explicit `sortBy=favourites`.
-- **`Change7d` compares the same URLs at both ends** (`GetProducts.Change7d`): URLs with a price in
-  the product currency 7 days ago that are live now. Adding a cheaper store is therefore not a drop.
-  One expression feeds the value, the price-drop filter and count, and the price-change sort. The
-  watchlist does not read `PreviousPrice`. The price sort groups by currency first (no conversion).
-  `NewCheapestStore` marks that case for the UI: the best URL's first point is newer than 7 days
-  and the product's is older.
 - **"Old price" reads `ProductUrl.LastSucceededAt`, never `LastCheckedAt`.** A failed check moves
   `LastCheckedAt`, and price points are written only when the price changes, so neither tells when a
   price was last read. Only `RecordSuccessfulScrape` sets it; the migration backfilled it from

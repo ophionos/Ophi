@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Extensions;
+using Ophi.Api.Common.Helpers;
 using Ophi.Api.Features.Products;
 using Ophi.Domain.Services;
 using Ophi.Infrastructure.Persistence;
@@ -26,11 +27,14 @@ public static class GetComparisonGroups
         string? BestPriceProductName,
         decimal? BestPrice,
         string? Currency,
-        List<GetProducts.SparklinePointDto> Sparkline);
+        List<GetProducts.SparklinePointDto> Sparkline,
+        Guid? BestLandedProductId = null,
+        string? BestLandedProductName = null,
+        decimal? BestLandedPrice = null);
 
     public const int SparklineDays = 30;
 
-    private sealed record PricedMember(Guid Id, Guid GroupId, string Name, decimal? CurrentPrice, string Currency);
+    private sealed record PricedMember(Guid Id, Guid GroupId, string Name, decimal? CurrentPrice, string Currency, decimal? LandedPrice);
 
     public class Handler(OphiDbContext dbContext, TimeProvider timeProvider, ILogger<Handler> logger)
     {
@@ -47,11 +51,16 @@ public static class GetComparisonGroups
             // The cheapest member is chosen in memory: SQLite cannot ORDER BY a decimal, and the
             // shared rule (currency first, then the MIN) is not expressible in SQL anyway.
             var groupIds = groups.Select(g => g.Id).ToList();
-            var members = await dbContext.Products
-                .AsNoTracking()
-                .Where(p => p.ComparisonGroupId != null && groupIds.Contains(p.ComparisonGroupId.Value) && p.CurrentPrice != null)
-                .Select(p => new PricedMember(p.Id, p.ComparisonGroupId!.Value, p.Name, p.CurrentPrice, p.Currency))
-                .ToListAsync(cancellationToken);
+            // URLs are loaded for the landed price, which must match GetComparisonGroup's.
+            var rateFor = await ShippingRateLookup.LoadAsync(dbContext, request.UserId, cancellationToken);
+            var members = (await dbContext.Products
+                    .AsNoTracking()
+                    .Include(p => p.ProductUrls)
+                    .Where(p => p.ComparisonGroupId != null && groupIds.Contains(p.ComparisonGroupId.Value) && p.CurrentPrice != null)
+                    .ToListAsync(cancellationToken))
+                .Select(p => new PricedMember(p.Id, p.ComparisonGroupId!.Value, p.Name, p.CurrentPrice, p.Currency,
+                    LandedPrice.ForProduct(p, rateFor)?.Price))
+                .ToList();
 
             var best = members
                 .GroupBy(m => m.GroupId)
@@ -59,11 +68,18 @@ public static class GetComparisonGroups
                     g => g.Key,
                     g => ProductPriceAggregator.CheapestInDominantCurrency(g, m => m.CurrentPrice, m => m.Currency, m => m.Id)!);
 
+            var bestLanded = members
+                .GroupBy(m => m.GroupId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => ProductPriceAggregator.CheapestInDominantCurrency(g, m => m.LandedPrice, m => m.Currency, m => m.Id));
+
             var sparklines = await LoadSparklinesAsync(best.Values.ToList(), cancellationToken);
 
             var items = groups.Select(g =>
             {
                 var winner = best.GetValueOrDefault(g.Id);
+                var landedWinner = bestLanded.GetValueOrDefault(g.Id);
                 return new Dto(
                     g.Id,
                     g.Name,
@@ -72,7 +88,10 @@ public static class GetComparisonGroups
                     winner?.Name,
                     winner?.CurrentPrice,
                     winner?.Currency,
-                    winner != null ? sparklines.GetValueOrDefault(winner.Id, []) : []);
+                    winner != null ? sparklines.GetValueOrDefault(winner.Id, []) : [],
+                    landedWinner?.Id,
+                    landedWinner?.Name,
+                    landedWinner?.LandedPrice);
             }).ToList();
 
             logger.LogDebug("Returning {Count} comparison groups for user {UserId}", items.Count, request.UserId);
@@ -118,7 +137,7 @@ public static class GetComparisonGroups
         .WithName("GetComparisonGroups")
         .WithTags("Comparisons")
         .WithSummary("List comparison groups")
-        .WithDescription("Returns all comparison groups for the current user with the product count of each group, its best price (chosen in the currency most members are priced in) and that product's daily lows over the last 30 days. Get a single group for every member's price.")
+        .WithDescription("Returns all comparison groups for the current user with the product count of each group, its best price (chosen in the currency most members are priced in) and that product's daily lows over the last 30 days. Get a single group for every member's price. bestLandedProductId/Name/Price name the cheapest price including the user's shipping rates, chosen as on the group page.")
         .Produces<Response>(200)
         .RequireAuthorization();
 }
