@@ -106,6 +106,76 @@ export function formatChartDate(date: string | Date, includeYear = false): strin
 	return d.toLocaleDateString('en-US', opts);
 }
 
+/** A point on a linear time axis: `x` is epoch milliseconds, `y` is null where a series has no price. */
+export interface TimePoint {
+	x: number;
+	y: number | null;
+}
+
+/**
+ * Puts price series on one shared time axis (#134). Each point keeps its real time, so a scrape at
+ * 00:00:07 sits at the start of its day instead of one even slot after the day before. Every series
+ * gets the same timestamps (an `index` tooltip lines them up) and holds its last price between its
+ * own first and last point. Outside that span it is null: a store added today draws nothing before
+ * today, and one that stopped draws nothing after. `holdToEnd` keeps the last price to the end of
+ * the axis, for history that has no point at "now" (comparisons).
+ */
+export function alignTimeSeries(
+	series: readonly { date: string; price: number }[][],
+	{ holdToEnd = false } = {}
+): TimePoint[][] {
+	const xs = [...new Set(series.flatMap((s) => s.map((p) => Date.parse(p.date))))].sort((a, b) => a - b);
+	return series.map((s) => {
+		const prices = new Map(s.map((p) => [Date.parse(p.date), p.price]));
+		const first = Math.min(...prices.keys());
+		const last = holdToEnd ? Infinity : Math.max(...prices.keys());
+		let held: number | null = null;
+		return xs.map((x) => {
+			held = prices.get(x) ?? held;
+			return { x, y: x >= first && x <= last ? held : null };
+		});
+	});
+}
+
+/**
+ * Tick positions for a time axis: local midnights inside [min, max], so each label names one day
+ * once. On long ranges it steps several days at a time to stay within `maxTicks`.
+ */
+export function dayTicks(min: number, max: number, maxTicks = 7): number[] {
+	const day = new Date(min);
+	day.setHours(0, 0, 0, 0);
+	if (day.getTime() < min) day.setDate(day.getDate() + 1);
+
+	const spanDays = Math.max(0, Math.floor((max - day.getTime()) / 86_400_000));
+	const step = Math.max(1, Math.ceil(spanDays / Math.max(1, maxTicks - 1)));
+	const ticks: number[] = [];
+	// setDate, not +86_400_000: a day is 23 or 25 hours across a DST change.
+	for (; day.getTime() <= max; day.setDate(day.getDate() + step)) ticks.push(day.getTime());
+	return ticks;
+}
+
+/**
+ * The x-scale for price series on a time axis: linear in epoch milliseconds, bounded by the data,
+ * with one tick per day (see `dayTicks`). There is no Chart.js date adapter, so the `time` scale
+ * is not an option.
+ */
+export function timeAxis(series: readonly TimePoint[][]) {
+	const xs = series.flatMap((s) => s.map((p) => p.x));
+	const min = Math.min(...xs);
+	// One instant (a comparison group whose prices are all from today) gives a zero-width axis,
+	// because explicit bounds stop Chart.js from widening it. Show that whole day instead.
+	const max = Math.max(...xs) > min ? Math.max(...xs) : min + 86_400_000;
+	return {
+		type: 'linear' as const,
+		min,
+		max,
+		afterBuildTicks: (axis: { ticks: { value: number }[] }) => {
+			axis.ticks = dayTicks(min, max).map((value) => ({ value }));
+		},
+		tickLabel: (value: number | string) => formatChartDate(new Date(Number(value)))
+	};
+}
+
 export function resetChartLoaderForTests(): void {
 	chartModulePromise = null;
 	registered = false;

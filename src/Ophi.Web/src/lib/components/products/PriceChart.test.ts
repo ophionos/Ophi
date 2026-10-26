@@ -6,8 +6,29 @@ import type { PriceHistoryPoint } from '$lib/api/client';
 // Typed as just the slice the tests read: the y-axis bounds (undefined = left to Chart.js) and
 // the point markers.
 interface CapturedChartConfig {
-	data: { datasets: { pointRadius: number | number[] }[] };
-	options: { scales: { y: { min?: number; max?: number } } };
+	data: {
+		labels?: unknown[];
+		datasets: {
+			label: string;
+			data: { x: number; y: number | null }[];
+			pointRadius: number | number[];
+			stepped?: string;
+		}[];
+	};
+	options: {
+		scales: {
+			x: {
+				type?: string;
+				min?: number;
+				max?: number;
+				afterBuildTicks?: (axis: { min: number; max: number; ticks: { value: number }[] }) => void;
+			};
+			y: { min?: number; max?: number };
+		};
+		plugins: {
+			tooltip: { callbacks: { title: (items: { parsed: { x: number } }[]) => string } };
+		};
+	};
 }
 const chartConfigs: CapturedChartConfig[] = [];
 
@@ -78,6 +99,94 @@ describe('PriceChart', () => {
 			expect(radii.filter((r) => r > 0)).toHaveLength(2);
 			expect(radii[10]).toBeGreaterThan(0);
 			expect(radii[74]).toBeGreaterThan(0);
+		});
+	});
+
+	describe('time axis (#134)', () => {
+		async function configFor(props: Record<string, unknown>) {
+			render(PriceChart, { props: { ...defaultProps, ...props } });
+			await vi.waitFor(() => expect(chartConfigs.length).toBeGreaterThan(0));
+			return chartConfigs[chartConfigs.length - 1];
+		}
+
+		// The issue's shape: one store held all week, one first scraped today at 00:00:07.
+		const twoStores = [
+			{
+				productUrlId: 'a',
+				url: 'https://amazon.es/p',
+				currency: 'EUR',
+				history: [
+					{ date: '2024-01-01T00:00:00Z', price: 18.83 },
+					{ date: '2024-01-08T12:00:00Z', price: 18.83 }
+				]
+			},
+			{
+				productUrlId: 'b',
+				url: 'https://comics.example/p',
+				currency: 'EUR',
+				history: [
+					{ date: '2024-01-08T00:00:07Z', price: 16.19 },
+					{ date: '2024-01-08T12:00:00Z', price: 16.19 }
+				]
+			}
+		];
+
+		it('should plot each price at its real time on a linear axis', async () => {
+			const config = await configFor({ history: mockHistory });
+
+			expect(config.options.scales.x.type).toBe('linear');
+			expect(config.data.labels).toBeUndefined();
+			expect(config.data.datasets[0].data.map((p) => p.x)).toEqual(
+				mockHistory.map((h) => Date.parse(h.date))
+			);
+		});
+
+		it('should span the axis from the first to the last point', async () => {
+			const x = (await configFor({ history: mockHistory })).options.scales.x;
+
+			expect(x.min).toBe(Date.parse('2024-01-01'));
+			expect(x.max).toBe(Date.parse('2024-01-04'));
+		});
+
+		it('should label each day once', async () => {
+			const x = (await configFor({ currency: 'EUR', urlHistories: twoStores })).options.scales.x;
+			const axis = { min: x.min!, max: x.max!, ticks: [] as { value: number }[] };
+			x.afterBuildTicks!(axis);
+
+			const days = axis.ticks.map((t) => new Date(t.value).toDateString());
+			expect(days.length).toBeGreaterThan(1);
+			expect(new Set(days).size).toBe(days.length);
+		});
+
+		it('should not draw a store before its first price', async () => {
+			const datasets = (await configFor({ currency: 'EUR', urlHistories: twoStores })).data.datasets;
+			const added = datasets[1].data;
+
+			expect(added.filter((p) => p.x < Date.parse('2024-01-08T00:00:07Z')).every((p) => p.y === null)).toBe(true);
+			expect(added[added.length - 1].y).toBe(16.19);
+		});
+
+		it('should draw held prices as steps that change at the new point', async () => {
+			// Chart.js 'after' draws the vertical at the previous point, which moved every price
+			// change back to the time of the scrape before it. 'before' runs flat, then steps.
+			const config = await configFor({ history: mockHistory });
+			expect(config.data.datasets[0].stepped).toBe('before');
+		});
+
+		it('should title the tooltip with the date of the hovered point', async () => {
+			const config = await configFor({ history: mockHistory });
+			const title = config.options.plugins.tooltip.callbacks.title([
+				{ parsed: { x: Date.parse('2024-01-03T12:00:00Z') } }
+			]);
+			expect(title).toMatch(/Jan/);
+			expect(title).toMatch(/2024/);
+		});
+
+		it('should leave out a store with no price in the window', async () => {
+			const urlHistories = [...twoStores, { productUrlId: 'c', url: 'https://paused.example/p', currency: 'EUR', history: [] }];
+			const datasets = (await configFor({ currency: 'EUR', urlHistories })).data.datasets;
+
+			expect(datasets.map((d) => d.label)).toEqual(['amazon.es', 'comics.example']);
 		});
 	});
 

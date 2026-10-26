@@ -135,11 +135,9 @@ public class GetPriceHistoryHandlerTests : IDisposable
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
-        // Assert
-        result.History.Should().HaveCount(3);
-        result.History[0].Price.Should().Be(100m);
-        result.History[1].Price.Should().Be(90m);
-        result.History[2].Price.Should().Be(85m);
+        // Assert — the last price also holds up to now (#134)
+        result.History.Select(h => h.Price).Should().Equal(100m, 90m, 85m, 85m);
+        result.History.Select(h => h.Date).Should().BeInAscendingOrder();
     }
 
     [Fact]
@@ -164,9 +162,11 @@ public class GetPriceHistoryHandlerTests : IDisposable
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
-        // Assert
-        result.History.Should().HaveCount(2);
-        result.History.Should().NotContain(h => h.Price == 100m);
+        // Assert — the 60-day-old price only appears as the price held at the window start (#134)
+        var windowStart = DateTime.UtcNow.Date.AddDays(-30);
+        result.History.Should().NotContain(h => h.Date < windowStart);
+        result.History.Select(h => h.Price).Should().Equal(100m, 90m, 85m, 85m);
+        result.History[0].Date.Should().Be(windowStart);
     }
 
     [Fact]
@@ -317,10 +317,10 @@ public class GetPriceHistoryHandlerTests : IDisposable
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
-        // Assert — the 35-day-old point (100m) is excluded; the in-window point (90m) is
-        // synthesized into a flat line so the chart can render.
-        result.History.Should().OnlyContain(h => h.Price == 90m);
-        result.History.Should().NotContain(h => h.Price == 100m);
+        // Assert — the window starts 30 days back: the 35-day-old price (100m) is held from
+        // there until the in-window change to 90m, which holds up to now (#134).
+        result.History[0].Date.Should().Be(DateTime.UtcNow.Date.AddDays(-30));
+        result.History.Select(h => h.Price).Should().Equal(100m, 90m, 90m);
     }
 
     [Fact]
@@ -535,8 +535,8 @@ public class GetPriceHistoryHandlerTests : IDisposable
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert — on the 7d view intraday points are preserved, not collapsed to one/day.
-        result.History.Should().HaveCount(3);
-        result.History.Select(h => h.Price).Should().ContainInOrder(20m, 19m, 18m);
+        // The fourth point is the last price held up to now (#134).
+        result.History.Select(h => h.Price).Should().Equal(20m, 19m, 18m, 18m);
     }
 
     [Fact]
@@ -677,6 +677,138 @@ public class GetPriceHistoryHandlerTests : IDisposable
 
         // Assert
         result.UrlHistories!.First(uh => uh.Url.Contains("worten")).History.Should().BeEmpty();
+    }
+
+    // --- #134: every series covers only the time its URL was tracked, and active ones reach "now" ---
+
+    private (Product Product, ProductUrl Url) CreateSingleUrlProduct(
+        ProductUrlStatus status = ProductUrlStatus.Active, bool outOfStock = false)
+    {
+        var product = new Product { Id = Guid.NewGuid(), UserId = _testUserId, Name = "P", Currency = "EUR", Status = ProductStatus.Active };
+        var url = new ProductUrl { Id = Guid.NewGuid(), ProductId = product.Id, Url = "https://shop.example/p", Currency = "EUR", Status = status, IsOutOfStock = outOfStock };
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.Add(url);
+        return (product, url);
+    }
+
+    private static PricePoint Point(Product product, ProductUrl url, decimal price, DateTime at) =>
+        new() { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = price, Currency = "EUR", RecordedAt = at };
+
+    [Fact]
+    public async Task Handle_UrlFirstScrapedInsideTheWindow_IsNotBackfilledBeforeItsFirstPoint()
+    {
+        // The issue's waltscomicshop.com case: added today, so it has no price for the days before.
+        var product = new Product { Id = Guid.NewGuid(), UserId = _testUserId, Name = "Two stores", Currency = "EUR", Status = ProductStatus.Active };
+        var held = new ProductUrl { Id = Guid.NewGuid(), ProductId = product.Id, Url = "https://amazon.es/p", Currency = "EUR" };
+        var added = new ProductUrl { Id = Guid.NewGuid(), ProductId = product.Id, Url = "https://comics.example/p", Currency = "EUR" };
+        _dbContext.Products.Add(product);
+        _dbContext.ProductUrls.AddRange(held, added);
+        var firstScrape = DateTime.UtcNow.Date.AddSeconds(7);
+        _dbContext.PricePoints.AddRange(
+            Point(product, held, 18.83m, DateTime.UtcNow.AddDays(-10)),
+            Point(product, added, 16.19m, firstScrape));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var before = DateTime.UtcNow;
+
+        var result = await _handler.Handle(new GetPriceHistory.Query(product.Id, _testUserId, Days: 7), TestContext.Current.CancellationToken);
+
+        var series = result.UrlHistories!.Single(uh => uh.ProductUrlId == added.Id).History;
+        series.Should().NotContain(h => h.Date < firstScrape);
+        series[0].Date.Should().Be(firstScrape);
+        series[^1].Date.Should().BeOnOrAfter(before);
+        series.Should().OnlyContain(h => h.Price == 16.19m);
+    }
+
+    [Fact]
+    public async Task Handle_HeldPrice_DrawsAcrossTheWholeWindowUpToNow()
+    {
+        var (product, url) = CreateSingleUrlProduct();
+        _dbContext.PricePoints.Add(Point(product, url, 18.83m, DateTime.UtcNow.AddDays(-10)));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var before = DateTime.UtcNow;
+
+        var result = await _handler.Handle(new GetPriceHistory.Query(product.Id, _testUserId, Days: 7), TestContext.Current.CancellationToken);
+
+        result.History[0].Date.Should().Be(before.Date.AddDays(-7));
+        result.History[^1].Date.Should().BeOnOrAfter(before);
+        result.History.Should().OnlyContain(h => h.Price == 18.83m);
+    }
+
+    [Fact]
+    public async Task Handle_PriceChangedInsideTheWindow_StartsWithThePriceHeldBeforeIt()
+    {
+        // Change-only history: the price before the first in-window change held from the window start.
+        var (product, url) = CreateSingleUrlProduct();
+        var change = DateTime.UtcNow.AddDays(-3);
+        _dbContext.PricePoints.AddRange(
+            Point(product, url, 20m, DateTime.UtcNow.AddDays(-30)),
+            Point(product, url, 18m, change));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetPriceHistory.Query(product.Id, _testUserId, Days: 7), TestContext.Current.CancellationToken);
+
+        result.History.Select(h => h.Price).Should().Equal(20m, 18m, 18m);
+        result.History[0].Date.Should().Be(DateTime.UtcNow.Date.AddDays(-7));
+        result.History[1].Date.Should().Be(change);
+    }
+
+    [Theory]
+    [InlineData(ProductUrlStatus.Paused, false)]
+    [InlineData(ProductUrlStatus.Active, true)]
+    public async Task Handle_PausedOrOutOfStockUrl_EndsAtItsLastPoint(ProductUrlStatus status, bool outOfStock)
+    {
+        var (product, url) = CreateSingleUrlProduct(status, outOfStock);
+        var last = DateTime.UtcNow.AddDays(-2);
+        _dbContext.PricePoints.AddRange(
+            Point(product, url, 20m, DateTime.UtcNow.AddDays(-4)),
+            Point(product, url, 18m, last));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetPriceHistory.Query(product.Id, _testUserId, Days: 7), TestContext.Current.CancellationToken);
+
+        result.History[^1].Date.Should().Be(last);
+    }
+
+    [Fact]
+    public async Task Handle_SuspiciousUrl_StillReachesNow()
+    {
+        // Suspicious URLs are still scraped; their last price is still current.
+        var (product, url) = CreateSingleUrlProduct(ProductUrlStatus.Suspicious);
+        _dbContext.PricePoints.Add(Point(product, url, 18m, DateTime.UtcNow.AddDays(-2)));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var before = DateTime.UtcNow;
+
+        var result = await _handler.Handle(new GetPriceHistory.Query(product.Id, _testUserId, Days: 7), TestContext.Current.CancellationToken);
+
+        result.History[^1].Date.Should().BeOnOrAfter(before);
+    }
+
+    [Fact]
+    public async Task Handle_PausedUrlWithOnlyAPriceBeforeTheWindow_DrawsNothing()
+    {
+        // It was not scraped during the window, so nothing says the price still held.
+        var (product, url) = CreateSingleUrlProduct(ProductUrlStatus.Paused);
+        _dbContext.PricePoints.Add(Point(product, url, 18m, DateTime.UtcNow.AddDays(-20)));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetPriceHistory.Query(product.Id, _testUserId, Days: 7), TestContext.Current.CancellationToken);
+
+        result.History.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_Statistics_DoNotCountThePointAddedAtNow()
+    {
+        var (product, url) = CreateSingleUrlProduct();
+        _dbContext.PricePoints.AddRange(
+            Point(product, url, 100m, DateTime.UtcNow.AddDays(-3)),
+            Point(product, url, 50m, DateTime.UtcNow.AddDays(-2)));
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetPriceHistory.Query(product.Id, _testUserId, Days: 7), TestContext.Current.CancellationToken);
+
+        result.History.Should().HaveCount(3);
+        result.Statistics.Average.Should().Be(75m);
     }
 
     private Product CreateProduct(string name)

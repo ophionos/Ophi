@@ -7,7 +7,10 @@
 		getChartThemeColors,
 		formatChartDate,
 		chartSeriesColor,
-		pointRadii
+		pointRadii,
+		alignTimeSeries,
+		timeAxis,
+		type TimePoint
 	} from '$lib/utils/chart';
 	import { formatPrice } from '$lib/format';
 
@@ -54,8 +57,10 @@
 	// adrift in a 30-euro band whose floor can sit above a *different* store's real price, making
 	// the cheaper store look like it fell off the bottom of the chart. Pin a tight symmetric band
 	// for that degenerate case only; any genuine spread is left to Chart.js.
-	function flatBand(datasets: { data: (number | null)[] }[]): { min: number; max: number } | object {
-		const values = datasets.flatMap((d) => d.data).filter((v): v is number => typeof v === 'number');
+	function flatBand(datasets: { data: TimePoint[] }[]): { min: number; max: number } | object {
+		const values = datasets
+			.flatMap((d) => d.data.map((p) => p.y))
+			.filter((v): v is number => typeof v === 'number');
 		if (values.length === 0) return {};
 
 		const lowest = Math.min(...values);
@@ -81,33 +86,23 @@
 		const isDark = theme.current === 'dark';
 		const colors = getChartThemeColors(isDark);
 
-		const isMultiLine = urlHistories && urlHistories.length >= 2;
+		// A store with no price in the window (a paused one) has nothing to draw: no legend entry.
+		const series = urlHistories?.filter((uh) => uh.history.length > 0) ?? [];
+		const isMultiLine = series.length >= 2;
 		const mismatch = isMultiLine && uniqueCurrencies.length > 1;
 
 		let datasets: any[];
-		let labels: string[];
 
-		let allDatesArray: string[] = [];
+		// Points sit at their real time on a linear axis (#134): a category axis spaced a scrape at
+		// 00:00:07 one full slot after the day before and repeated the day label for it. The backend
+		// sends change-only history (held price at the window start, each change, the held price at
+		// now), so the line steps instead of curving between changes. Chart.js 'before' runs flat to the
+		// next point and then steps; 'after' would draw each change at the previous point's time.
 		if (isMultiLine) {
-			const allDates = new Set<string>();
-			for (const uh of urlHistories) {
-				for (const h of uh.history) {
-					allDates.add(h.date);
-				}
-			}
-			allDatesArray = [...allDates].sort();
-		} else {
-			allDatesArray = history.map(h => h.date).sort();
-		}
-
-		if (isMultiLine) {
-			const sortedDates = allDatesArray;
-			labels = sortedDates.map(d => formatChartDate(d, false));
-
-			datasets = urlHistories.map((uh, i) => {
+			const aligned = alignTimeSeries(series.map((uh) => uh.history));
+			datasets = series.map((uh, i) => {
 				const color = chartSeriesColor(i).border;
-				const dateMap = new Map(uh.history.map((h) => [h.date, h.price]));
-				const data = allDatesArray.map((d) => dateMap.get(d) ?? null);
+				const data = aligned[i];
 				const domainLabel = getDomain(uh.url);
 				const label = mismatch ? `${domainLabel} (${uh.currency})` : domainLabel;
 
@@ -118,18 +113,18 @@
 					backgroundColor: color,
 					borderWidth: 2,
 					fill: false,
-					tension: 0.4,
-					pointRadius: pointRadii(data, 3),
+					stepped: 'before' as const,
+					tension: 0,
+					pointRadius: pointRadii(data.map((p) => p.y), 3),
 					pointHoverRadius: 6,
 					pointBackgroundColor: color,
 					pointBorderColor: colors.pointBorder,
 					pointBorderWidth: 2,
-					spanGaps: true
+					spanGaps: false
 				};
 			});
 		} else {
-			labels = history.map((h) => formatChartDate(h.date, false));
-			const prices = history.map((h) => h.price);
+			const [data] = alignTimeSeries([history]);
 
 			const gradient = ctx.createLinearGradient(0, 0, 0, 300);
 			gradient.addColorStop(0, 'rgba(13, 148, 136, 0.3)');
@@ -138,13 +133,14 @@
 			datasets = [
 				{
 					label: `Price (${currency})`,
-					data: prices,
+					data,
 					borderColor: 'rgb(13, 148, 136)',
 					backgroundColor: gradient,
 					borderWidth: 3,
 					fill: true,
-					tension: 0.4,
-					pointRadius: pointRadii(prices, 4),
+					stepped: 'before' as const,
+					tension: 0,
+					pointRadius: pointRadii(data.map((p) => p.y), 4),
 					pointHoverRadius: 6,
 					pointBackgroundColor: 'rgb(13, 148, 136)',
 					pointBorderColor: colors.pointBorder,
@@ -152,6 +148,7 @@
 				}
 			];
 		}
+		const { tickLabel, ...xAxis } = timeAxis(datasets.map((d) => d.data));
 
 		loadChart().then((Chart) => {
 			if (cancelled || !canvas) return;
@@ -159,7 +156,6 @@
 			chart = new Chart(ctx, {
 				type: 'line',
 				data: {
-					labels,
 					datasets
 				},
 				options: {
@@ -201,18 +197,12 @@
 							bodyFont: { size: 13 },
 							displayColors: isMultiLine,
 							callbacks: {
-								title: (tooltipItems) => {
-									const idx = tooltipItems[0].dataIndex;
-									if (isMultiLine) {
-										return formatChartDate(allDatesArray[idx], true);
-									}
-									return formatChartDate(history[idx].date, true);
-								},
+								title: (tooltipItems) => formatChartDate(new Date(Number(tooltipItems[0].parsed.x)), true),
 								label: (context) => {
 									const value = context.parsed.y;
 									if (value === null) return '';
-									if (mismatch && urlHistories) {
-										const uh = urlHistories[context.datasetIndex];
+									if (mismatch) {
+										const uh = series[context.datasetIndex];
 										const prefix = `${context.dataset.label}: `;
 										return `${prefix}${formatPrice(value, uh.currency)}`;
 									}
@@ -224,12 +214,13 @@
 					},
 					scales: {
 						x: {
+							...xAxis,
 							grid: {
 								display: false
 							},
 							border: { display: false },
 							ticks: {
-								maxTicksLimit: 7,
+								callback: tickLabel,
 								color: colors.tickColor,
 								font: {
 									size: 11
