@@ -503,16 +503,13 @@ public class GetProductsHandlerTests : IDisposable
     {
         // Arrange
         var bigDrop = CreateProduct("Big Drop", "https://example.com/1");
-        bigDrop.CurrentPrice = 50m;
-        bigDrop.PreviousPrice = 100m; // -50%
+        WithHistory(bigDrop, (20, 100m), (2, 50m)); // -50%
 
         var smallDrop = CreateProduct("Small Drop", "https://example.com/2");
-        smallDrop.CurrentPrice = 90m;
-        smallDrop.PreviousPrice = 100m; // -10%
+        WithHistory(smallDrop, (20, 100m), (2, 90m)); // -10%
 
         var increase = CreateProduct("Increase", "https://example.com/3");
-        increase.CurrentPrice = 150m;
-        increase.PreviousPrice = 100m; // +50%
+        WithHistory(increase, (20, 100m), (2, 150m)); // +50%
 
         _dbContext.Products.AddRange(bigDrop, smallDrop, increase);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1003,11 +1000,11 @@ public class GetProductsHandlerTests : IDisposable
         var itemA = result.Items.First(i => i.Name == "Product A");
         var itemB = result.Items.First(i => i.Name == "Product B");
 
-        itemA.Sparkline.Should().HaveCount(3);
+        itemA.Sparkline.Should().HaveCount(4); // three days of points, carried to today
         itemA.PriceMin.Should().Be(10m);
         itemA.PriceMax.Should().Be(30m);
 
-        itemB.Sparkline.Should().HaveCount(2);
+        itemB.Sparkline.Should().HaveCount(3);
         itemB.PriceMin.Should().Be(100m);
         itemB.PriceMax.Should().Be(200m);
     }
@@ -1098,6 +1095,9 @@ public class GetProductsHandlerTests : IDisposable
         var urlB = productB.ProductUrls.First().Id;
         var urlC = productC.ProductUrls.First().Id;
         _dbContext.PricePoints.AddRange(
+            CreatePricePoint(productA, 200m, daysAgo: 40),
+            CreatePricePoint(productB, 200m, daysAgo: 40),
+            CreatePricePoint(productC, 200m, daysAgo: 40),
             new PricePoint { Id = Guid.NewGuid(), ProductId = productA.Id, ProductUrlId = urlA, Price = 50m, Currency = "USD", RecordedAt = DateTime.UtcNow.AddDays(-2) },
             new PricePoint { Id = Guid.NewGuid(), ProductId = productA.Id, ProductUrlId = urlA, Price = 80m, Currency = "USD", RecordedAt = DateTime.UtcNow.AddDays(-1) },
             new PricePoint { Id = Guid.NewGuid(), ProductId = productA.Id, ProductUrlId = urlA, Price = 100m, Currency = "USD", RecordedAt = DateTime.UtcNow },
@@ -1131,7 +1131,7 @@ public class GetProductsHandlerTests : IDisposable
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         _dbContext.PricePoints.AddRange(
-            CreatePricePoint(product, 90m, daysAgo: 3, currency: "EUR"),
+            CreatePricePoint(product, 90m, daysAgo: 40, currency: "EUR"),
             CreatePricePoint(product, 120m, daysAgo: 2),
             CreatePricePoint(product, 100m, daysAgo: 1));
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1142,7 +1142,7 @@ public class GetProductsHandlerTests : IDisposable
         filtered.Items.Should().ContainSingle(p => p.Id == product.Id);
         all.AtLowestCount.Should().Be(1);
         var item = all.Items.Single();
-        item.Sparkline!.Select(sp => sp.Price).Should().Equal(120m, 100m);
+        item.Sparkline!.Select(sp => sp.Price).Should().Equal(120m, 100m, 100m);
         item.PriceMin.Should().Be(100m);
     }
 
@@ -1152,17 +1152,21 @@ public class GetProductsHandlerTests : IDisposable
         // The product price is the MIN across its URLs; a day's sparkline point must be too,
         // not whichever URL happened to be scraped last.
         var product = CreateProduct("Two stores", "https://example.com/two");
+        var second = new ProductUrl { Id = Guid.NewGuid(), ProductId = product.Id, Url = "https://example.com/two-b", Currency = "USD" };
+        product.ProductUrls.Add(second);
+        _dbContext.ProductUrls.Add(second);
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         var day = DateTime.UtcNow.Date.AddDays(-1);
         _dbContext.PricePoints.AddRange(
-            new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, Price = 10m, Currency = "USD", RecordedAt = day.AddHours(8) },
-            new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, Price = 20m, Currency = "USD", RecordedAt = day.AddHours(9) });
+            new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = product.ProductUrls.First().Id, Price = 10m, Currency = "USD", RecordedAt = day.AddHours(8) },
+            new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = second.Id, Price = 20m, Currency = "USD", RecordedAt = day.AddHours(9) });
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var result = await _handler.Handle(new GetProducts.Query(_testUserId, IncludeSparkline: true), TestContext.Current.CancellationToken);
 
-        result.Items.Single().Sparkline!.Select(sp => sp.Price).Should().Equal(10m);
+        // Yesterday and today: both URLs still hold their prices.
+        result.Items.Single().Sparkline!.Select(sp => sp.Price).Should().Equal(10m, 10m);
     }
 
     [Fact]
@@ -1250,6 +1254,7 @@ public class GetProductsHandlerTests : IDisposable
             await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
             _dbContext.PricePoints.AddRange(
+                CreatePricePoint(product, 200m, daysAgo: 40),
                 new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = product.ProductUrls.First().Id, Price = 10m + i, Currency = "USD", RecordedAt = DateTime.UtcNow.AddDays(-1) },
                 new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = product.ProductUrls.First().Id, Price = 100m, Currency = "USD", RecordedAt = DateTime.UtcNow }
             );
@@ -1280,6 +1285,9 @@ public class GetProductsHandlerTests : IDisposable
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _dbContext.PricePoints.AddRange(
+            CreatePricePoint(active1, 200m, daysAgo: 40),
+            CreatePricePoint(active2, 200m, daysAgo: 40),
+            CreatePricePoint(paused, 200m, daysAgo: 40),
             new PricePoint { Id = Guid.NewGuid(), ProductId = active1.Id, ProductUrlId = active1.ProductUrls.First().Id, Price = 50m, Currency = "USD", RecordedAt = DateTime.UtcNow },
             new PricePoint { Id = Guid.NewGuid(), ProductId = active2.Id, ProductUrlId = active2.ProductUrls.First().Id, Price = 30m, Currency = "USD", RecordedAt = DateTime.UtcNow },
             new PricePoint { Id = Guid.NewGuid(), ProductId = paused.Id, ProductUrlId = paused.ProductUrls.First().Id, Price = 20m, Currency = "USD", RecordedAt = DateTime.UtcNow }
@@ -1310,6 +1318,9 @@ public class GetProductsHandlerTests : IDisposable
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _dbContext.PricePoints.AddRange(
+            CreatePricePoint(atLowest1, 200m, daysAgo: 40),
+            CreatePricePoint(atLowest2, 200m, daysAgo: 40),
+            CreatePricePoint(notLowest, 200m, daysAgo: 40),
             new PricePoint { Id = Guid.NewGuid(), ProductId = atLowest1.Id, ProductUrlId = atLowest1.ProductUrls.First().Id, Price = 50m, Currency = "USD", RecordedAt = DateTime.UtcNow },
             new PricePoint { Id = Guid.NewGuid(), ProductId = atLowest2.Id, ProductUrlId = atLowest2.ProductUrls.First().Id, Price = 30m, Currency = "USD", RecordedAt = DateTime.UtcNow },
             new PricePoint { Id = Guid.NewGuid(), ProductId = notLowest.Id, ProductUrlId = notLowest.ProductUrls.First().Id, Price = 50m, Currency = "USD", RecordedAt = DateTime.UtcNow }
@@ -1340,6 +1351,9 @@ public class GetProductsHandlerTests : IDisposable
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _dbContext.PricePoints.AddRange(
+            CreatePricePoint(activeAtLowest, 200m, daysAgo: 40),
+            CreatePricePoint(pausedAtLowest, 200m, daysAgo: 40),
+            CreatePricePoint(notLowest, 200m, daysAgo: 40),
             new PricePoint { Id = Guid.NewGuid(), ProductId = activeAtLowest.Id, ProductUrlId = activeAtLowest.ProductUrls.First().Id, Price = 50m, Currency = "USD", RecordedAt = DateTime.UtcNow },
             new PricePoint { Id = Guid.NewGuid(), ProductId = pausedAtLowest.Id, ProductUrlId = pausedAtLowest.ProductUrls.First().Id, Price = 30m, Currency = "USD", RecordedAt = DateTime.UtcNow },
             new PricePoint { Id = Guid.NewGuid(), ProductId = notLowest.Id, ProductUrlId = notLowest.ProductUrls.First().Id, Price = 50m, Currency = "USD", RecordedAt = DateTime.UtcNow }
@@ -1384,11 +1398,9 @@ public class GetProductsHandlerTests : IDisposable
     {
         // Arrange
         var dropped = CreateProduct("Dropped", "https://example.com/drop");
-        dropped.CurrentPrice = 80m;
-        dropped.PreviousPrice = 100m;
+        WithHistory(dropped, (20, 100m), (2, 80m));
         var risen = CreateProduct("Risen", "https://example.com/rise");
-        risen.CurrentPrice = 120m;
-        risen.PreviousPrice = 100m;
+        WithHistory(risen, (20, 100m), (2, 120m));
         var noHistory = CreateProduct("No History", "https://example.com/none");
         noHistory.CurrentPrice = 50m;
         _dbContext.Products.AddRange(dropped, risen, noHistory);
@@ -1440,11 +1452,9 @@ public class GetProductsHandlerTests : IDisposable
     {
         // Arrange — 1 dropped, 1 risen, 1 with two alerts (counts products, not alert rows)
         var dropped = CreateProduct("Dropped", "https://example.com/drop");
-        dropped.CurrentPrice = 80m;
-        dropped.PreviousPrice = 100m;
+        WithHistory(dropped, (20, 100m), (2, 80m));
         var risen = CreateProduct("Risen", "https://example.com/rise");
-        risen.CurrentPrice = 120m;
-        risen.PreviousPrice = 100m;
+        WithHistory(risen, (20, 100m), (2, 120m));
         var alerted = CreateProduct("Alerted", "https://example.com/alerted");
         _dbContext.Products.AddRange(dropped, risen, alerted);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1469,8 +1479,7 @@ public class GetProductsHandlerTests : IDisposable
     {
         // Arrange — the dropped/alerted products are paused; an active product matches neither
         var dropped = CreateProduct("Dropped Paused", "https://example.com/drop", status: ProductStatus.Paused);
-        dropped.CurrentPrice = 80m;
-        dropped.PreviousPrice = 100m;
+        WithHistory(dropped, (20, 100m), (2, 80m));
         var active = CreateProduct("Active Plain", "https://example.com/plain");
         _dbContext.Products.AddRange(dropped, active);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1501,11 +1510,12 @@ public class GetProductsHandlerTests : IDisposable
     [Fact]
     public async Task Handle_WithIncludeSparkline_SparklineCovers30DaysAndTheRange90Days()
     {
-        var product = CreateProduct("Windows", "https://example.com/w", currentPrice: 90m);
+        var product = CreateProduct("Windows", "https://example.com/w", currentPrice: 100m);
         _dbContext.Products.Add(product);
         _dbContext.PricePoints.AddRange(
-            CreatePricePoint(product, 10m, daysAgo: 100), // outside both windows
-            CreatePricePoint(product, 40m, daysAgo: 60),  // in the range only
+            CreatePricePoint(product, 10m, daysAgo: 100), // replaced before the range opens
+            CreatePricePoint(product, 40m, daysAgo: 95),  // held at the start of the range
+            CreatePricePoint(product, 60m, daysAgo: 60),  // held at the start of the sparkline
             CreatePricePoint(product, 100m, daysAgo: 10));
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -1513,7 +1523,9 @@ public class GetProductsHandlerTests : IDisposable
             new GetProducts.Query(_testUserId, IncludeSparkline: true), TestContext.Current.CancellationToken);
 
         var item = result.Items.Single();
-        item.Sparkline!.Select(sp => sp.Price).Should().Equal(100m);
+        item.Sparkline.Should().HaveCount(GetProducts.SparklineDays);
+        item.Sparkline![0].Price.Should().Be(60m);
+        item.Sparkline[^1].Price.Should().Be(100m);
         item.PriceMin.Should().Be(40m);
         item.PriceMax.Should().Be(100m);
     }
@@ -1535,16 +1547,17 @@ public class GetProductsHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_AtLowest_IgnoresALowerPriceOlderThan90Days()
+    public async Task Handle_AtLowest_IgnoresALowerPriceNoLongerHeldInTheWindow()
     {
+        // 30 was replaced by 80 before the window opened, so 80 is the price held at its start.
         var product = CreateProduct("Low in the window", "https://example.com/l", currentPrice: 50m);
         var above = CreateProduct("Above its low", "https://example.com/a", currentPrice: 70m);
         _dbContext.Products.AddRange(product, above);
         _dbContext.PricePoints.AddRange(
             CreatePricePoint(product, 30m, daysAgo: 120),
-            CreatePricePoint(product, 80m, daysAgo: 10),
+            CreatePricePoint(product, 80m, daysAgo: 100),
             CreatePricePoint(product, 50m, daysAgo: 5),
-            CreatePricePoint(above, 60m, daysAgo: 10),
+            CreatePricePoint(above, 60m, daysAgo: 40),
             CreatePricePoint(above, 70m, daysAgo: 5));
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -1810,6 +1823,15 @@ public class GetProductsHandlerTests : IDisposable
         product.ProductUrls.Add(productUrl);
         _dbContext.ProductUrls.Add(productUrl);
         return product;
+    }
+
+    /// <summary>Gives the product's first URL these change points; the last one is the current price.</summary>
+    private void WithHistory(Product product, params (int DaysAgo, decimal Price)[] points)
+    {
+        foreach (var (daysAgo, price) in points)
+            _dbContext.PricePoints.Add(CreatePricePoint(product, price, daysAgo));
+        product.ProductUrls.First().CurrentPrice = points[^1].Price;
+        product.CurrentPrice = points[^1].Price;
     }
 
     private static PricePoint CreatePricePoint(Product product, decimal price, int daysAgo = 0, string currency = "USD") =>

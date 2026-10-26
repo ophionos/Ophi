@@ -126,7 +126,9 @@ other kind of fact. Link to owners; don't restate them here.
   a group can be a wishlist of different products, where the cheapest saves nothing on the others.
   - **Read paths obey the same rule.** History may hold other currencies (a URL that changed
     currency, a re-anchor), so the at-lowest flag, the product statistics, the sparklines and the
-    comparison history filter price points to the product's (or URL's) currency. A sparkline point is the day's MIN, not the last scrape.
+    comparison history filter price points to the product's (or URL's) currency. A watchlist sparkline
+    point is the product price at the end of the day, rebuilt by `PriceSeries` (each URL carries its last
+    price forward, then the MIN across URLs), not the last scrape and not a MIN over one day's points.
     The product page's best-price highlight (`$lib/utils/bestPrice.ts`) also skips paused URLs.
   - **A re-anchor clears `PreviousPrice`.** It has no currency of its own, so a USD baseline next to a
     EUR price showed USD 100 → EUR 92 as an 8 % drop (dashboard, price-drop filter, webhook `OldPrice`).
@@ -218,9 +220,17 @@ other kind of fact. Link to owners; don't restate them here.
   below/above target in the product's currency, compared upper-cased because Postgres text compare
   is case-sensitive.
 - **The watchlist's "at lowest" and its range bar share one 90-day window** (`GetProducts.RangeDays`,
-  `AtLowestSince`). The range includes the current price and the flag is `<=`, so a product in the
-  "at their 90-day low" chip always sits at the left end of its bar. The sparkline is 30 days.
+  `AtRealLow`). Both count the price each URL held when the window opened (its latest earlier point),
+  because points are written only on a change. The range includes the current price and the flag is
+  `<=`, so a product in the chip sits at the left end of its bar. A real low also needs a first point
+  30+ days old and a different price in the window; without them every young or stable product
+  would count.
+  The sparkline is 30 days.
   The list has no silent favourites pin: favourites first is the explicit `sortBy=favourites`.
+- **`Change7d` compares the same URLs at both ends** (`GetProducts.Change7d`): URLs with a price in
+  the product currency 7 days ago that are live now. Adding a cheaper store is therefore not a drop.
+  One expression feeds the value, the price-drop filter and count, and the price-change sort. The
+  watchlist does not read `PreviousPrice`. The price sort groups by currency first (no conversion).
 - **"Old price" reads `ProductUrl.LastSucceededAt`, never `LastCheckedAt`.** A failed check moves
   `LastCheckedAt`, and price points are written only when the price changes, so neither tells when a
   price was last read. Only `RecordSuccessfulScrape` sets it; the migration backfilled it from
