@@ -4,10 +4,10 @@
 	import type { Product, ProductStatus } from '$lib/api/client';
 	import { formatPrice } from '$lib/format';
 	import ActionMenu from '$lib/components/shared/ActionMenu.svelte';
-	import PriceChangeChip from '$lib/components/products/PriceChangeChip.svelte';
+	import SevenDayChange from '$lib/components/products/SevenDayChange.svelte';
 	import Sparkline from '$lib/components/products/Sparkline.svelte';
 	import { productMenuItems } from '$lib/components/products/productMenu';
-	import { attentionLabel, productInitial, storeLabel } from '$lib/utils/watchlist';
+	import { PENDING_TEXT, attentionLabel, productInitial, rangeTitle, storeLine } from '$lib/utils/watchlist';
 
 	interface Props {
 		product: Product;
@@ -56,11 +56,7 @@
 
 	<div class="min-w-0 flex-1">
 		{#if isPending}
-			<span class="text-sm text-gray-500 dark:text-gray-400">Loading product data...</span>
-			<span class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-				<LoaderCircle size={12} class="animate-spin" />
-				Fetching...
-			</span>
+			<span class="text-sm text-gray-500 dark:text-gray-400">{PENDING_TEXT}</span>
 		{:else}
 			<a
 				href={resolve(`/products/${product.id}`)}
@@ -70,7 +66,7 @@
 				{#if product.attention}
 					{attentionLabel(product.attention.kind)}
 				{:else}
-					{storeLabel(product)}{#if product.storeCount > 1}{` · ${product.storeCount - 1} more`}{/if}
+					{storeLine(product)}
 				{/if}
 			</p>
 		{/if}
@@ -78,14 +74,14 @@
 
 	{#if !isPending}
 		{#if product.sparkline && product.sparkline.length >= 3}
-			<span class="hidden shrink-0 min-[400px]:block" data-testid="mobile-sparkline">
+			<span class="hidden shrink-0 min-[400px]:block" title={rangeTitle(product)} data-testid="mobile-sparkline">
 				<Sparkline data={product.sparkline} width={48} height={20} />
 			</span>
 		{/if}
 		<div class="shrink-0 text-right">
 			{#if product.currentPrice != null}
 				<div class="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">{formatPrice(product.currentPrice, product.currency)}</div>
-				<PriceChangeChip change={product.priceChange} />
+				<SevenDayChange {product} />
 			{:else}
 				<span class="text-xs text-gray-500 dark:text-gray-400">No price</span>
 			{/if}

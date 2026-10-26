@@ -692,6 +692,12 @@ export interface Product {
 	currentPrice?: number;
 	previousPrice?: number;
 	priceChange?: number;
+	/** Percent change over 7 days; null with less than 7 days of history. */
+	change7d?: number | null;
+	/** When the product's first price point was recorded. */
+	trackedSince?: string | null;
+	/** The store that gives the price had no price 7 days ago while the product had one. */
+	newCheapestStore?: boolean;
 	currency: string;
 	lastChecked?: string;
 	status: ProductStatus;

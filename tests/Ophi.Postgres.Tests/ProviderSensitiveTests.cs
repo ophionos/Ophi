@@ -361,9 +361,9 @@ public class ProviderSensitiveTests(PostgresFixture fixture)
     [Fact]
     public async Task GetProducts_RangeLowestStoresAndCounts_TranslateAndRunOnPostgres()
     {
-        // The 90-day range is a GROUP BY with MIN/MAX, "at lowest" a correlated MIN with a
-        // timestamptz cutoff, and the store list a DISTINCT over a join: none of it runs for real
-        // on SQLite.
+        // The 90-day range reads each URL's latest point before a timestamptz cutoff, "at lowest" a
+        // correlated MIN over the same window, and the store list a DISTINCT over a join: none of it
+        // runs for real on SQLite.
         var userId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
@@ -384,6 +384,8 @@ public class ProviderSensitiveTests(PostgresFixture fixture)
             });
             ctx.PricePoints.AddRange(
                 new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 30m, Currency = "USD", RecordedAt = now.AddDays(-120) },
+                // Replaces 30 before the window opens, so 70 is the price held at its start.
+                new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 70m, Currency = "USD", RecordedAt = now.AddDays(-100) },
                 new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 80m, Currency = "USD", RecordedAt = now.AddDays(-60) },
                 new PricePoint { Id = Guid.NewGuid(), ProductId = product.Id, ProductUrlId = url.Id, Price = 50m, Currency = "USD", RecordedAt = now.AddDays(-5) });
             await ctx.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -404,7 +406,9 @@ public class ProviderSensitiveTests(PostgresFixture fixture)
             var item = all.Items.Should().ContainSingle().Subject;
             item.PriceMin.Should().Be(50m);
             item.PriceMax.Should().Be(80m);
-            item.Sparkline!.Select(sp => sp.Price).Should().Equal(50m);
+            item.Sparkline.Should().HaveCount(Ophi.Api.Features.Products.GetProducts.SparklineDays);
+            item.Sparkline![0].Price.Should().Be(80m);
+            item.Sparkline[^1].Price.Should().Be(50m);
             item.BestStoreName.Should().Be("The Shop");
             item.LastSucceededAt.Should().NotBeNull();
             all.AtLowestCount.Should().Be(1);
