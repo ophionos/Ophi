@@ -111,6 +111,11 @@ other kind of fact. Link to owners; don't restate them here.
   A product's landed price is the MIN over the URLs the aggregator uses (not paused, priced, product
   currency), so it can come from a dearer URL with free shipping; it is derived per read, never stored,
   and alerts and history stay on the scraped price.
+- **Basket totals have one owner, `BasketTotals`.** A store is a site (the shipping key), not a
+  `StoreId`. Only live URLs count (not paused, not out of stock, priced), so it differs from the
+  aggregator, which keeps out-of-stock URLs. Shipping is charged once per site on the site subtotal.
+  An incomplete site is never best, and a site with mixed currencies has no total. The split takes
+  each item's cheapest URL in the dominant currency; it does not search store combinations.
 - **A price must be > 0, enforced at the parser boundary.** `PriceParser` keeps the ASCII hyphen, so
   `-$15.00` (a discount element) parses to `-15.00` and `$0.00` placeholders to zero; downstream, a
   non-positive value won the MIN, became history, and fired every "below" alert. Every
