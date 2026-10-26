@@ -82,7 +82,42 @@ describe('ProductTable', () => {
 			render(ProductTable, { props: { products: [mockProduct] } });
 			const headers = Array.from(screen.getByTestId('product-table').querySelectorAll('th')).map((th) => th.textContent?.trim());
 
-			expect(headers).toEqual(['Product', 'Status', 'Price', 'Change', '30 days', '90-day range', 'Alert', 'Checked', 'Actions']);
+			expect(headers).toEqual(['Product', 'Price', '7 days', 'Checked', 'Actions']);
+		});
+
+		it('should not render the Status, 30 days or 90-day range columns', () => {
+			render(ProductTable, { props: { products: [mockProduct], hasAlerts: true } });
+			const table = getDesktopTable();
+
+			expect(table.queryByRole('columnheader', { name: 'Status' })).not.toBeInTheDocument();
+			expect(table.queryByRole('columnheader', { name: '30 days' })).not.toBeInTheDocument();
+			expect(table.queryByRole('columnheader', { name: '90-day range' })).not.toBeInTheDocument();
+			expect(table.getByRole('columnheader', { name: '7 days' })).toBeInTheDocument();
+		});
+
+		it('should render the Alert header and cells when hasAlerts is true', () => {
+			render(ProductTable, { props: { products: [mockProduct], hasAlerts: true } });
+			const table = getDesktopTable();
+
+			expect(table.getByRole('columnheader', { name: 'Alert' })).toBeInTheDocument();
+			expect(table.getByTestId('product-alert')).toBeInTheDocument();
+		});
+
+		it('should not render the Alert header or cells when hasAlerts is false', () => {
+			render(ProductTable, { props: { products: [mockProduct], hasAlerts: false } });
+			const table = getDesktopTable();
+
+			expect(table.queryByRole('columnheader', { name: 'Alert' })).not.toBeInTheDocument();
+			expect(table.queryByTestId('product-alert')).not.toBeInTheDocument();
+		});
+
+		it('should sort on the 7 days header by price change', async () => {
+			const onSortChange = vi.fn();
+			render(ProductTable, { props: { products: [mockProduct], sortBy: 'name', onSortChange } });
+
+			await fireEvent.click(getDesktopTable().getByTestId('sort-header-pricechange'));
+
+			expect(onSortChange).toHaveBeenCalledWith('pricechange', 'asc');
 		});
 
 		it('should render product rows with name', () => {
@@ -93,19 +128,60 @@ describe('ProductTable', () => {
 			expect(table.getByText('Test Keyboard')).toBeInTheDocument();
 		});
 
-		it('should render the price with tabular figures and the currency under it', () => {
+		it('should render the price with tabular figures and no currency line under it', () => {
 			render(ProductTable, { props: { products: [mockProduct] } });
 			const price = getDesktopTable().getByTestId('product-price');
 
 			expect(price).toHaveTextContent('$99.99');
 			expect(price.className).toContain('tabular-nums');
-			expect(price.nextElementSibling).toHaveTextContent('USD');
+			expect(getDesktopTable().queryByText('USD')).not.toBeInTheDocument();
 		});
 
-		it('should render the change as a chip', () => {
-			render(ProductTable, { props: { products: [mockProduct] } });
+		it('should render the 7-day change as a chip', () => {
+			render(ProductTable, { props: { products: [{ ...mockProduct, change7d: -6.2 }] } });
 
-			expect(getDesktopTable().getByLabelText('Down 9.1%')).toBeInTheDocument();
+			expect(getDesktopTable().getByLabelText('Down 6.2%')).toBeInTheDocument();
+		});
+
+		it('should show New and the tracked days for a young product', () => {
+			const product: Product = {
+				...mockProduct,
+				change7d: null,
+				trackedSince: new Date(Date.now() - 30 * 3_600_000).toISOString(),
+				sparkline: [{ date: '2024-01-15', price: 99.99 }]
+			};
+			render(ProductTable, { props: { products: [product] } });
+			const table = getDesktopTable();
+
+			expect(table.getByTestId('change-new')).toHaveTextContent('New');
+			expect(table.getByTestId('tracked-days')).toHaveTextContent('tracked 1 day');
+			expect(table.queryByTestId('price-sparkline')).not.toBeInTheDocument();
+		});
+
+		it('should show the sparkline with the range tooltip and the change chip for a mature product', () => {
+			const product: Product = {
+				...mockProduct,
+				change7d: -6.2,
+				trackedSince: new Date(Date.now() - 60 * 86_400_000).toISOString(),
+				sparkline: Array.from({ length: 30 }, (_, i) => ({ date: `2024-01-${String(i + 1).padStart(2, '0')}`, price: 100 + (i % 5) })),
+				priceMin: 90,
+				priceMax: 120
+			};
+			render(ProductTable, { props: { products: [product] } });
+			const table = getDesktopTable();
+
+			const spark = table.getByTestId('price-sparkline');
+			expect(spark).toHaveAttribute('title', '90 days: $90.00–$120.00');
+			expect(spark.querySelector('svg')).not.toBeNull();
+			expect(table.queryByTestId('tracked-days')).not.toBeInTheDocument();
+			expect(table.getByLabelText('Down 6.2%')).toBeInTheDocument();
+		});
+
+		it('should end the store line with the new cheapest store note when it is set', () => {
+			const product = { ...mockProduct, bestStoreName: 'The Shop', storeCount: 2, newCheapestStore: true };
+			render(ProductTable, { props: { products: [product] } });
+
+			expect(getDesktopTable().getByTestId('product-store')).toHaveTextContent('The Shop · 1 more · new cheapest store');
 		});
 
 		it('should render "Never" when the product was never checked', () => {
@@ -156,33 +232,16 @@ describe('ProductTable', () => {
 			expect(table.getByText('Sale')).toBeInTheDocument();
 		});
 
-		it('should render the sparkline and the range bar when the data is there', () => {
-			const product = {
-				...mockProduct,
-				sparkline: [
-					{ date: '2024-01-01', price: 110 },
-					{ date: '2024-01-08', price: 105 },
-					{ date: '2024-01-15', price: 99.99 }
-				],
-				priceMin: 90,
-				priceMax: 120
-			};
-			render(ProductTable, { props: { products: [product] } });
-			const table = getDesktopTable();
-
-			expect(table.getByTestId('price-range-bar')).toBeInTheDocument();
-			expect(screen.getByTestId('product-table').querySelector('svg polyline')).not.toBeNull();
-		});
 	});
 
 	describe('Status', () => {
-		it('should leave the status empty for a healthy product', () => {
+		it('should show no attention icon for a healthy product', () => {
 			render(ProductTable, { props: { products: [mockProduct] } });
 
-			expect(getDesktopTable().queryByTestId('attention-pill')).not.toBeInTheDocument();
+			expect(getDesktopTable().queryByTestId('attention-icon')).not.toBeInTheDocument();
 		});
 
-		it('should show the attention pill and the failed runs for a failing product', () => {
+		it('should show the attention icon and the failed runs for a failing product', () => {
 			const product: Product = {
 				...mockProduct,
 				attention: { kind: 'failing', isAction: true, productUrlId: 'u1', url: mockProduct.url, consecutiveFailures: 3 }
@@ -190,7 +249,8 @@ describe('ProductTable', () => {
 			render(ProductTable, { props: { products: [product] } });
 			const table = getDesktopTable();
 
-			expect(table.getByTestId('attention-pill')).toHaveTextContent('Failing');
+			expect(table.getByTestId('attention-icon')).toHaveAttribute('data-kind', 'failing');
+			expect(table.getByTestId('attention-icon')).toHaveAttribute('aria-label', 'Failing');
 			expect(table.getByTestId('failed-runs')).toHaveTextContent('3 failed runs');
 		});
 
@@ -227,7 +287,7 @@ describe('ProductTable', () => {
 				...mockProduct,
 				closestAlert: { alertId: 'a1', condition: 'below', targetPrice: 95, gap: 4.99, isNear: true }
 			};
-			render(ProductTable, { props: { products: [product] } });
+			render(ProductTable, { props: { products: [product], hasAlerts: true } });
 			const cell = getDesktopTable().getByTestId('product-alert');
 
 			expect(cell).toHaveTextContent('≤ $95.00');
@@ -239,7 +299,7 @@ describe('ProductTable', () => {
 				...mockProduct,
 				closestAlert: { alertId: 'a1', condition: 'below', targetPrice: 100, gap: -0.01, isNear: true }
 			};
-			render(ProductTable, { props: { products: [product] } });
+			render(ProductTable, { props: { products: [product], hasAlerts: true } });
 
 			expect(getDesktopTable().getByTestId('product-alert')).toHaveTextContent('Reached');
 		});
@@ -291,9 +351,11 @@ describe('ProductTable', () => {
 			render(ProductTable, { props: { products: [pendingProduct] } });
 			const table = getDesktopTable();
 
-			expect(table.getByText('Loading product data...')).toBeInTheDocument();
-			expect(table.getByText('Fetching...')).toBeInTheDocument();
-			expect(table.getByText('Pending')).toBeInTheDocument();
+			// Product, price and checked cells all wait with the same wording.
+			expect(table.getAllByText('Fetching price…')).toHaveLength(3);
+			for (const old of ['Loading product data...', 'Fetching...', 'Processing...', 'Pending']) {
+				expect(table.queryByText(old)).not.toBeInTheDocument();
+			}
 		});
 
 		it('should not offer an alert or the history for a pending product', async () => {

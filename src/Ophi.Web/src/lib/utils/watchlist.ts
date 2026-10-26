@@ -27,6 +27,32 @@ export function storeLabel(product: Product): string {
 	return product.bestStoreName || hostOf(product.bestUrl ?? product.url);
 }
 
+/** The store line: the store, how many others sell it, and a note when the cheapest store is new. */
+export function storeLine(product: Product): string {
+	return (
+		storeLabel(product) +
+		(product.storeCount > 1 ? ` · ${product.storeCount - 1} more` : '') +
+		(product.newCheapestStore ? ' · new cheapest store' : '')
+	);
+}
+
+/** How long the product has had a price history; null when the API gave no start. */
+export function trackedText(product: Product, now: Date = new Date()): string | null {
+	if (!product.trackedSince) return null;
+	const days = Math.floor((now.getTime() - new Date(product.trackedSince).getTime()) / 86_400_000);
+	if (days <= 0) return 'tracked today';
+	return days === 1 ? 'tracked 1 day' : `tracked ${days} days`;
+}
+
+/** The tooltip for a sparkline: the 90-day price range. */
+export function rangeTitle(product: Product): string | undefined {
+	if (product.priceMin == null || product.priceMax == null) return undefined;
+	return `90 days: ${formatPrice(product.priceMin, product.currency)}–${formatPrice(product.priceMax, product.currency)}`;
+}
+
+/** The one wording for every cell that waits on the first price. */
+export const PENDING_TEXT = 'Fetching price…';
+
 /** Null `lastSucceededAt` (a row from before the column) is not judged old: no false alarms. */
 export function isPriceOld(product: Product, now: Date = new Date()): boolean {
 	if (product.currentPrice == null || !product.lastSucceededAt) return false;

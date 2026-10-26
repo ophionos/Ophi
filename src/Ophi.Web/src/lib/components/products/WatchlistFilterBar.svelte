@@ -7,7 +7,6 @@
 
 	export const SORT_OPTIONS = [
 		{ value: '', label: 'Recently updated' },
-		{ value: 'favourites:asc', label: 'Favourites first' },
 		{ value: 'name:asc', label: 'Name A–Z' },
 		{ value: 'name:desc', label: 'Name Z–A' },
 		{ value: 'price:asc', label: 'Price, low to high' },

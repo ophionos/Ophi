@@ -55,15 +55,10 @@ describe('WatchlistFilterBar', () => {
 		expect(screen.queryByLabelText('Store')).not.toBeInTheDocument();
 	});
 
-	it('should offer favourites first as an explicit sort', async () => {
-		const props = baseProps();
-		render(WatchlistFilterBar, { props });
+	it('should not offer favourites first as a sort option', () => {
+		render(WatchlistFilterBar, { props: baseProps() });
 
-		await fireEvent.change(screen.getByLabelText('Sort by'), {
-			target: { value: 'favourites:asc' }
-		});
-
-		expect(props.onSortChange).toHaveBeenCalledWith('favourites', 'asc');
+		expect(screen.getByLabelText('Sort by')).not.toHaveTextContent('Favourites first');
 	});
 
 	it('should show each active filter as a removable chip with clear all', async () => {
