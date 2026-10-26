@@ -31,20 +31,23 @@ function createOnboardingStore() {
 	let dismissed = $state(false);
 	let completed = $state(false);
 	let currentStep = $state(0);
+	let totalSteps = $state(TOTAL_STEPS);
 
 	function persist() {
 		saveState({ dismissed, completed, currentStep });
 	}
 
-	function init() {
+	/** `steps` is the number of steps the page can show; a saved step past it moves to the last one. */
+	function init(steps = TOTAL_STEPS) {
 		const state = loadState();
+		totalSteps = steps;
 		dismissed = state.dismissed;
 		completed = state.completed;
-		currentStep = state.currentStep;
+		currentStep = Math.max(0, Math.min(state.currentStep, steps - 1));
 	}
 
 	function nextStep() {
-		if (currentStep < TOTAL_STEPS - 1) {
+		if (currentStep < totalSteps - 1) {
 			currentStep++;
 			persist();
 		}
@@ -86,7 +89,7 @@ function createOnboardingStore() {
 			return completed;
 		},
 		get totalSteps() {
-			return TOTAL_STEPS;
+			return totalSteps;
 		},
 		init,
 		nextStep,

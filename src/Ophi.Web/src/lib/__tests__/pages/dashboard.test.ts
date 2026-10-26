@@ -108,6 +108,26 @@ describe('Dashboard Page — header', () => {
 	});
 });
 
+describe('Dashboard Page — density', () => {
+	it('should not render a density toggle because density lives in Settings', () => {
+		renderDashboard();
+
+		expect(screen.queryByTestId('density-toggle')).not.toBeInTheDocument();
+	});
+});
+
+describe('Dashboard Page — alert column', () => {
+	it('should leave the Alert column out when the account has no alert', () => {
+		renderDashboard('http://localhost/dashboard', { withAlertsCount: 0 });
+		expect(within(screen.getByTestId('product-table')).queryByRole('columnheader', { name: 'Alert' })).not.toBeInTheDocument();
+	});
+
+	it('should show the Alert column when the account has an alert', () => {
+		renderDashboard('http://localhost/dashboard', { withAlertsCount: 2 });
+		expect(within(screen.getByTestId('product-table')).getByRole('columnheader', { name: 'Alert' })).toBeInTheDocument();
+	});
+});
+
 describe('Dashboard Page — delete', () => {
 	beforeEach(() => {
 		vi.mocked(api.deleteProduct).mockResolvedValue(undefined as unknown as void);
@@ -154,6 +174,26 @@ describe('Dashboard Page — server-side filters', () => {
 		});
 	});
 
+	it('should refetch with priceDrop when the price-drop chip is clicked', async () => {
+		renderDashboard('http://localhost/dashboard', { priceDropCount: 2 });
+
+		await fireEvent.click(screen.getByTestId('opportunity-drop'));
+
+		await waitFor(() => {
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ priceDrop: true }));
+		});
+	});
+
+	it('should refetch with needsAction when the needs-action chip is clicked', async () => {
+		renderDashboard('http://localhost/dashboard', { needsActionCount: 2 });
+
+		await fireEvent.click(screen.getByTestId('opportunity-action'));
+
+		await waitFor(() => {
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ needsAction: true }));
+		});
+	});
+
 	it('should refetch with favourite when the Favourites toggle is clicked', async () => {
 		renderDashboard();
 
@@ -195,17 +235,36 @@ describe('Dashboard Page — server-side filters', () => {
 		// One product on the page, but the server reports 4 at their low and 3 near a target.
 		renderDashboard('http://localhost/dashboard', { atLowestCount: 4, nearTargetCount: 3 });
 
-		expect(screen.getByTestId('opportunity-lowest')).toHaveTextContent('4 at their 90-day low');
-		expect(screen.getByTestId('opportunity-near')).toHaveTextContent('3 alerts near target');
+		expect(screen.getByTestId('opportunity-lowest')).toHaveTextContent('At a real low');
+		expect(screen.getByTestId('opportunity-lowest')).toHaveTextContent('4');
+		expect(screen.getByTestId('opportunity-near')).toHaveTextContent('Near target');
+		expect(screen.getByTestId('opportunity-near')).toHaveTextContent('3');
 	});
 });
 
 describe('Dashboard Page — active filters', () => {
+	it('should start with the price-drop filter when the URL has filter=drop', async () => {
+		renderDashboard('http://localhost/dashboard?filter=drop');
+
+		expect(screen.getByTestId('active-filter-opportunity')).toHaveTextContent('Price dropped (7 days)');
+		expect(screen.getByTestId('opportunity-drop')).toHaveAttribute('aria-pressed', 'true');
+		await fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'paused' } });
+		await waitFor(() => {
+			expect(api.getProducts).toHaveBeenCalledWith(expect.objectContaining({ priceDrop: true }));
+		});
+	});
+
+	it('should fall back to the default sort when the URL has the retired favourites sort', () => {
+		renderDashboard('http://localhost/dashboard?sortBy=favourites');
+
+		expect(screen.getByLabelText('Sort by')).toHaveValue('');
+	});
+
 	it('should show each filter in the URL as a removable chip', () => {
 		renderDashboard('http://localhost/dashboard?status=paused&filter=lowest');
 
 		expect(screen.getByTestId('active-filter-status')).toHaveTextContent('Status: Paused');
-		expect(screen.getByTestId('active-filter-opportunity')).toHaveTextContent('At their 90-day low');
+		expect(screen.getByTestId('active-filter-opportunity')).toHaveTextContent('At a real low');
 	});
 
 	it('should remove one filter from its chip', async () => {
