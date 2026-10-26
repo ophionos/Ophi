@@ -37,7 +37,8 @@ public static class GetNotifications
         bool IsRead,
         Guid? ProductId,
         string? ProductName,
-        DateTime CreatedAt);
+        DateTime CreatedAt,
+        Guid? BasketId);
 
     public class Handler(OphiDbContext dbContext, ILogger<Handler> logger)
     {
@@ -71,7 +72,8 @@ public static class GetNotifications
                     n.IsRead,
                     n.ProductId,
                     n.Product != null ? n.Product.Name : null,
-                    n.CreatedAt))
+                    n.CreatedAt,
+                    n.BasketId))
                 .ToListAsync(cancellationToken);
 
             logger.LogDebug("Returning {Count}/{Total} notifications for user {UserId}", notifications.Count, total, request.UserId);

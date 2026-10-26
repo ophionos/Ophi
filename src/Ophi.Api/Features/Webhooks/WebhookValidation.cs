@@ -8,7 +8,7 @@ namespace Ophi.Api.Features.Webhooks;
 internal static class WebhookValidation
 {
     private static readonly HashSet<string> ValidEvents =
-        [WebhookEvents.AlertFired, WebhookEvents.PriceChanged, WebhookEvents.ScrapeFailed];
+        [WebhookEvents.AlertFired, WebhookEvents.PriceChanged, WebhookEvents.ScrapeFailed, WebhookEvents.BasketAlertFired];
 
     private static readonly string ValidEventsList = string.Join(", ", ValidEvents);
 

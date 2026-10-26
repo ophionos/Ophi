@@ -20,7 +20,7 @@ public static class SendAlertTelegramHandler
     {
         await telegram.SendPriceAlertAsync(new PushPriceAlert(
             @event.ProductName, @event.ProductUrl, @event.CurrentPrice, @event.TargetPrice,
-            @event.Currency, @event.Condition), @event.ChatId, cancellationToken);
+            @event.Currency, @event.Condition, @event.Store), @event.ChatId, cancellationToken);
 
         logger.LogInformation("Alert Telegram notification handled for alert {AlertId}", @event.AlertId);
     }
@@ -39,7 +39,7 @@ public static class SendAlertPushoverHandler
     {
         await pushover.SendPriceAlertAsync(new PushPriceAlert(
             @event.ProductName, @event.ProductUrl, @event.CurrentPrice, @event.TargetPrice,
-            @event.Currency, @event.Condition), @event.UserKey, cancellationToken);
+            @event.Currency, @event.Condition, @event.Store), @event.UserKey, cancellationToken);
 
         logger.LogInformation("Alert Pushover notification handled for alert {AlertId}", @event.AlertId);
     }
@@ -58,7 +58,7 @@ public static class SendAlertNtfyHandler
     {
         await ntfy.SendPriceAlertAsync(new PushPriceAlert(
             @event.ProductName, @event.ProductUrl, @event.CurrentPrice, @event.TargetPrice,
-            @event.Currency, @event.Condition), @event.TopicUrl, cancellationToken);
+            @event.Currency, @event.Condition, @event.Store), @event.TopicUrl, cancellationToken);
 
         logger.LogInformation("Alert ntfy notification handled for alert {AlertId}", @event.AlertId);
     }

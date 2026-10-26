@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Ophi.Domain.Enums;
 using Ophi.Domain.Messages.Events;
 using Ophi.Infrastructure.Email;
 using Ophi.Worker.Handlers;
@@ -38,6 +39,19 @@ public class SendAlertEmailHandlerTests
                     p.Currency == "USD"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_PassesTheStoreThrough()
+    {
+        var @event = new SendAlertEmailRequested(Guid.NewGuid(), "alice@example.com", "Alice",
+            "Camping", "https://x", 45m, 50m, "EUR", AlertCondition.Below, Store: "shop-a.es");
+
+        await SendAlertEmailHandler.HandleAsync(
+            @event, _emailServiceMock.Object, NullLogger.Instance, TestContext.Current.CancellationToken);
+
+        _emailServiceMock.Verify(e => e.SendPriceAlertAsync(
+            It.Is<PriceAlertEmail>(a => a.Store == "shop-a.es"), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

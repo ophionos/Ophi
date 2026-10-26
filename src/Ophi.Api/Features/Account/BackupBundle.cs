@@ -68,8 +68,12 @@ public record BackupSettings(
 /// <summary>Optional in the file: backups written before shipping rates existed have none.</summary>
 public record BackupShippingRate(string Host, decimal Amount, string Currency, decimal? FreeAbove);
 
-/// <summary>Optional in the file: backups written before baskets existed have none.</summary>
-public record BackupBasket(string Name, string? Description, IReadOnlyList<BackupBasketItem> Items);
+/// <summary>Optional in the file: backups written before baskets existed have none, and before basket alerts no <c>Alerts</c>.</summary>
+public record BackupBasket(string Name, string? Description, IReadOnlyList<BackupBasketItem> Items,
+    IReadOnlyList<BackupBasketAlert>? Alerts = null);
+
+/// <summary><paramref name="Host"/> null watches the best store.</summary>
+public record BackupBasketAlert(decimal TargetTotal, string Currency, string? Host, bool Active);
 
 /// <summary><paramref name="ProductRef"/> is the <see cref="BackupProduct.Ref"/> of a product in the same file.</summary>
 public record BackupBasketItem(Guid ProductRef, int Quantity);

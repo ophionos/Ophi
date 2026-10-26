@@ -27,7 +27,8 @@ public static class SendAlertEmailHandler
             @event.CurrentPrice,
             @event.TargetPrice,
             @event.Currency,
-            @event.Condition
+            @event.Condition,
+            @event.Store
         ), cancellationToken);
 
         logger.LogInformation("Alert email sent to {Email} for product {ProductName} (alert {AlertId})",

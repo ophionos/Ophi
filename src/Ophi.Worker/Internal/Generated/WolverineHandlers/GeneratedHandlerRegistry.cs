@@ -9,7 +9,7 @@ namespace Ophi.Worker.Generated.WolverineHandlers
     {
         public override System.Type[] HandlerTypes()
         {
-            return new System.Type[] { typeof(Ophi.Worker.Handlers.CheckAlertsHandler), typeof(Ophi.Worker.Handlers.CheckProductPriceHandler), typeof(Ophi.Worker.Handlers.DispatchPriceChangedWebhookHandler), typeof(Ophi.Worker.Handlers.RecordPriceHistoryHandler), typeof(Ophi.Worker.Handlers.ScrapeNewProductHandler), typeof(Ophi.Worker.Handlers.SendAlertDiscordHandler), typeof(Ophi.Worker.Handlers.SendAlertEmailHandler), typeof(Ophi.Worker.Handlers.SendAlertNotificationHandler), typeof(Ophi.Worker.Handlers.SendAlertNtfyHandler), typeof(Ophi.Worker.Handlers.SendAlertPushoverHandler), typeof(Ophi.Worker.Handlers.SendAlertTelegramHandler), typeof(Ophi.Worker.Handlers.SendAlertWebhookHandler) };
+            return new System.Type[] { typeof(Ophi.Worker.Handlers.CheckAlertsHandler), typeof(Ophi.Worker.Handlers.CheckBasketAlertsHandler), typeof(Ophi.Worker.Handlers.CheckProductPriceHandler), typeof(Ophi.Worker.Handlers.DispatchPriceChangedWebhookHandler), typeof(Ophi.Worker.Handlers.RecordPriceHistoryHandler), typeof(Ophi.Worker.Handlers.ScrapeNewProductHandler), typeof(Ophi.Worker.Handlers.SendAlertDiscordHandler), typeof(Ophi.Worker.Handlers.SendAlertEmailHandler), typeof(Ophi.Worker.Handlers.SendAlertNotificationHandler), typeof(Ophi.Worker.Handlers.SendAlertNtfyHandler), typeof(Ophi.Worker.Handlers.SendAlertPushoverHandler), typeof(Ophi.Worker.Handlers.SendAlertTelegramHandler), typeof(Ophi.Worker.Handlers.SendAlertWebhookHandler), typeof(Ophi.Worker.Handlers.SendBasketAlertNotificationHandler), typeof(Ophi.Worker.Handlers.SendBasketAlertWebhookHandler) };
         }
 
         public override System.Type[] MessageTypes()
@@ -29,6 +29,7 @@ namespace Ophi.Worker.Generated.WolverineHandlers
         [global::System.Runtime.CompilerServices.ModuleInitializer]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.GeneratedHandlerRegistry))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.AlertTriggeredEventHandler698108386))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.BasketAlertTriggeredEventHandler342032524))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.CheckProductUrlPriceCommandHandler43945222))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.PriceUpdatedEventHandler474305849))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.ScrapeProductUrlCommandHandler1904637461))]
@@ -38,7 +39,9 @@ namespace Ophi.Worker.Generated.WolverineHandlers
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.SendAlertPushoverRequestedHandler1838948019))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.SendAlertTelegramRequestedHandler1747646360))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.SendAlertWebhookRequestedHandler769058100))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Generated.WolverineHandlers.SendBasketAlertWebhookRequestedHandler1923772426))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.CheckAlertsHandler))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.CheckBasketAlertsHandler))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.CheckProductPriceHandler))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.DispatchPriceChangedWebhookHandler))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.RecordPriceHistoryHandler))]
@@ -50,9 +53,12 @@ namespace Ophi.Worker.Generated.WolverineHandlers
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.SendAlertPushoverHandler))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.SendAlertTelegramHandler))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.SendAlertWebhookHandler))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.SendBasketAlertNotificationHandler))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Worker.Handlers.SendBasketAlertWebhookHandler))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Commands.CheckProductUrlPriceCommand))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Commands.ScrapeProductUrlCommand))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Events.AlertTriggeredEvent))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Events.BasketAlertTriggeredEvent))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Events.PriceUpdatedEvent))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Events.SendAlertDiscordRequested))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Events.SendAlertEmailRequested))]
@@ -60,6 +66,7 @@ namespace Ophi.Worker.Generated.WolverineHandlers
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Events.SendAlertPushoverRequested))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Events.SendAlertTelegramRequested))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Events.SendAlertWebhookRequested))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Ophi.Domain.Messages.Events.SendBasketAlertWebhookRequested))]
         public static void Pin()
         {
             // Intentionally empty. The [DynamicDependency] attributes above are the payload: they root the generated types for Native AOT, and [ModuleInitializer] guarantees this method is itself an ILC root.

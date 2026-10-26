@@ -47,12 +47,13 @@ User
 ├── Tag
 ├── ComparisonGroup
 ├── Basket                 (UserId; products bought together)
-│   └── BasketItem            (BasketId + ProductId, unique; Quantity >= 1; cascades from Product too)
+│   ├── BasketItem            (BasketId + ProductId, unique; Quantity >= 1; cascades from Product too)
+│   └── BasketAlert           (BasketId + UserId; Host? = one store, null = best store; xmin on Postgres)
 ├── StoreConfiguration
 ├── WebhookTarget
 ├── ShippingRate           (UserId + normalized Host, unique; flat cost, optional free-above)
 ├── ApiKey                 (SHA-256 hashed)
-└── Notification           (ProductId?)
+└── Notification           (ProductId? or BasketId?)
 
 ExchangeRate               (global, display-only — see agent-notes § Pricing & aggregation invariants)
 ```

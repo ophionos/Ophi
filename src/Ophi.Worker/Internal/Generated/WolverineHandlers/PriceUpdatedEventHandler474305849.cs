@@ -44,6 +44,10 @@ namespace Ophi.Worker.Generated.WolverineHandlers
 
             
             // The actual message execution
+            var outgoing2 = await Ophi.Worker.Handlers.CheckBasketAlertsHandler.HandleAsync(priceUpdatedEvent, ophiDbContext, _optionsOfAlertSettings, _timeProvider, ((Microsoft.Extensions.Logging.ILogger)_loggerForMessage), cancellation).ConfigureAwait(false);
+
+            
+            // The actual message execution
             await Ophi.Worker.Handlers.DispatchPriceChangedWebhookHandler.HandleAsync(priceUpdatedEvent, ophiDbContext, webhookDispatchService, _timeProvider, ((Microsoft.Extensions.Logging.ILogger)_loggerForMessage), cancellation).ConfigureAwait(false);
 
             
@@ -53,6 +57,10 @@ namespace Ophi.Worker.Generated.WolverineHandlers
             
             // Outgoing, cascaded message
             await context.EnqueueCascadingAsync(outgoing1).ConfigureAwait(false);
+
+            
+            // Outgoing, cascaded message
+            await context.EnqueueCascadingAsync(outgoing2).ConfigureAwait(false);
         }
     }
 

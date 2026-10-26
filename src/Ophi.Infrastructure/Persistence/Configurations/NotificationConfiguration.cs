@@ -28,5 +28,12 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
             .WithMany()
             .HasForeignKey(n => n.ProductId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(n => n.BasketId);
+
+        builder.HasOne(n => n.Basket)
+            .WithMany()
+            .HasForeignKey(n => n.BasketId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -7,5 +7,6 @@ public enum NotificationType
     System,
     UrlHealth,
     OutOfStock,
-    BackInStock
+    BackInStock,
+    BasketAlert
 }

@@ -42,7 +42,11 @@ public class Notification : BaseEntity
     public Guid UserId { get; init; }
     public Guid? ProductId { get; init; }
 
+    /// <summary>The basket a basket-alert notification links to (#151); null otherwise.</summary>
+    public Guid? BasketId { get; init; }
+
     // Navigation properties
     public User User { get; init; } = null!;
     public Product? Product { get; init; }
+    public Basket? Basket { get; init; }
 }

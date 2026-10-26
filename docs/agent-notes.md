@@ -54,6 +54,17 @@ other kind of fact. Link to owners; don't restate them here.
   alert state, then returns one message per channel: email (if the user's email switch is on),
   Discord / Telegram / Pushover / ntfy (switch on **and** recipient set), webhook (always), plus a
   `LiveUpdate` for the bell. Channel handlers retry independently. `AlertCascadePipelineTests` guards it.
+- **Basket alerts reuse that shape, not the product rows.** `CheckBasketAlertsHandler` runs on the
+  same `PriceUpdatedEvent` (serial `events` queue), computes totals through `BasketTotalsReader` (the
+  one place that loads a basket for `BasketTotals`), and claims under the `BasketAlert` xmin token like
+  `CheckAlertsHandler`. `BasketAlert.Check` picks the watched store: its `Host`, or the best complete
+  store. The alert takes the watched total's currency at create (no total → 422 `NoWatchedTotal`) and
+  goes dormant on a mismatch, never converted. A quantity or shipping-rate change is checked only at
+  the next price event. Delivery reuses the email/Discord/push messages with `Store` set (the basket
+  form); the webhook is its own event, `basket_alert_fired`, because the product `WebhookPayload`
+  has no basket fields. Basket alerts have their own `MaxAlertsPerUser` count, apart from product
+  alerts; create, resume and backup restore enforce it. `SetBasketAlertActive` copies the
+  `SetAlertActive` retry. Guards: `BasketAlertCascadePipelineTests`, `Ophi.Postgres.Tests/BasketAlertConcurrencyTests`.
 - **The durable Postgres transport is gated on connection-string PRESENCE, not `DB_PROVIDER`**
   (`WolverineConfig`). `DB_PROVIDER` defaults to postgres, so gating on it would wire the transport
   into the Testing env. Reliability is `Status=Pending` + the `DispatchPendingProductsAsync` poll, not a

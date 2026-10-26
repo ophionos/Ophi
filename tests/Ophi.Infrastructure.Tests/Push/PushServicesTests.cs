@@ -34,6 +34,15 @@ public class PushServicesTests
     private void VerifyNothingSent() =>
         _http.Protected().Verify("SendAsync", Times.Never(), ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>());
 
+    [Fact]
+    public void PushMessage_ForABasketAlert_NamesTheBasketAndTheStore()
+    {
+        var alert = new PushPriceAlert("Camping", "https://ophi.example/baskets/1", 45m, 50m, "EUR", AlertCondition.Below, Store: "shop-a.es");
+
+        PushMessage.Title(alert).Should().Be("Basket alert: Camping");
+        PushMessage.Body(alert).Should().Be("Total at shop-a.es now EUR 45.00 — target EUR 50.00");
+    }
+
     #region Telegram
 
     private TelegramService Telegram(string token = "123:abc") =>

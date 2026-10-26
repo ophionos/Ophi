@@ -52,7 +52,7 @@
 		}
 	}
 
-	async function handleNotificationClick(id: string, productId?: string) {
+	async function handleNotificationClick(id: string, productId?: string, basketId?: string) {
 		try {
 			await api.markNotificationRead(id);
 			notifications.markRead(id);
@@ -62,6 +62,9 @@
 		if (productId) {
 			isOpen = false;
 			goto(resolve(`/products/${productId}`));
+		} else if (basketId) {
+			isOpen = false;
+			goto(resolve(`/baskets/${basketId}`));
 		}
 	}
 
@@ -190,7 +193,11 @@
 						{#each notifications.items as notification (notification.id)}
 							<button
 								onclick={() =>
-									handleNotificationClick(notification.id, notification.productId)}
+									handleNotificationClick(
+										notification.id,
+										notification.productId,
+										notification.basketId
+									)}
 								class="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors {notification.isRead ? 'opacity-60' : ''}"
 							>
 								<div class="flex items-start gap-2">

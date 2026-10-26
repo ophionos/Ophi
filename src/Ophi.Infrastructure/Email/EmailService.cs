@@ -13,18 +13,26 @@ public class EmailService(IOptions<EmailSettings> settings, ILogger<EmailService
 
     public async Task SendPriceAlertAsync(PriceAlertEmail alert, CancellationToken cancellationToken = default)
     {
-        var subject = $"Price Alert: {alert.ProductName} dropped to {alert.Currency} {alert.CurrentPrice:F2}!";
+        // A basket alert sets Store: ProductName is the basket's name, CurrentPrice its total there.
+        var basket = alert.Store is not null;
+        var subject = basket
+            ? $"Basket Alert: {alert.ProductName} total at {alert.Store} dropped to {alert.Currency} {alert.CurrentPrice:F2}!"
+            : $"Price Alert: {alert.ProductName} dropped to {alert.Currency} {alert.CurrentPrice:F2}!";
+        var intro = basket
+            ? "Great news! A basket you're tracking has reached your target total."
+            : "Great news! The product you're tracking has reached your target price.";
+        var priceLabel = basket ? $"Total at {alert.Store}" : "Current Price";
         // The product name (and so the whole body) is scraped from the merchant's page: encode
         // every interpolated value, or the page controls markup in the user's inbox.
         var body = $"""
-            <h2>Price Alert!</h2>
-            <p>Great news! The product you're tracking has reached your target price.</p>
+            <h2>{(basket ? "Basket Alert!" : "Price Alert!")}</h2>
+            <p>{intro}</p>
 
             <h3>{Html(alert.ProductName)}</h3>
-            <p><strong>Current Price:</strong> {Html(alert.Currency)} {alert.CurrentPrice:F2}</p>
+            <p><strong>{Html(priceLabel)}:</strong> {Html(alert.Currency)} {alert.CurrentPrice:F2}</p>
             <p><strong>Your Target:</strong> {Html(AlertTargetFormatter.Describe(alert.TargetPrice, alert.Condition, alert.Currency))}</p>
 
-            <p><a href="{Html(alert.ProductUrl)}">View Product</a></p>
+            <p><a href="{Html(alert.ProductUrl)}">{(basket ? "View Basket" : "View Product")}</a></p>
 
             <hr />
             <p style="color: #666; font-size: 12px;">

@@ -192,6 +192,22 @@ public class EmailServiceTests
     }
 
     [Fact]
+    public async Task SendPriceAlertAsync_ForABasketAlert_NamesTheBasketAndTheStore()
+    {
+        var alert = new PriceAlertEmail("user@example.com", "Test User", "Camping <b>", "https://ophi.example/baskets/1",
+            45m, 50m, "EUR", AlertCondition.Below, Store: "shop-a.es");
+
+        await _service.SendPriceAlertAsync(alert, TestContext.Current.CancellationToken);
+
+        // F2 follows the current culture (as for product alerts), so the separator is not asserted.
+        _capturedMessage!.Subject.Should().StartWith("Basket Alert: Camping <b> total at shop-a.es dropped to EUR 45");
+        _capturedMessage.HtmlBody.Should().Contain("Camping &lt;b&gt;");
+        _capturedMessage.HtmlBody.Should().Contain("Total at shop-a.es");
+        _capturedMessage.HtmlBody.Should().Contain("View Basket");
+        _capturedMessage.HtmlBody.Should().NotContain("View Product");
+    }
+
+    [Fact]
     public async Task SendPriceAlertAsync_ForPercentDrop_RendersTheTargetAsAPercentage()
     {
         // TargetPrice is a percentage for this condition, but the template rendered it as money —

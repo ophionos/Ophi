@@ -14,6 +14,7 @@ const result = {
 	settingsRestored: true,
 	shippingRatesRestored: 3,
 	basketsRestored: 2,
+	basketAlertsAdded: 2,
 	tagsAdded: 2,
 	comparisonGroupsAdded: 1,
 	storesAdded: 0,
@@ -59,10 +60,11 @@ describe('BackupCard', () => {
 		expect(summary).toHaveTextContent('imported paused');
 		expect(summary).toHaveTextContent('3 shipping rates');
 		expect(summary).toHaveTextContent('2 baskets restored');
+		expect(summary).toHaveTextContent('2 basket alerts added');
 	});
 
 	it('should not mention baskets when none were restored', async () => {
-		vi.mocked(api.importBackup).mockResolvedValue({ ...result, basketsRestored: 0 });
+		vi.mocked(api.importBackup).mockResolvedValue({ ...result, basketsRestored: 0, basketAlertsAdded: 0 });
 		render(BackupCard);
 		await fireEvent.change(screen.getByLabelText('Restore from a backup file'), {
 			target: { files: [new File(['{}'], 'ophi-backup.json')] }

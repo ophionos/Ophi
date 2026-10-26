@@ -10,6 +10,30 @@ namespace Ophi.Infrastructure.Tests.Handlers;
 
 public class SendAlertPushHandlersTests
 {
+    // A basket alert (#151) is told apart by its store; every channel must pass it to the renderer.
+    [Fact]
+    public async Task EveryPushChannel_PassesTheStoreThrough()
+    {
+        var telegram = new Mock<ITelegramService>();
+        var pushover = new Mock<IPushoverService>();
+        var ntfy = new Mock<INtfyService>();
+        var ct = TestContext.Current.CancellationToken;
+
+        await SendAlertTelegramHandler.HandleAsync(
+            new SendAlertTelegramRequested(Guid.NewGuid(), "42", "Camping", "https://x", 45m, 50m, "EUR", AlertCondition.Below, Store: "shop-a.es"),
+            telegram.Object, NullLogger.Instance, ct);
+        await SendAlertPushoverHandler.HandleAsync(
+            new SendAlertPushoverRequested(Guid.NewGuid(), "user", "Camping", "https://x", 45m, 50m, "EUR", AlertCondition.Below, Store: "shop-a.es"),
+            pushover.Object, NullLogger.Instance, ct);
+        await SendAlertNtfyHandler.HandleAsync(
+            new SendAlertNtfyRequested(Guid.NewGuid(), "https://ntfy.sh/t", "Camping", "https://x", 45m, 50m, "EUR", AlertCondition.Below, Store: "shop-a.es"),
+            ntfy.Object, NullLogger.Instance, ct);
+
+        telegram.Verify(t => t.SendPriceAlertAsync(It.Is<PushPriceAlert>(a => a.Store == "shop-a.es"), "42", It.IsAny<CancellationToken>()), Times.Once);
+        pushover.Verify(p => p.SendPriceAlertAsync(It.Is<PushPriceAlert>(a => a.Store == "shop-a.es"), "user", It.IsAny<CancellationToken>()), Times.Once);
+        ntfy.Verify(n => n.SendPriceAlertAsync(It.Is<PushPriceAlert>(a => a.Store == "shop-a.es"), "https://ntfy.sh/t", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     [Fact]
     public async Task Telegram_ForwardsTheAlertToTheChat()
     {

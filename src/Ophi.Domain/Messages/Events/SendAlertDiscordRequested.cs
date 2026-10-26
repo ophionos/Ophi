@@ -22,7 +22,8 @@ public record SendAlertDiscordRequested(
     decimal CurrentPrice,
     decimal TargetPrice,
     string Currency,
-    AlertCondition? Condition = null)
+    AlertCondition? Condition = null,
+    string? Store = null)
 {
     protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
 }

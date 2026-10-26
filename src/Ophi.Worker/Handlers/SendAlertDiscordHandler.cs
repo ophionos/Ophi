@@ -25,7 +25,8 @@ public static class SendAlertDiscordHandler
             @event.CurrentPrice,
             @event.TargetPrice,
             @event.Currency,
-            @event.Condition
+            @event.Condition,
+            @event.Store
         ), @event.DiscordWebhookUrl, cancellationToken);
 
         logger.LogInformation("Alert Discord notification sent for product {ProductName} (alert {AlertId})",

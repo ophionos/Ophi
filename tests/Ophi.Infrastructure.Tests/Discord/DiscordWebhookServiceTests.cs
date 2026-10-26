@@ -79,6 +79,24 @@ public class DiscordWebhookServiceTests
     }
 
     [Fact]
+    public async Task SendPriceAlertAsync_ForABasketAlert_NamesTheBasketAndTheStore()
+    {
+        string? capturedBody = null;
+        _httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, t) =>
+                capturedBody = req.Content!.ReadAsStringAsync(t).GetAwaiter().GetResult())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
+        var alert = new DiscordPriceAlert("Camping", "https://ophi.example/baskets/1", 45m, 50m, "EUR", AlertCondition.Below, Store: "shop-a.es");
+
+        await CreateService().SendPriceAlertAsync(alert, WebhookUrl, TestContext.Current.CancellationToken);
+
+        capturedBody.Should().Contain("Basket Alert: Camping");
+        capturedBody.Should().Contain("Total at shop-a.es");
+        capturedBody.Should().NotContain("Current Price");
+    }
+
+    [Fact]
     public async Task SendPriceAlertAsync_ForPercentDrop_RendersTheTargetAsAPercentage()
     {
         // TargetPrice is a percentage for this condition. The embed used to render it as money, so a

@@ -30,7 +30,12 @@
 	const ALL_EVENTS: { value: WebhookEvent; label: string; description: string }[] = [
 		{ value: 'alert_fired', label: 'Alert fired', description: 'When a price alert condition is met' },
 		{ value: 'price_changed', label: 'Price changed', description: 'When a product price changes' },
-		{ value: 'scrape_failed', label: 'Scrape failed', description: 'When a product fails to scrape' }
+		{ value: 'scrape_failed', label: 'Scrape failed', description: 'When a product fails to scrape' },
+		{
+			value: 'basket_alert_fired',
+			label: 'Basket alert fired',
+			description: "When a basket's total at a store reaches its target"
+		}
 	];
 
 	$effect(() => {

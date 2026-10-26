@@ -52,11 +52,13 @@ public static class ExportBackup
                     {
                         b.Name,
                         b.Description,
-                        Items = b.Items.OrderBy(i => i.AddedAt).Select(i => new BackupBasketItem(i.ProductId, i.Quantity)).ToList()
+                        Items = b.Items.OrderBy(i => i.AddedAt).Select(i => new BackupBasketItem(i.ProductId, i.Quantity)).ToList(),
+                        Alerts = dbContext.BasketAlerts.Where(a => a.BasketId == b.Id).OrderBy(a => a.CreatedAt)
+                            .Select(a => new BackupBasketAlert(a.TargetTotal, a.Currency, a.Host, a.IsActive)).ToList()
                     })
                     .ToListAsync(cancellationToken))
                 .OrderBy(b => b.Name, StringComparer.Ordinal)
-                .Select(b => new BackupBasket(b.Name, b.Description, b.Items))
+                .Select(b => new BackupBasket(b.Name, b.Description, b.Items, b.Alerts))
                 .ToList();
 
             var products = await dbContext.Products.AsNoTracking()
