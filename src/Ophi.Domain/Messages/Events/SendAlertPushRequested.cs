@@ -17,7 +17,8 @@ public record SendAlertTelegramRequested(
     decimal CurrentPrice,
     decimal TargetPrice,
     string Currency,
-    AlertCondition? Condition = null);
+    AlertCondition? Condition = null,
+    string? Store = null);
 
 /// <summary>Pushover counterpart of <see cref="SendAlertTelegramRequested"/>.</summary>
 public record SendAlertPushoverRequested(
@@ -28,7 +29,8 @@ public record SendAlertPushoverRequested(
     decimal CurrentPrice,
     decimal TargetPrice,
     string Currency,
-    AlertCondition? Condition = null)
+    AlertCondition? Condition = null,
+    string? Store = null)
 {
     protected virtual bool PrintMembers(StringBuilder builder) => SensitivePrinter.PrintMembers(this, builder);
 }

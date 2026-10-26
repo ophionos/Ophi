@@ -2,13 +2,21 @@
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { api, ApiError, type Basket, type BasketHistory, type BasketItem } from '$lib/api/client';
+	import {
+		api,
+		ApiError,
+		type Basket,
+		type BasketAlert,
+		type BasketHistory,
+		type BasketItem
+	} from '$lib/api/client';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { ArrowLeft, Pencil, Trash2, Package, ListChecks, Scale, Split, ChartLine } from 'lucide-svelte';
+	import { ArrowLeft, Pencil, Trash2, Package, ListChecks, Scale, Split, ChartLine, Bell } from 'lucide-svelte';
 	import BasketFormModal from '$lib/components/baskets/BasketFormModal.svelte';
 	import BasketStoreTable from '$lib/components/baskets/BasketStoreTable.svelte';
 	import BasketSplitCard from '$lib/components/baskets/BasketSplitCard.svelte';
 	import BasketHistoryChart from '$lib/components/baskets/BasketHistoryChart.svelte';
+	import BasketAlerts from '$lib/components/baskets/BasketAlerts.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
 	import PageHeader from '$lib/components/shared/PageHeader.svelte';
@@ -21,6 +29,7 @@
 	let basket = $derived<Basket | null>(data.basket);
 	const shippingRates = $derived(data.shippingRates ?? []);
 	let history = $derived<BasketHistory | null>(data.history ?? null);
+	let alerts = $derived<BasketAlert[] | null>(data.alerts ?? null);
 
 	let renameOpen = $state(false);
 	let deleteOpen = $state(false);
@@ -30,6 +39,14 @@
 	// A quantity or item change moves every past total, so the chart is fetched again.
 	async function refreshHistory(id: string) {
 		history = await api.getBasketHistory(id, history?.days ?? 30).catch(() => null);
+	}
+
+	// It also moves the total each alert watches.
+	async function refreshAlerts(id: string) {
+		alerts = await api
+			.listBasketAlerts(id)
+			.then((r) => r.items)
+			.catch(() => null);
 	}
 
 	async function handleRename(name: string, description?: string) {
@@ -61,6 +78,7 @@
 		try {
 			basket = await api.setBasketItemQuantity(basket.id, item.productId, quantity);
 			void refreshHistory(basket.id);
+			void refreshAlerts(basket.id);
 		} catch (err) {
 			quantityError = {
 				productId: item.productId,
@@ -79,6 +97,7 @@
 			await api.removeBasketItem(basket.id, item.productId);
 			basket = await api.getBasket(basket.id);
 			void refreshHistory(basket.id);
+			void refreshAlerts(basket.id);
 		} catch (err) {
 			console.error('Failed to remove item:', err);
 			toast.error('Failed to remove item from basket');
@@ -197,6 +216,18 @@
 					{:else}
 						<p class="text-sm text-gray-500 dark:text-gray-400">
 							The history is not available right now.
+						</p>
+					{/if}
+				</SectionCard>
+			</div>
+
+			<div class="mt-6">
+				<SectionCard title="Alerts" icon={Bell}>
+					{#if alerts}
+						<BasketAlerts basketId={basket.id} {alerts} stores={basket.stores} />
+					{:else}
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							The alerts are not available right now.
 						</p>
 					{/if}
 				</SectionCard>

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
-using Ophi.Api.Common.Helpers;
 using Ophi.Domain.Services;
 using Ophi.Infrastructure.Persistence;
 
@@ -73,17 +72,8 @@ public static class BasketReader
             .Select(i => new BasketItemDto(i.ProductId, i.Product.Name, i.Product.ImageUrl, i.Quantity))
             .ToListAsync(cancellationToken);
 
-        // Totals: every URL of the items' products, and the user's shipping rates. BasketTotals owns the rules.
-        var productIds = items.Select(i => i.ProductId).ToList();
-        var urls = (await dbContext.ProductUrls
-                .AsNoTracking()
-                .Where(u => productIds.Contains(u.ProductId))
-                .ToListAsync(cancellationToken))
-            .ToLookup(u => u.ProductId);
-        var rateFor = await ShippingRateLookup.LoadAsync(dbContext, userId, cancellationToken);
-        var totals = BasketTotals.Compute(
-            items.Select(i => new BasketTotals.Item(i.ProductId, i.Quantity, urls[i.ProductId].ToList())).ToList(),
-            rateFor);
+        var totals = await BasketTotalsReader.ComputeAsync(
+            dbContext, userId, items.Select(i => (i.ProductId, i.Quantity)).ToList(), cancellationToken);
 
         return new BasketDto(basket.Id, basket.Name, basket.Description, basket.CreatedAt, basket.UpdatedAt, items,
             totals.Stores.Select(st => new BasketStoreDto(

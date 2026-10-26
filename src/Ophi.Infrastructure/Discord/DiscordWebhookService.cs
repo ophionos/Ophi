@@ -33,12 +33,12 @@ public class DiscordWebhookService(
             {
                 new
                 {
-                    title = $"Price Alert: {alert.ProductName}",
+                    title = alert.Store is null ? $"Price Alert: {alert.ProductName}" : $"Basket Alert: {alert.ProductName}",
                     url = string.IsNullOrWhiteSpace(alert.ProductUrl) ? null : alert.ProductUrl,
                     color = 3066993, // Green
                     fields = new[]
                     {
-                        new { name = "Current Price", value = $"{alert.Currency} {PriceFormatter.FormatPrice(alert.CurrentPrice)}", inline = true },
+                        new { name = alert.Store is null ? "Current Price" : $"Total at {alert.Store}", value = $"{alert.Currency} {PriceFormatter.FormatPrice(alert.CurrentPrice)}", inline = true },
                         new { name = "Target", value = AlertTargetFormatter.Describe(alert.TargetPrice, alert.Condition, alert.Currency), inline = true }
                     },
                     footer = new { text = "Ophi Price Tracker" },

@@ -431,6 +431,29 @@ class ApiClient {
 		return this.request<BasketHistory>(`/baskets/${id}/history?days=${days}`);
 	}
 
+	async listBasketAlerts(id: string) {
+		return this.request<{ items: BasketAlert[] }>(`/baskets/${id}/alerts`);
+	}
+
+	/** `host` null watches the best complete store. The currency comes from the watched total. */
+	async createBasketAlert(id: string, data: { targetTotal: number; host: string | null }) {
+		return this.request<BasketAlert>(`/baskets/${id}/alerts`, {
+			method: 'POST',
+			body: JSON.stringify(data)
+		});
+	}
+
+	async setBasketAlertActive(id: string, alertId: string, active: boolean) {
+		return this.request<BasketAlert>(`/baskets/${id}/alerts/${alertId}`, {
+			method: 'PATCH',
+			body: JSON.stringify({ active })
+		});
+	}
+
+	async deleteBasketAlert(id: string, alertId: string) {
+		return this.request(`/baskets/${id}/alerts/${alertId}`, { method: 'DELETE' });
+	}
+
 	// Stores
 	async getStores(search?: string) {
 		const query = new URLSearchParams();
@@ -698,6 +721,7 @@ export interface BackupImportResult {
 	settingsRestored: boolean;
 	shippingRatesRestored: number;
 	basketsRestored: number;
+	basketAlertsAdded: number;
 	tagsAdded: number;
 	comparisonGroupsAdded: number;
 	storesAdded: number;
@@ -1090,6 +1114,7 @@ export interface Notification {
 	isRead: boolean;
 	productId?: string;
 	productName?: string;
+	basketId?: string;
 	createdAt: string;
 }
 
@@ -1279,6 +1304,26 @@ export interface BasketHistory {
 	series: BasketHistorySeries[];
 }
 
+/** Fires when the watched total is at or under `targetTotal`. */
+export interface BasketAlert {
+	id: string;
+	basketId: string;
+	/** The watched site; null watches the best complete store. */
+	host: string | null;
+	targetTotal: number;
+	currency: string;
+	active: boolean;
+	lastTriggered: string | null;
+	triggerCount: number;
+	createdAt: string;
+	/** The store watched now and its total; null when it has no total to compare. */
+	watchedHost: string | null;
+	watchedTotal: number | null;
+	watchedCurrency: string | null;
+	/** The watched total is in another currency than the target: the alert cannot fire. */
+	hasCurrencyMismatch: boolean;
+}
+
 export interface ShippingRate {
 	host: string;
 	amount: number;
@@ -1345,7 +1390,7 @@ export interface SetStoreAffiliateRequest {
 	affiliateTag?: string;
 }
 
-export type WebhookEvent = 'alert_fired' | 'price_changed' | 'scrape_failed';
+export type WebhookEvent = 'alert_fired' | 'price_changed' | 'scrape_failed' | 'basket_alert_fired';
 
 export interface WebhookTarget {
 	id: string;

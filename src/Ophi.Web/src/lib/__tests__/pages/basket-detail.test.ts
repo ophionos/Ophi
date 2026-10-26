@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/svelte';
 import BasketDetailPage from '../../../routes/baskets/[id]/+page.svelte';
-import { api, ApiError, type Basket, type BasketHistory } from '$lib/api/client';
+import { api, ApiError, type Basket, type BasketAlert, type BasketHistory } from '$lib/api/client';
 import { goto } from '$app/navigation';
 
 vi.mock('$lib/api/client', async () => {
@@ -14,7 +14,8 @@ vi.mock('$lib/api/client', async () => {
 			deleteBasket: vi.fn(),
 			setBasketItemQuantity: vi.fn(),
 			removeBasketItem: vi.fn(),
-			getBasketHistory: vi.fn()
+			getBasketHistory: vi.fn(),
+			listBasketAlerts: vi.fn()
 		}
 	};
 });
@@ -67,9 +68,25 @@ const history: BasketHistory = {
 	]
 };
 
-function renderPage(b: Basket, h: BasketHistory | null = history) {
+const alert: BasketAlert = {
+	id: 'a1',
+	basketId: 'b1',
+	host: null,
+	targetTotal: 150,
+	currency: 'EUR',
+	active: true,
+	lastTriggered: null,
+	triggerCount: 0,
+	createdAt: '2026-10-01T00:00:00Z',
+	watchedHost: 'shop-a.es',
+	watchedTotal: 155,
+	watchedCurrency: 'EUR',
+	hasCurrencyMismatch: false
+};
+
+function renderPage(b: Basket, h: BasketHistory | null = history, alerts: BasketAlert[] | null = []) {
 	return render(BasketDetailPage, {
-		props: { data: { basket: b, shippingRates: [], history: h } } as never
+		props: { data: { basket: b, shippingRates: [], history: h, alerts } } as never
 	});
 }
 
@@ -77,6 +94,7 @@ describe('Basket detail page', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(api.getBasketHistory).mockResolvedValue(history);
+		vi.mocked(api.listBasketAlerts).mockResolvedValue({ items: [] });
 	});
 
 	it('should show the name, description and the store table when loaded', () => {
@@ -165,6 +183,32 @@ describe('Basket detail page', () => {
 		await fireEvent.change(input);
 
 		await waitFor(() => expect(api.getBasketHistory).toHaveBeenCalledWith('b1', 30));
+	});
+
+	it('should list the basket alerts when the basket has items', () => {
+		renderPage(basket(), history, [alert]);
+
+		expect(screen.getByRole('heading', { name: /Alerts/ })).toBeInTheDocument();
+		expect(screen.getByText(/Under €150\.00 at the best store/)).toBeInTheDocument();
+	});
+
+	it('should say the alerts are unavailable when they failed to load', () => {
+		renderPage(basket(), history, null);
+
+		expect(screen.getByText(/alerts are not available/i)).toBeInTheDocument();
+	});
+
+	it('should reload the alerts when the quantity changes', async () => {
+		vi.mocked(api.setBasketItemQuantity).mockResolvedValue(basket());
+		vi.mocked(api.listBasketAlerts).mockResolvedValue({ items: [{ ...alert, watchedTotal: 255 }] });
+		renderPage(basket(), history, [alert]);
+
+		const input = screen.getByLabelText('Quantity of Tent');
+		await fireEvent.input(input, { target: { value: '2' } });
+		await fireEvent.change(input);
+
+		await waitFor(() => expect(api.listBasketAlerts).toHaveBeenCalledWith('b1'));
+		expect(await screen.findByText(/€255\.00 now at shop-a\.es/)).toBeInTheDocument();
 	});
 
 	it('should hint how to add products when the basket is empty', () => {

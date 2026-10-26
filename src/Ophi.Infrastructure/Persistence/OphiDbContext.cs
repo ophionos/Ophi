@@ -22,6 +22,7 @@ public class OphiDbContext(DbContextOptions<OphiDbContext> options) : DbContext(
     public DbSet<StoreClearance> StoreClearances => Set<StoreClearance>();
     public DbSet<ShippingRate> ShippingRates => Set<ShippingRate>();
     public DbSet<Basket> Baskets => Set<Basket>();
+    public DbSet<BasketAlert> BasketAlerts => Set<BasketAlert>();
     public DbSet<BasketItem> BasketItems => Set<BasketItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -41,6 +42,11 @@ public class OphiDbContext(DbContextOptions<OphiDbContext> options) : DbContext(
             // (no DDL — it's always present). A shadow property keeps Alert clean and the SQLite model
             // free of it. (EF Core 10 / Npgsql 10 dropped the old UseXminAsConcurrencyToken() helper.)
             modelBuilder.Entity<Alert>()
+                .Property<uint>("xmin")
+                .IsConcurrencyToken()
+                .ValueGeneratedOnAddOrUpdate();
+            // The same claim for basket alerts (CheckBasketAlertsHandler).
+            modelBuilder.Entity<BasketAlert>()
                 .Property<uint>("xmin")
                 .IsConcurrencyToken()
                 .ValueGeneratedOnAddOrUpdate();

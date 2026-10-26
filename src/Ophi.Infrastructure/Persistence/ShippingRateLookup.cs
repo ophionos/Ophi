@@ -1,8 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ophi.Domain.Entities;
-using Ophi.Infrastructure.Persistence;
 
-namespace Ophi.Api.Common.Helpers;
+namespace Ophi.Infrastructure.Persistence;
 
 /// <summary>
 /// Loads a user's shipping rates once, keyed by normalized host, for <see cref="Domain.Services.LandedPrice"/>.

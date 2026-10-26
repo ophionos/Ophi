@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Exceptions;
 using Ophi.Api.Common.Extensions;
-using Ophi.Api.Common.Helpers;
 using Ophi.Domain.Enums;
 using Ophi.Domain.Services;
 using Ophi.Infrastructure.Persistence;

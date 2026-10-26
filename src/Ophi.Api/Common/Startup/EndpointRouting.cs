@@ -106,6 +106,10 @@ internal static class EndpointRouting
         app.MapAddBasketItemsEndpoint();
         app.MapSetBasketItemQuantityEndpoint();
         app.MapRemoveBasketItemEndpoint();
+        app.MapGetBasketAlertsEndpoint();
+        app.MapCreateBasketAlertEndpoint();
+        app.MapSetBasketAlertActiveEndpoint();
+        app.MapDeleteBasketAlertEndpoint();
 
         // Stores
         app.MapGetStoresEndpoint();

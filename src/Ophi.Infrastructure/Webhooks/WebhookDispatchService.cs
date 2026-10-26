@@ -18,7 +18,24 @@ public class WebhookDispatchService(
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
-    public async Task DispatchAsync(string eventType, Guid userId, WebhookPayload payload, CancellationToken ct = default)
+    public Task DispatchAsync(string eventType, Guid userId, WebhookPayload payload, CancellationToken ct = default) =>
+        DispatchJsonAsync(eventType, userId, ProductBody(eventType, payload), ct);
+
+    public Task DispatchBasketAlertAsync(Guid userId, BasketAlertWebhookPayload payload, CancellationToken ct = default) =>
+        DispatchJsonAsync(WebhookEvents.BasketAlertFired, userId, JsonSerializer.Serialize(new
+        {
+            Event = WebhookEvents.BasketAlertFired,
+            payload.BasketId,
+            payload.BasketName,
+            payload.Store,
+            payload.Total,
+            payload.TargetTotal,
+            payload.Currency,
+            payload.Url,
+            payload.Timestamp
+        }, SerializerOptions), ct);
+
+    private async Task DispatchJsonAsync(string eventType, Guid userId, string json, CancellationToken ct)
     {
         var targets = await dbContext.WebhookTargets
             .Where(t => t.UserId == userId && t.IsEnabled)
@@ -26,8 +43,21 @@ public class WebhookDispatchService(
 
         var matching = targets.Where(t => t.Events.Contains(eventType, StringComparer.OrdinalIgnoreCase)).ToList();
 
-        await Task.WhenAll(matching.Select(target => SafePostAsync(target.Url, target.Name, target.Id, eventType, payload, ct)));
+        await Task.WhenAll(matching.Select(target => SafePostAsync(target.Url, target.Name, target.Id, eventType, json, ct)));
     }
+
+    private static string ProductBody(string eventType, WebhookPayload payload) =>
+        JsonSerializer.Serialize(new
+        {
+            Event = eventType,
+            ProductId = payload.ProductId,
+            ProductName = payload.ProductName,
+            Url = payload.ProductUrl,
+            OldPrice = payload.OldPrice,
+            NewPrice = payload.NewPrice,
+            Currency = payload.Currency,
+            Timestamp = payload.Timestamp
+        }, SerializerOptions);
 
     /// <summary>
     /// The only error a webhook test returns. The raw failure ("connection refused", a timeout, an HTTP
@@ -49,7 +79,7 @@ public class WebhookDispatchService(
 
         try
         {
-            await PostAsync(url, "test", payload, ct);
+            await PostAsync(url, ProductBody("test", payload), ct);
             return (true, null);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
@@ -60,11 +90,11 @@ public class WebhookDispatchService(
         }
     }
 
-    private async Task SafePostAsync(string url, string targetName, Guid targetId, string eventType, WebhookPayload payload, CancellationToken ct)
+    private async Task SafePostAsync(string url, string targetName, Guid targetId, string eventType, string json, CancellationToken ct)
     {
         try
         {
-            await PostAsync(url, eventType, payload, ct);
+            await PostAsync(url, json, ct);
             AppMetrics.WebhookDispatchTotal.WithLabels(eventType, "success").Inc();
             logger.LogDebug("Webhook dispatched: {TargetName} ({TargetId}) event={Event}", targetName, targetId, eventType);
         }
@@ -75,21 +105,8 @@ public class WebhookDispatchService(
         }
     }
 
-    private async Task PostAsync(string url, string eventType, WebhookPayload payload, CancellationToken ct)
+    private async Task PostAsync(string url, string json, CancellationToken ct)
     {
-        var body = new
-        {
-            Event = eventType,
-            ProductId = payload.ProductId,
-            ProductName = payload.ProductName,
-            Url = payload.ProductUrl,
-            OldPrice = payload.OldPrice,
-            NewPrice = payload.NewPrice,
-            Currency = payload.Currency,
-            Timestamp = payload.Timestamp
-        };
-
-        var json = JsonSerializer.Serialize(body, SerializerOptions);
         Exception? lastException = null;
 
         for (var attempt = 0; attempt <= 2; attempt++)

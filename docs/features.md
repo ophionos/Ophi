@@ -50,6 +50,11 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
   says how much cheaper or more expensive it is than the best store; no search over store combinations.
 - "Total over time" draws one line per store that is complete now, from the first moment it had every
   item. Shipping uses the current rate for every day, and out-of-stock periods do not show.
+- A basket alert fires when the total at the best store, or at one chosen store, is at or under a
+  target. The target takes the currency of that total. The check runs when an item's price changes; a
+  quantity or shipping-rate change waits for the next price change. Notifications link to the basket,
+  and webhooks get the `basket_alert_fired` event. Basket alerts have their own
+  `Alerts:MaxAlertsPerUser` limit, apart from product alerts.
 
 ## Alerts and notifications
 
@@ -70,7 +75,7 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
 ## Account backup
 
 `/settings/data` exports one JSON file with settings, tags, groups, stores, products, full price history,
-alerts, shipping rates and baskets. Credentials and outbound webhooks are never included. Restore only merges: it never
+alerts, shipping rates and baskets with their alerts. Credentials and outbound webhooks are never included. Restore only merges: it never
 overwrites, it skips a product with an already-tracked URL (a basket still points at the tracked product), merges
 baskets by name (an existing basket keeps its quantities), and it restores settings only into an
 account with no products. The compose `web` service sets `BODY_SIZE_LIMIT=26M` so uploads above

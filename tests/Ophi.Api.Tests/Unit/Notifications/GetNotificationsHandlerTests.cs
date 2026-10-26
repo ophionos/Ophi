@@ -304,6 +304,27 @@ public class GetNotificationsHandlerTests : IDisposable
         result.Items.Should().HaveCount(1);
     }
 
+    [Fact]
+    public async Task Handle_BasketAlertNotification_CarriesTheBasketId()
+    {
+        var basket = new Basket { Id = Guid.NewGuid(), UserId = _testUserId, Name = "Camping" };
+        _dbContext.Baskets.Add(basket);
+        _dbContext.Notifications.Add(new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = _testUserId,
+            Title = "Basket alert: Camping",
+            Message = "Test message",
+            Type = NotificationType.BasketAlert,
+            BasketId = basket.Id
+        });
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(new GetNotifications.Query(_testUserId, false), TestContext.Current.CancellationToken);
+
+        result.Items.Should().ContainSingle().Which.Should().BeEquivalentTo(new { Type = "basketAlert", BasketId = (Guid?)basket.Id, ProductId = (Guid?)null });
+    }
+
     private Notification CreateNotification(string title, NotificationType type = NotificationType.PriceAlert)
     {
         return new Notification

@@ -10,6 +10,7 @@ using Ophi.Api.Features.Settings;
 using Ophi.Api.Features.Shipping;
 using Ophi.Domain.Entities;
 using Ophi.Domain.Enums;
+using Ophi.Domain.Services;
 using Ophi.Infrastructure.Persistence;
 using Ophi.Infrastructure.Persistence.Configurations;
 using Ophi.Infrastructure.Settings;
@@ -53,6 +54,7 @@ public static class ImportBackup
         int AlertsPaused,
         int ShippingRatesRestored,
         int BasketsRestored,
+        int BasketAlertsAdded,
         IReadOnlyList<string> Warnings);
 
     public class Handler(OphiDbContext dbContext, IOptions<AlertSettings> alertSettings, ILogger<Handler> logger)
@@ -315,8 +317,14 @@ public static class ImportBackup
             // --- Baskets: reuse by name (case-insensitive) like comparison groups, else create. Items map
             // through the products restored above; an existing basket keeps its quantities. ---
             var basketsRestored = 0;
+            int basketAlertsAdded = 0, basketAlertsPaused = 0, basketAlertsSkipped = 0;
             if (bundle.Baskets is { Count: > 0 })
             {
+                // Basket alerts have their own active limit (BasketAlertLimit): over it they import paused.
+                var activeBasketAlerts = await dbContext.BasketAlerts.CountAsync(a => a.UserId == userId && a.IsActive, cancellationToken);
+                var existingBasketAlerts = (await dbContext.BasketAlerts.Where(a => a.UserId == userId)
+                        .Select(a => new { a.BasketId, a.TargetTotal, a.Currency, a.Host }).ToListAsync(cancellationToken))
+                    .Select(a => (a.BasketId, a.TargetTotal, a.Currency, a.Host)).ToHashSet();
                 var basketsByName = new Dictionary<string, Basket>(StringComparer.OrdinalIgnoreCase);
                 foreach (var existing in await dbContext.Baskets.Include(b => b.Items)
                              .Where(b => b.UserId == userId).ToListAsync(cancellationToken))
@@ -360,7 +368,44 @@ public static class ImportBackup
                         if (basket.Items.Count > before) itemsAdded++;
                     }
 
+                    foreach (var a in b.Alerts ?? [])
+                    {
+                        if (a is null || a.TargetTotal <= 0 || a.Host?.Length > ShippingRateConfiguration.HostMaxLength)
+                        {
+                            basketAlertsSkipped++;
+                            continue;
+                        }
+                        var host = string.IsNullOrWhiteSpace(a.Host) ? null : SiteHost.Normalize(a.Host);
+                        var currency = NormalizeCurrency(a.Currency);
+                        // Restore only merges: the same alert on the same basket is not added twice.
+                        if (!existingBasketAlerts.Add((basket!.Id, a.TargetTotal, currency, host))) continue;
+
+                        var active = a.Active;
+                        if (active && activeBasketAlerts >= maxAlerts)
+                        {
+                            active = false;
+                            basketAlertsPaused++;
+                        }
+                        if (active) activeBasketAlerts++;
+
+                        dbContext.BasketAlerts.Add(new BasketAlert
+                        {
+                            Id = Guid.NewGuid(), BasketId = basket.Id, UserId = userId,
+                            TargetTotal = a.TargetTotal, Currency = currency, Host = host, IsActive = active
+                        });
+                        basketAlertsAdded++;
+                    }
+
                     if (created || itemsAdded > 0) basketsRestored++;
+                }
+
+                if (basketAlertsSkipped > 0)
+                {
+                    warnings.Add($"{basketAlertsSkipped} basket alert(s) were skipped: the target is not above 0 or the store is invalid.");
+                }
+                if (basketAlertsPaused > 0)
+                {
+                    warnings.Add($"{basketAlertsPaused} basket alert(s) were imported paused: the account reached its limit of {maxAlerts} active basket alerts.");
                 }
 
                 if (itemsSkipped > 0)
@@ -382,7 +427,7 @@ public static class ImportBackup
                 userId, productsAdded, productsSkipped);
 
             return new Response(settingsRestored, tagsAdded, groupsAdded, storesAdded, storesKept,
-                productsAdded, productsSkipped, pricePointsAdded, alertsAdded, alertsPaused, shippingRatesRestored, basketsRestored, warnings);
+                productsAdded, productsSkipped, pricePointsAdded, alertsAdded, alertsPaused, shippingRatesRestored, basketsRestored, basketAlertsAdded, warnings);
         }
 
         /// <summary>Runs the same validator as <see cref="UpdateSettings"/>, so a file can't set what the UI couldn't.</summary>

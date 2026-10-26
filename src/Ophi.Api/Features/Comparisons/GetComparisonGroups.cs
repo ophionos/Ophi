@@ -1,7 +1,6 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Ophi.Api.Common.Extensions;
-using Ophi.Api.Common.Helpers;
 using Ophi.Api.Features.Products;
 using Ophi.Domain.Services;
 using Ophi.Infrastructure.Persistence;

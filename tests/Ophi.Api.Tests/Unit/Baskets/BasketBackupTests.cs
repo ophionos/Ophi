@@ -34,8 +34,8 @@ public class BasketBackupTests : IDisposable
         new ExportBackup.Handler(_db, TimeProvider.System, NullLogger<ExportBackup.Handler>.Instance)
             .Handle(new ExportBackup.Query(userId), Ct);
 
-    private Task<ImportBackup.Response> ImportAsync(BackupBundle bundle) =>
-        new ImportBackup.Handler(_db, Options.Create(new AlertSettings()), NullLogger<ImportBackup.Handler>.Instance)
+    private Task<ImportBackup.Response> ImportAsync(BackupBundle bundle, int maxAlerts = 100) =>
+        new ImportBackup.Handler(_db, Options.Create(new AlertSettings { MaxAlertsPerUser = maxAlerts }), NullLogger<ImportBackup.Handler>.Instance)
             .Handle(new ImportBackup.Command(bundle) { UserId = _targetId }, Ct);
 
     private async Task<Product> SeedProductAsync(Guid userId, string name, string url)
@@ -218,6 +218,59 @@ public class BasketBackupTests : IDisposable
         var result = await ImportAsync(bundle);
 
         result.BasketsRestored.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ExportThenImport_ThroughJson_RestoresBasketAlerts()
+    {
+        var a = await SeedProductAsync(_sourceId, "Monitor", "https://shop.test/monitor");
+        var basket = await SeedBasketAsync(_sourceId, "Desk", null, (a, 1));
+        _db.BasketAlerts.Add(new BasketAlert { Id = Guid.NewGuid(), BasketId = basket.Id, UserId = _sourceId, TargetTotal = 90m, Currency = "EUR" });
+        _db.BasketAlerts.Add(new BasketAlert { Id = Guid.NewGuid(), BasketId = basket.Id, UserId = _sourceId, TargetTotal = 80m, Currency = "EUR", Host = "shop.test", IsActive = false });
+        await _db.SaveChangesAsync(Ct);
+        var bundle = RoundTrip(await ExportAsync(_sourceId));
+
+        var result = await ImportAsync(bundle);
+
+        result.BasketAlertsAdded.Should().Be(2);
+        _db.ChangeTracker.Clear();
+        // Sorted in memory: SQLite's decimal collation parses with the current culture.
+        var restored = (await _db.BasketAlerts.Include(x => x.Basket).Where(x => x.UserId == _targetId).ToListAsync(Ct))
+            .OrderBy(x => x.TargetTotal).ToList();
+        restored.Select(x => (x.TargetTotal, x.Currency, x.Host, x.IsActive))
+            .Should().Equal((80m, "EUR", "shop.test", false), (90m, "EUR", (string?)null, true));
+        restored.Should().OnlyContain(x => x.Basket.UserId == _targetId);
+    }
+
+    [Fact]
+    public async Task Import_BasketAlertsOverTheLimit_ArePausedWithAWarning()
+    {
+        var bundle = Bundle([],
+            [new BackupBasket("Desk", null, [], [new BackupBasketAlert(90m, "EUR", null, true), new BackupBasketAlert(80m, "EUR", null, true)])]);
+
+        var result = await ImportAsync(bundle, maxAlerts: 1);
+
+        result.BasketAlertsAdded.Should().Be(2);
+        result.Warnings.Should().ContainSingle(w => w.Contains("basket alert", StringComparison.OrdinalIgnoreCase) && w.Contains("paused"));
+        _db.ChangeTracker.Clear();
+        (await _db.BasketAlerts.CountAsync(x => x.IsActive, Ct)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Import_IntoAnExistingBasket_SkipsAnIdenticalAlertAndAnInvalidOne()
+    {
+        var basket = await SeedBasketAsync(_targetId, "Desk", null);
+        _db.BasketAlerts.Add(new BasketAlert { Id = Guid.NewGuid(), BasketId = basket.Id, UserId = _targetId, TargetTotal = 90m, Currency = "EUR" });
+        await _db.SaveChangesAsync(Ct);
+        var bundle = Bundle([],
+            [new BackupBasket("desk", null, [], [new BackupBasketAlert(90m, "eur", null, true), new BackupBasketAlert(0m, "EUR", null, true)])]);
+
+        var result = await ImportAsync(bundle);
+
+        result.BasketAlertsAdded.Should().Be(0);
+        result.Warnings.Should().ContainSingle(w => w.Contains("basket alert", StringComparison.OrdinalIgnoreCase));
+        _db.ChangeTracker.Clear();
+        (await _db.BasketAlerts.CountAsync(Ct)).Should().Be(1);
     }
 
     public void Dispose()

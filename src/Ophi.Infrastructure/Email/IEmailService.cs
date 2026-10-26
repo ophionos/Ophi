@@ -32,5 +32,6 @@ public record PriceAlertEmail(
     decimal CurrentPrice,
     decimal TargetPrice,
     string Currency,
-    AlertCondition? Condition = null
+    AlertCondition? Condition = null,
+    string? Store = null
 );

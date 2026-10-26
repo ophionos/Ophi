@@ -138,6 +138,33 @@ describe('NotificationBell', () => {
 			});
 		});
 
+		it('should open the basket when a basket alert notification is clicked', async () => {
+			const { api } = await import('$lib/api/client');
+			const { goto } = await import('$app/navigation');
+			vi.mocked(api.getNotifications).mockResolvedValueOnce({
+				items: [
+					{
+						id: '1',
+						title: 'Basket alert: Camping',
+						message: 'Total at shop-a.es is EUR 45.00 (target: EUR 50.00)',
+						type: 'basketAlert',
+						isRead: false,
+						basketId: 'b1',
+						createdAt: new Date().toISOString()
+					}
+				],
+				total: 1,
+				page: 1,
+				pageSize: 20
+			});
+
+			render(NotificationBell);
+			await fireEvent.click(screen.getByLabelText('Notifications'));
+			await fireEvent.click(await screen.findByText('Basket alert: Camping'));
+
+			await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/baskets/b1'));
+		});
+
 		it('should show mark all as read button when there are unread notifications', async () => {
 			const { api } = await import('$lib/api/client');
 			vi.mocked(api.getNotificationCount).mockResolvedValue({ unread: 2 });

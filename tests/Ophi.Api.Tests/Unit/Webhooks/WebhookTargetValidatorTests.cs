@@ -17,6 +17,16 @@ public class WebhookTargetValidatorTests
         new(Guid.NewGuid(), "Gotify", url, ["alert_fired"], true) { UserId = Guid.NewGuid() };
 
     [Theory]
+    [InlineData("basket_alert_fired")]
+    [InlineData("alert_fired")]
+    public void Validate_KnownEvent_Passes(string eventType)
+    {
+        var command = new CreateWebhookTarget.Command("Hook", "https://hooks.example.com/x", [eventType], true) { UserId = Guid.NewGuid() };
+
+        new CreateWebhookTarget.Validator(NoAllowlist).TestValidate(command).ShouldNotHaveValidationErrorFor(x => x.Events);
+    }
+
+    [Theory]
     [InlineData("http://192.168.1.10/message")]
     [InlineData("http://gotify.local/message")]
     public void Validate_PrivateDestinationWithoutAllowlist_Fails(string url)
