@@ -7,6 +7,20 @@ namespace Ophi.Infrastructure.Scraping.Adapters;
 public static class CommonSelectors
 {
     /// <summary>
+    /// A price "selector" that reads the offer price of the JSON-LD <c>Product</c> node(s) instead of
+    /// the DOM. It can appear anywhere in a price selector list, so JSON-LD can rank between the
+    /// precise structured selectors and the broad CSS patterns. See
+    /// <see cref="Scraping.JsonPathExtractor.ExtractProductOfferPrices"/>.
+    /// </summary>
+    public const string JsonLdProductPrice = "jsonld:product-price";
+
+    /// <summary>
+    /// Containers of related, upsell and cross-sell product cards. A config with
+    /// <see cref="StoreSelectorConfig.ExcludeRelatedProducts"/> ignores price matches inside them.
+    /// </summary>
+    public const string RelatedProductContainers = ".related, .upsells, .cross-sells, ul.products";
+
+    /// <summary>
     /// Common price selectors for generic e-commerce sites.
     /// Format: "selector" or "selector|attribute" to extract from specific attribute.
     /// </summary>
@@ -18,7 +32,14 @@ public static class CommonSelectors
         // Schema.org / structured data
         "[itemprop='price']|content",
         "[itemprop='price']",
+        // JSON-LD Product offer — ahead of every broad pattern below, which can match a
+        // related-product card before the main price (#136).
+        JsonLdProductPrice,
         "[data-price]",
+        // WooCommerce: the sale amount, then a lone amount. The whole `.price` text can hold two
+        // amounts ("$25.99 (Retail price: $35.99)"), which does not parse.
+        ".price ins .woocommerce-Price-amount",
+        ".price > .woocommerce-Price-amount",
         // Generic patterns
         ".price",
         ".product-price",

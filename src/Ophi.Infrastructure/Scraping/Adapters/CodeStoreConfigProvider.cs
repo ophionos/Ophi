@@ -26,7 +26,8 @@ public class CodeStoreConfigProvider : IStoreConfigProvider
             NameSelectors = CommonSelectors.NameSelectors,
             ImageSelectors = CommonSelectors.ImageSelectors,
             PriceRegexPatterns = CommonSelectors.PriceRegexPatterns,
-            ImageRegexPatterns = CommonSelectors.ImageRegexPatterns
+            ImageRegexPatterns = CommonSelectors.ImageRegexPatterns,
+            ExcludeRelatedProducts = true
         }
     };
 

@@ -68,4 +68,11 @@ public record StoreSelectorConfig
     /// CommonSelectors.UnavailableTextPatterns when null.
     /// </summary>
     public string[]? UnavailableTextPatterns { get; init; }
+
+    /// <summary>
+    /// Ignore CSS price matches inside <see cref="CommonSelectors.RelatedProductContainers"/>.
+    /// Set on the generic config only: its broad patterns (<c>.price</c>) also match related-product
+    /// cards, while a store's own selectors are written for that store's markup.
+    /// </summary>
+    public bool ExcludeRelatedProducts { get; init; }
 }

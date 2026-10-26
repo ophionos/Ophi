@@ -564,6 +564,147 @@ public class ScrapingServiceTests
 
     #endregion
 
+    #region Generic WooCommerce pages (#136)
+
+    // The main price block holds two amounts, so its text does not parse. Without JSON-LD in
+    // front, `.price` moved on to the first related-product card ($3.99).
+    private const string WooCommerceBody = @"
+        <h1 class='product_title'>Pinecil</h1>
+        <div class='summary'>
+            <p class='price'>
+                <span>Community price: </span>
+                <span class='woocommerce-Price-amount amount'><bdi><span class='woocommerce-Price-currencySymbol'>&#36;</span>25.99</bdi></span>
+                <br/><span style='text-decoration:line-through;'>(Retail price: $35.99)</span>
+            </p>
+        </div>
+        <section class='related products'>
+            <ul class='products'>
+                <li class='product'><span class='price'><span class='woocommerce-Price-amount amount'>$3.99</span></span></li>
+                <li class='product'><span class='price'><span class='woocommerce-Price-amount amount'>$1.99</span></span></li>
+            </ul>
+        </section>";
+
+    private static string WooCommercePage(string jsonLd) => $@"
+        <html>
+            <head>
+                <title>Pinecil</title>
+                <script type='application/ld+json'>{jsonLd}</script>
+            </head>
+            <body>{WooCommerceBody}</body>
+        </html>";
+
+    // Only related-product cards carry a DOM price, so these pages test the JSON-LD path alone.
+    private static string JsonLdOnlyPage(string jsonLd) => $@"
+        <html>
+            <head><script type='application/ld+json'>{jsonLd}</script></head>
+            <body>
+                <h1>Pinecil</h1>
+                <ul class='products'><li class='product'><span class='price'>$3.99</span></li></ul>
+            </body>
+        </html>";
+
+    [Fact]
+    public async Task ScrapeProductAsync_GenericWooCommercePage_TakesJsonLdPriceNotRelatedProduct()
+    {
+        const string url = "https://shop.example/product/pinecil/";
+        _mockHttp.When(url).Respond("text/html", WooCommercePage(
+            """{"@context":"https://schema.org/","@graph":[{"@type":"BreadcrumbList","itemListElement":[]},{"@type":"Product","name":"Pinecil","offers":[{"@type":"Offer","price":"25.99","priceCurrency":"USD"}]}]}"""));
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Success.Should().BeTrue();
+        result.Price.Should().Be(25.99m);
+        result.Currency.Should().Be("USD");
+        result.DetectedSelector.Should().Be(CommonSelectors.JsonLdProductPrice);
+    }
+
+    [Theory]
+    [InlineData("""{"@type":"Product","offers":{"@type":"Offer","price":25.99}}""")]
+    [InlineData("""{"@type":"Product","offers":{"@type":"AggregateOffer","lowPrice":"25.99","highPrice":"30.00"}}""")]
+    [InlineData("""{"@type":"Product","offers":[{"@type":"Offer","priceSpecification":{"price":"25.99"}}]}""")]
+    [InlineData("""[{"@type":"WebPage"},{"@type":["Product","Thing"],"offers":{"price":"25.99"}}]""")]
+    public async Task ScrapeProductAsync_GenericJsonLdOfferShapes_ExtractsProductPrice(string jsonLd)
+    {
+        const string url = "https://shop.example/product/shape/";
+        _mockHttp.When(url).Respond("text/html", JsonLdOnlyPage(jsonLd));
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Price.Should().Be(25.99m);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_GenericJsonLd_IgnoresOffersOutsideTheProductNode()
+    {
+        // An ItemList of related products comes first in the block; only the Product node counts.
+        const string url = "https://shop.example/product/itemlist/";
+        _mockHttp.When(url).Respond("text/html", JsonLdOnlyPage(
+            """{"@graph":[{"@type":"ItemList","itemListElement":[{"@type":"ListItem","item":{"@type":"Thing","offers":{"price":"3.99"}}}]},{"@type":"Product","offers":{"price":"25.99"}}]}"""));
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Price.Should().Be(25.99m);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_GenericJsonLdPrice_TakesCurrencyFromJsonLd()
+    {
+        // A JSON-LD price is a bare number; without the JSON-LD priceCurrency it would default to USD.
+        const string url = "https://shop.example/product/eur/";
+        _mockHttp.When(url).Respond("text/html", JsonLdOnlyPage(
+            """{"@type":"Product","offers":{"price":"25.99","priceCurrency":"EUR"}}"""));
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Price.Should().Be(25.99m);
+        result.Currency.Should().Be("EUR");
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_GenericPageWithoutJsonLd_SkipsRelatedProductPrices()
+    {
+        const string url = "https://shop.example/product/no-jsonld/";
+        _mockHttp.When(url).Respond("text/html", $"<html><body>{WooCommerceBody}</body></html>");
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Price.Should().Be(25.99m);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_GenericWooCommerceSale_TakesTheSalePriceNotTheStruckOne()
+    {
+        const string url = "https://shop.example/product/sale/";
+        const string html = @"
+            <html><body>
+                <h1>Sale item</h1>
+                <p class='price'>
+                    <del><span class='woocommerce-Price-amount amount'>$35.99</span></del>
+                    <ins><span class='woocommerce-Price-amount amount'>$25.99</span></ins>
+                </p>
+            </body></html>";
+        _mockHttp.When(url).Respond("text/html", html);
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Price.Should().Be(25.99m);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_StoredCommonSelector_DoesNotOverrideTheGenericOrder()
+    {
+        // URLs scraped before the fix stored `.price` as their selector; it must not keep winning.
+        const string url = "https://shop.example/product/stored/";
+        _mockHttp.When(url).Respond("text/html", WooCommercePage(
+            """{"@type":"Product","offers":{"price":"25.99"}}"""));
+
+        var result = await _service.ScrapeProductAsync(url, ".price", cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Price.Should().Be(25.99m);
+    }
+
+    #endregion
+
     #region Selector Extraction
 
     [Fact]

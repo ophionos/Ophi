@@ -216,6 +216,13 @@ other kind of fact. Link to owners; don't restate them here.
 - **JSON-LD matches must be scalars.** Stringifying `"price": [10,20]` produced `10,20`, which the
   European-comma heuristic read as 10.20. `JsonPathExtractor.MatchesInBlock` skips non-`JsonValue`
   matches.
+- **Generic price order: meta/`itemprop`, then the JSON-LD Product offer, then broad CSS.** The
+  `jsonld:product-price` entry in a price selector list reads `ExtractProductOfferPrices` (Product
+  nodes only; a bare `$..offers.price` also hits related-product `ItemList`s). `PriceJsonPaths` still
+  run after every CSS selector, so they cannot rank JSON-LD ahead of `.price`. The generic config also
+  sets `ExcludeRelatedProducts`; store configs do not, as their selectors target that store's markup.
+  A URL's stored selector that is in `CommonSelectors.PriceSelectors` is not put first
+  (`ScrapeHelpers.PriceSelectorsWith`); it only pinned the old order (#136).
 - **`AlertTargetFormatter` owns the amount-vs-percent rendering of `Alert.TargetPrice`.** The value
   is a percentage for `PercentDrop`; templates that decided for themselves sent "Your Target: USD 20.00"
   for a 20 % drop. `Condition` rides the `SendAlert*Requested` messages as a trailing nullable (null →

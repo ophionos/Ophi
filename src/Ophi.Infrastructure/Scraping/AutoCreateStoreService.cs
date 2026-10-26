@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp;
 using AngleSharp.Dom;
@@ -23,7 +22,8 @@ public partial class AutoCreateStoreService(ILogger<AutoCreateStoreService> logg
             var priceSelectors = DetectPriceSelectors(document);
             if (priceSelectors.Count == 0)
             {
-                logger.LogDebug("No price selectors detected for {Url}", url);
+                // Information, not Debug: this is the only trace of why a store config was not created.
+                logger.LogInformation("No price selectors detected for {Url}; no store configuration created", url);
                 return null;
             }
 
@@ -57,8 +57,11 @@ public partial class AutoCreateStoreService(ILogger<AutoCreateStoreService> logg
     /// <summary>
     /// Detects working price selectors using strategies in priority order:
     /// 1. OpenGraph meta tags
-    /// 2. Schema.org JSON-LD
-    /// 3. Common CSS patterns
+    /// 2. Schema.org microdata
+    /// 3. The JSON-LD Product offer price
+    /// 4. Common CSS patterns
+    /// The same order as <see cref="CommonSelectors.PriceSelectors"/>, so an auto-created store does
+    /// not put <c>.price</c> (which can match a related-product card) ahead of JSON-LD.
     /// </summary>
     private static List<string> DetectPriceSelectors(IDocument document)
     {
@@ -70,16 +73,24 @@ public partial class AutoCreateStoreService(ILogger<AutoCreateStoreService> logg
         if (HasElement(document, "meta[property='og:price:amount']"))
             selectors.Add("meta[property='og:price:amount']|content");
 
-        // Strategy 2: Schema.org JSON-LD
-        var jsonLdSelectors = ExtractJsonLdPriceSelectors(document);
-        selectors.AddRange(jsonLdSelectors);
-
-        // Strategy 3: Common CSS patterns
-        var cssSelectors = new[]
-        {
+        // Strategy 2: Schema.org microdata
+        AddParsingSelectors(document, selectors,
+        [
             ("[itemprop='price']", "[itemprop='price']|content"),
-            ("[itemprop='price']", "[itemprop='price']"),
+            ("[itemprop='price']", "[itemprop='price']")
+        ]);
+
+        // Strategy 3: Schema.org JSON-LD
+        if (JsonPathExtractor.ExtractProductOfferPrices(JsonPathExtractor.GetJsonLdContents(document))
+            .Any(p => PriceParser.Parse(p) != null))
+            selectors.Add(CommonSelectors.JsonLdProductPrice);
+
+        // Strategy 4: Common CSS patterns
+        AddParsingSelectors(document, selectors,
+        [
             ("[data-price]", "[data-price]"),
+            (".price ins .woocommerce-Price-amount", ".price ins .woocommerce-Price-amount"),
+            (".price > .woocommerce-Price-amount", ".price > .woocommerce-Price-amount"),
             (".price", ".price"),
             (".product-price", ".product-price"),
             (".current-price", ".current-price"),
@@ -87,9 +98,17 @@ public partial class AutoCreateStoreService(ILogger<AutoCreateStoreService> logg
             ("#price", "#price"),
             (".price-current", ".price-current"),
             (".price__current", ".price__current")
-        };
+        ]);
 
-        foreach (var (query, selector) in cssSelectors)
+        return selectors;
+    }
+
+    /// <summary>
+    /// Adds each selector whose first match on the page parses as a price.
+    /// </summary>
+    private static void AddParsingSelectors(IDocument document, List<string> selectors, (string Query, string Selector)[] candidates)
+    {
+        foreach (var (query, selector) in candidates)
         {
             if (selectors.Contains(selector)) continue;
             var element = document.QuerySelector(query);
@@ -102,67 +121,6 @@ public partial class AutoCreateStoreService(ILogger<AutoCreateStoreService> logg
             if (!string.IsNullOrWhiteSpace(text) && PriceParser.Parse(text) != null)
                 selectors.Add(selector);
         }
-
-        return selectors;
-    }
-
-    /// <summary>
-    /// Extracts price selectors from Schema.org JSON-LD product data.
-    /// If JSON-LD contains product pricing, we know itemprop selectors should work.
-    /// </summary>
-    private static List<string> ExtractJsonLdPriceSelectors(IDocument document)
-    {
-        var selectors = new List<string>();
-
-        var scripts = document.QuerySelectorAll("script[type='application/ld+json']");
-        foreach (var script in scripts)
-        {
-            try
-            {
-                var json = script.TextContent.Trim();
-                if (string.IsNullOrEmpty(json)) continue;
-
-                using var doc = JsonDocument.Parse(json);
-                if (ContainsProductType(doc.RootElement))
-                {
-                    // JSON-LD Product found - structured data selectors should work
-                    if (!selectors.Contains("[itemprop='price']|content"))
-                        selectors.Add("[itemprop='price']|content");
-                    if (!selectors.Contains("[itemprop='price']"))
-                        selectors.Add("[itemprop='price']");
-                    break;
-                }
-            }
-            catch (JsonException)
-            {
-                // Skip malformed JSON-LD
-            }
-        }
-
-        return selectors;
-    }
-
-    private static bool ContainsProductType(JsonElement element)
-    {
-        if (element.ValueKind == JsonValueKind.Object)
-        {
-            if (element.TryGetProperty("@type", out var type))
-            {
-                var typeStr = type.GetString();
-                if (typeStr is "Product" or "IndividualProduct")
-                    return true;
-            }
-        }
-        else if (element.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var item in element.EnumerateArray())
-            {
-                if (ContainsProductType(item))
-                    return true;
-            }
-        }
-
-        return false;
     }
 
     private static List<string> DetectNameSelectors(IDocument document)

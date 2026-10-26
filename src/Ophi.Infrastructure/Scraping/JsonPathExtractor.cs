@@ -109,6 +109,77 @@ internal static class JsonPathExtractor
     }
 
     /// <summary>
+    /// Enumerates the offer prices of every JSON-LD <c>Product</c> node, in document order: at any
+    /// depth (so inside <c>@graph</c> or an array), with <c>@type</c> as a string or an array, and
+    /// <c>offers</c> as an object or an array. Per offer it takes <c>price</c>, then <c>lowPrice</c>
+    /// (AggregateOffer), then <c>priceSpecification.price</c>.
+    /// Anchored on the Product node because a plain <c>$..offers.price</c> also matches offers in an
+    /// <c>ItemList</c> of related products, which some themes emit ahead of the product (#136).
+    /// </summary>
+    public static IEnumerable<string> ExtractProductOfferPrices(IEnumerable<string> jsonLdContents)
+    {
+        foreach (var content in jsonLdContents)
+        {
+            JsonNode? root;
+            try
+            {
+                root = JsonNode.Parse(content);
+            }
+            catch
+            {
+                continue;
+            }
+
+            var prices = new List<string>();
+            CollectProductOfferPrices(root, prices);
+            foreach (var price in prices)
+                yield return price;
+        }
+    }
+
+    private static void CollectProductOfferPrices(JsonNode? node, List<string> prices)
+    {
+        switch (node)
+        {
+            case JsonArray array:
+                foreach (var item in array)
+                    CollectProductOfferPrices(item, prices);
+                break;
+
+            case JsonObject obj when IsProduct(obj["@type"]):
+                var offers = obj["offers"];
+                // Not `cond ? array : [offers]`: that types the literal as a JsonArray, and adding a
+                // node that already has a parent throws.
+                IEnumerable<JsonNode?> offerList = offers is JsonArray offerArray ? offerArray : new[] { offers };
+                foreach (var offer in offerList)
+                {
+                    if (offer is not JsonObject offerObj) continue;
+                    var price = ScalarOrNull(offerObj["price"])
+                        ?? ScalarOrNull(offerObj["lowPrice"])
+                        ?? ScalarOrNull(offerObj["priceSpecification"]?["price"]);
+                    if (price != null) prices.Add(price);
+                }
+                break;
+
+            case JsonObject obj:
+                foreach (var (_, child) in obj)
+                    CollectProductOfferPrices(child, prices);
+                break;
+        }
+    }
+
+    private static bool IsProduct(JsonNode? type) => type switch
+    {
+        JsonValue value => value.ToString() is "Product" or "IndividualProduct",
+        JsonArray array => array.Any(t => t is JsonValue v && v.ToString() is "Product" or "IndividualProduct"),
+        _ => false
+    };
+
+    // Scalars only, for the same reason as MatchesInBlock.
+    private static string? ScalarOrNull(JsonNode? node) =>
+        node is JsonValue value ? value.ToString() : null;
+
+    /// <summary>
     /// Enumerates every Schema.org availability value found in JSON-LD blocks (recursive descent).
     /// Returns *all* matches across *all* blocks so callers can flag OOS when any single match
     /// indicates unavailability — mirrors the old per-block regex semantics that this helper replaced.

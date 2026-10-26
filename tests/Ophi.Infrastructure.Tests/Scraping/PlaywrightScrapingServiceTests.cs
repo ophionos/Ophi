@@ -660,6 +660,70 @@ public class PlaywrightScrapingServiceTests
         clearances.Verify(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    // #136 — the same extraction order and related-product filter as ScrapingService.
+
+    private void SetupGenericSelectors(string[] priceSelectors) =>
+        _configProviderMock.Setup(x => x.GetGenericConfig()).Returns(new StoreConfig
+        {
+            Id = "generic",
+            Name = "Generic Store",
+            DomainPatterns = [],
+            IsBuiltIn = true,
+            Selectors = new StoreSelectorConfig
+            {
+                PriceSelectors = priceSelectors,
+                NameSelectors = ["h1"],
+                ImageSelectors = ["img.product"],
+                ExcludeRelatedProducts = true
+            }
+        });
+
+    private static Mock<IElementHandle> PriceElement(string text, bool insideRelated)
+    {
+        var element = new Mock<IElementHandle>();
+        element.Setup(x => x.GetAttributeAsync(It.IsAny<string>())).ReturnsAsync((string?)null);
+        element.Setup(x => x.TextContentAsync()).ReturnsAsync(text);
+        element.Setup(x => x.EvaluateAsync<bool>(It.IsAny<string>(), CommonSelectors.RelatedProductContainers))
+            .ReturnsAsync(insideRelated);
+        return element;
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_GenericJsonLdProductPrice_WinsOverALaterCssMatch()
+    {
+        const string url = "https://shop.example/product/pinecil/";
+        SetupPage(url, priceText: null, name: "Pinecil");
+        _configProviderMock.Setup(x => x.GetConfigForUrl(url)).Returns((StoreConfig?)null);
+        SetupGenericSelectors([CommonSelectors.JsonLdProductPrice, ".price"]);
+        _pageMock.Setup(x => x.EvaluateAsync<string[]>(It.Is<string>(s => s.Contains("ld+json")), It.IsAny<object?>()))
+            .ReturnsAsync(["""{"@graph":[{"@type":"Product","offers":[{"price":"25.99","priceCurrency":"USD"}]}]}"""]);
+        _pageMock.Setup(x => x.QuerySelectorAllAsync(".price"))
+            .ReturnsAsync([PriceElement("$3.99", insideRelated: false).Object]);
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Price.Should().Be(25.99m);
+        result.DetectedSelector.Should().Be(CommonSelectors.JsonLdProductPrice);
+    }
+
+    [Fact]
+    public async Task ScrapeProductAsync_GenericCssMatchInsideRelatedProducts_IsSkipped()
+    {
+        const string url = "https://shop.example/product/related/";
+        SetupPage(url, priceText: null, name: "Pinecil");
+        _configProviderMock.Setup(x => x.GetConfigForUrl(url)).Returns((StoreConfig?)null);
+        SetupGenericSelectors([".price"]);
+        _pageMock.Setup(x => x.QuerySelectorAllAsync(".price")).ReturnsAsync(
+        [
+            PriceElement("$3.99", insideRelated: true).Object,
+            PriceElement("$25.99", insideRelated: false).Object
+        ]);
+
+        var result = await _service.ScrapeProductAsync(url, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Price.Should().Be(25.99m);
+    }
+
     private void SetupPage(string url, string? priceText, string? name = null, string? imageUrl = null)
     {
         _browserManagerMock.Setup(x => x.NewPageAsync(It.IsAny<string?>(), It.IsAny<string?>()))
