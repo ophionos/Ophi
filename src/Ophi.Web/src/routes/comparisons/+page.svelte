@@ -117,7 +117,11 @@
 		{:else}
 			<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
 				{#each groups as group (group.id)}
-					<ComparisonCard {group} onDelete={handleOpenDelete} />
+					<ComparisonCard
+						{group}
+						onDelete={handleOpenDelete}
+						showLandedPrices={data.showLandedPrices ?? false}
+					/>
 				{/each}
 			</div>
 		{/if}

@@ -8,7 +8,9 @@
 		type ProductDetail,
 		type PriceHistory,
 		type ComparisonGroup,
-		type AlertCondition
+		type AlertCondition,
+		type ProductUrl,
+		type ShippingRate
 	} from '$lib/api/client';
 	import { tags } from '$lib/stores/tags.svelte';
 	import PriceChart from '$lib/components/products/PriceChart.svelte';
@@ -20,6 +22,7 @@
 	import ComparisonGroupPanel from '$lib/components/products/ComparisonGroupPanel.svelte';
 	import ConfirmModal from '$lib/components/shared/ConfirmModal.svelte';
 	import ProductUrlCard from '$lib/components/products/ProductUrlCard.svelte';
+	import ShippingRateModal from '$lib/components/shipping/ShippingRateModal.svelte';
 	import AddUrlModal from '$lib/components/products/AddUrlModal.svelte';
 	import ChallengeModal from '$lib/components/products/ChallengeModal.svelte';
 	import ScrapeHistory from '$lib/components/products/ScrapeHistory.svelte';
@@ -42,6 +45,7 @@
 	import { isBuiltInStoreUrl } from '$lib/utils/storeMatch';
 	import { isAwaitingScrape } from '$lib/utils/awaitingScrape';
 	import { bestPriceUrlId as findBestPriceUrlId } from '$lib/utils/bestPrice';
+	import { findShippingRate, shippingHost } from '$lib/utils/shipping';
 	import { liveRefresh } from '$lib/utils/liveRefresh';
 	import SectionCard from '$lib/components/shared/SectionCard.svelte';
 	import { formatStatus } from '$lib/format';
@@ -59,6 +63,20 @@
 		comparisonGroups = pageData.comparisonGroups;
 		tags.set(pageData.tags);
 	});
+
+	// Shipping: the rate list and the setting come from the loader; saving a rate refetches the
+	// product because landed prices are computed server-side.
+	let shippingRates = $derived<ShippingRate[]>([...(pageData.shippingRates ?? [])]);
+	let shippingUrl = $state<ProductUrl | null>(null);
+	const showLandedPrices = $derived(pageData.showLandedPrices ?? false);
+	const shippingRate = $derived(shippingUrl ? (findShippingRate(shippingRates, shippingUrl.url) ?? null) : null);
+
+	async function handleShippingSaved(saved: ShippingRate) {
+		shippingRates = [...shippingRates.filter((r) => r.host !== saved.host), saved];
+		shippingUrl = null;
+		toast.success(`Shipping cost for ${saved.host} saved`);
+		await refreshProduct();
+	}
 
 	let historyDays = $state(7);
 	let historyLoading = $state(false);
@@ -499,6 +517,9 @@
 									canDelete={product.urls.length > 1}
 									isBestPrice={product.urls.length > 1 && productUrl.id === bestPriceUrlId}
 									isBuiltInStore={isBuiltInStoreUrl(pageData.stores, productUrl.url)}
+									{showLandedPrices}
+									hasShippingRate={findShippingRate(shippingRates, productUrl.url) !== undefined}
+									onEditShipping={(u) => (shippingUrl = u)}
 									onDelete={handleRemoveUrl}
 									onRetry={handleRetryScrape}
 									onResume={handleResumeUrl}
@@ -623,6 +644,16 @@
 		existingAlerts={product.alerts}
 		onClose={() => (showAlertModal = false)}
 		onSave={handleCreateAlert}
+	/>
+
+	<ShippingRateModal
+		isOpen={shippingUrl !== null}
+		rate={shippingRate}
+		prefill={shippingUrl
+			? { host: shippingHost(shippingUrl.url), currency: shippingUrl.currency }
+			: null}
+		onClose={() => (shippingUrl = null)}
+		onSaved={handleShippingSaved}
 	/>
 
 	<!-- Add URL Modal -->

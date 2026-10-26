@@ -10,19 +10,24 @@ export const load: PageLoad = async ({ fetch, parent, params }) => {
 			comparisonGroups: [],
 			tags: [],
 			stores: [],
-			challengeAvailable: false
+			challengeAvailable: false,
+			showLandedPrices: false,
+			shippingRates: []
 		};
 	}
 
 	const client = api.withFetch(fetch);
-	const [product, priceHistory, groups, tagsResult, storesResult, challenge] = await Promise.all([
+	const [product, priceHistory, groups, tagsResult, storesResult, challenge, settings, ratesResult] = await Promise.all([
 		client.getProduct(params.id),
 		client.getPriceHistory(params.id, 7),
 		client.getComparisonGroups(),
 		client.getTags(),
 		client.getStores(),
 		// Optional feature: a failure only hides the "Solve challenge" button.
-		client.getChallengeAvailability().catch(() => ({ available: false }))
+		client.getChallengeAvailability().catch(() => ({ available: false })),
+		// Optional: a failure only leaves landed prices off and the rate list empty.
+		client.getSettings().catch(() => null),
+		client.listShippingRates().catch(() => ({ items: [] }))
 	]);
 
 	return {
@@ -33,6 +38,8 @@ export const load: PageLoad = async ({ fetch, parent, params }) => {
 		// Used to hide the "Store configuration" gear on built-in store URLs (those stores
 		// aren't editable). Matched by domain so it works before a product's first scrape.
 		stores: storesResult.items,
-		challengeAvailable: challenge.available
+		challengeAvailable: challenge.available,
+		showLandedPrices: settings?.showLandedPrices ?? false,
+		shippingRates: ratesResult.items
 	};
 };

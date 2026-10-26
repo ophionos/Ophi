@@ -447,6 +447,23 @@ class ApiClient {
 		});
 	}
 
+	// Shipping rates (per site host; never converted between currencies)
+	async listShippingRates() {
+		return this.request<{ items: ShippingRate[] }>('/shipping-rates');
+	}
+
+	/** Creates or replaces the rate. The server normalizes the host (lowercase, no "www."). */
+	async putShippingRate(host: string, data: PutShippingRateRequest) {
+		return this.request<ShippingRate>(`/shipping-rates/${encodeURIComponent(host)}`, {
+			method: 'PUT',
+			body: JSON.stringify(data)
+		});
+	}
+
+	async deleteShippingRate(host: string) {
+		return this.request(`/shipping-rates/${encodeURIComponent(host)}`, { method: 'DELETE' });
+	}
+
 	async testDiscordWebhook() {
 		return this.request<TestDiscordWebhookResponse>('/settings/discord/test', {
 			method: 'POST'
@@ -629,6 +646,7 @@ export const api = new ApiClient();
 
 export interface BackupImportResult {
 	settingsRestored: boolean;
+	shippingRatesRestored: number;
 	tagsAdded: number;
 	comparisonGroupsAdded: number;
 	storesAdded: number;
@@ -788,9 +806,16 @@ export interface ProductUrl {
 	status: string;
 	suspiciousReason?: string;
 	isOutOfStock: boolean;
+	/** Flat shipping for this URL's site; 0 = no rate for the host OR the free-above threshold was reached. */
+	shippingCost?: number | null;
+	/** price + shipping; null while a price exists means the site's rate is in another currency. */
+	landedPrice?: number | null;
 }
 
 export interface ProductDetail extends Product {
+	landedPrice?: number | null;
+	shippingCost?: number | null;
+	landedHost?: string | null;
 	urls: ProductUrl[];
 	comparisonGroupId?: string;
 	hasCurrencyMismatch: boolean;
@@ -879,6 +904,9 @@ export interface ComparisonGroup {
 	bestPriceProductName?: string | null;
 	bestPrice?: number | null;
 	currency?: string | null;
+	bestLandedProductId?: string | null;
+	bestLandedProductName?: string | null;
+	bestLandedPrice?: number | null;
 	sparkline?: { date: string; price: number }[];
 }
 
@@ -889,6 +917,8 @@ export interface ComparisonGroupDetail {
 	products: ComparisonProduct[];
 	bestPriceProductId?: string;
 	bestPrice?: number;
+	bestLandedProductId?: string | null;
+	bestLandedPrice?: number | null;
 	updatedAt: string;
 }
 
@@ -901,6 +931,11 @@ export interface ComparisonProduct {
 	currentPrice?: number;
 	currency: string;
 	isBestPrice: boolean;
+	landedPrice?: number | null;
+	shippingCost?: number | null;
+	/** The site host the landed price came from; its rate (if any) is in the user's shipping rates. */
+	landedHost?: string | null;
+	isBestLandedPrice?: boolean;
 	priceHistory: PriceHistoryPoint[];
 	customFields: CustomField[];
 }
@@ -1108,6 +1143,21 @@ export interface Settings {
 	ntfyNotificationsEnabled: boolean;
 	/** ISO code prices are also shown in (≈ …). Null = off. */
 	displayCurrency?: string | null;
+	/** Rank and show prices including shipping. */
+	showLandedPrices: boolean;
+}
+
+export interface ShippingRate {
+	host: string;
+	amount: number;
+	currency: string;
+	freeAbove?: number | null;
+}
+
+export interface PutShippingRateRequest {
+	amount: number;
+	currency: string;
+	freeAbove?: number | null;
 }
 
 export interface FxRates {
@@ -1130,6 +1180,7 @@ export interface SendTestEmailResponse {
 }
 
 export interface UpdateSettingsRequest {
+	showLandedPrices?: boolean;
 	affiliatesEnabled?: boolean;
 	defaultCheckIntervalMinutes?: number;
 	pageFetchDelaySeconds?: number;

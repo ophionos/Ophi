@@ -3,8 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { api, type ComparisonGroupDetail } from '$lib/api/client';
+	import { api, type ComparisonGroupDetail, type ComparisonProduct } from '$lib/api/client';
 	import { formatPrice } from '$lib/format';
+	import { findShippingRate } from '$lib/utils/shipping';
 	import { liveUpdates } from '$lib/stores/liveUpdates.svelte';
 	import ComparisonChart from '$lib/components/comparisons/ComparisonChart.svelte';
 	import AddProductToGroupModal from '$lib/components/products/AddProductToGroupModal.svelte';
@@ -29,6 +30,42 @@
 	let groupId = $derived(page.params.id ?? '');
 	let group = $derived<ComparisonGroupDetail | null>(pageData.group);
 	let selectedDays = $state(7);
+
+	// With "Show prices with shipping" on, the ranking and the highlighted price are the landed
+	// price (store price + shipping). Off, everything stays on the store price.
+	const landedOn = $derived(pageData.showLandedPrices ?? false);
+	const shippingRates = $derived(pageData.shippingRates ?? []);
+
+	function isBest(product: ComparisonProduct): boolean {
+		return landedOn
+			? product.isBestLandedPrice === true && product.landedPrice != null
+			: product.isBestPrice;
+	}
+
+	// The server orders by store price; with the setting on, the rows follow the landed price.
+	// An unknown landed price goes last. The sort is stable, so equal prices keep the server order.
+	const rows = $derived(
+		landedOn && group
+			? [...group.products].sort(
+					(a, b) => (a.landedPrice ?? Infinity) - (b.landedPrice ?? Infinity)
+				)
+			: (group?.products ?? [])
+	);
+
+	/** The landed price's parts, e.g. "(€18.99 + €3.00 shipping)". */
+	function landedParts(product: ComparisonProduct): string {
+		const shipping = product.shippingCost ?? 0;
+		// The landed price can come from another site than the cheapest store price, so the item
+		// price is the landed price less its shipping, not currentPrice.
+		const base = (product.landedPrice ?? 0) - shipping;
+		if (shipping > 0) {
+			return `(${formatPrice(base, product.currency)} + ${formatPrice(shipping, product.currency)} shipping)`;
+		}
+		// Shipping 0 means either no rate for the host or the free-above threshold was reached.
+		return findShippingRate(shippingRates, product.landedHost)
+			? '(free shipping)'
+			: '(no shipping cost set)';
+	}
 
 	let addModalOpen = $state(false);
 
@@ -180,10 +217,11 @@
 	{#if group}
 		<!-- Cheapest product. Neutral on purpose: a group can be a wishlist of different products,
 		     where the cheapest one is not a winner and saves nothing on the others. -->
-		{#if group.bestPrice != null && group.bestPriceProductId}
-			{@const bestPriceProductId = group.bestPriceProductId}
+		{#if landedOn ? group.bestLandedPrice != null && group.bestLandedProductId : group.bestPrice != null && group.bestPriceProductId}
+			{@const bestPriceProductId = landedOn ? group.bestLandedProductId : group.bestPriceProductId}
+			{@const bestPrice = landedOn ? group.bestLandedPrice : group.bestPrice}
 			{@const bestProduct = group.products.find((p) => p.id === bestPriceProductId)}
-			{#if bestProduct}
+			{#if bestProduct && bestPrice != null}
 				<div
 					class="mb-6 p-5 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm"
 					data-testid="cheapest-spotlight"
@@ -200,7 +238,12 @@
 								{bestProduct.name}
 							</p>
 							<p class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
-								{formatPrice(group.bestPrice, bestProduct.currency)}
+								{formatPrice(bestPrice, bestProduct.currency)}
+								{#if landedOn}
+									<span class="text-sm font-medium text-gray-500 dark:text-gray-400"
+										>incl. shipping</span
+									>
+								{/if}
 							</p>
 						</div>
 					</div>
@@ -298,11 +341,11 @@
 				</div>
 			{:else}
 				<div class="divide-y divide-gray-200 dark:divide-gray-700">
-					{#each group.products as product (product.id)}
+					{#each rows as product (product.id)}
 						<!-- Every row has one size so the names line up; only the badge and the
 						     background mark the cheapest. -->
 						<div
-							class="p-4 flex items-center gap-4 transition-colors {product.isBestPrice
+							class="p-4 flex items-center gap-4 transition-colors {isBest(product)
 								? 'bg-success/5'
 								: 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}"
 							data-testid="comparison-product-row"
@@ -330,7 +373,7 @@
 									>
 										{product.name}
 									</a>
-									{#if product.isBestPrice}
+									{#if isBest(product)}
 										<span
 											class="inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-success/15 text-success rounded-full"
 										>
@@ -339,10 +382,24 @@
 										</span>
 									{/if}
 								</div>
-								{#if product.currentPrice != null}
-									<p class="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-										{formatPrice(product.currentPrice, product.currency)}
-									</p>
+								{#if landedOn && product.landedPrice != null}
+									<div data-testid="product-price-{product.id}">
+										<p class="text-lg font-semibold text-gray-900 dark:text-white mt-1">
+											{formatPrice(product.landedPrice, product.currency)}
+										</p>
+										<p class="text-xs text-gray-500 dark:text-gray-400">
+											incl. shipping {landedParts(product)}
+										</p>
+									</div>
+								{:else if product.currentPrice != null}
+									<div data-testid="product-price-{product.id}">
+										<p class="text-lg font-semibold text-gray-900 dark:text-white mt-1">
+											{formatPrice(product.currentPrice, product.currency)}
+										</p>
+										{#if landedOn}
+											<p class="text-xs text-warning">shipping in another currency</p>
+										{/if}
+									</div>
 								{:else}
 									<p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Price unavailable</p>
 								{/if}

@@ -12,6 +12,7 @@ vi.mock('$lib/utils/download', () => ({ downloadBlob: vi.fn() }));
 
 const result = {
 	settingsRestored: true,
+	shippingRatesRestored: 3,
 	tagsAdded: 2,
 	comparisonGroupsAdded: 1,
 	storesAdded: 0,
@@ -55,6 +56,7 @@ describe('BackupCard', () => {
 		expect(summary).toHaveTextContent('5 products added');
 		expect(summary).toHaveTextContent('2 already tracked');
 		expect(summary).toHaveTextContent('imported paused');
+		expect(summary).toHaveTextContent('3 shipping rates');
 	});
 
 	it('should announce a failed restore', async () => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ExternalLink, Trash2, LoaderCircle, TriangleAlert, RotateCcw, Settings, Trophy, Pause, Play, PackageX, ShieldCheck } from 'lucide-svelte';
+	import { ExternalLink, Trash2, LoaderCircle, TriangleAlert, RotateCcw, Settings, Trophy, Pause, Play, PackageX, ShieldCheck, Truck } from 'lucide-svelte';
 	import type { ProductUrl } from '$lib/api/client';
 	import { formatPrice, formatDate } from '$lib/format';
 	import { onDestroy } from 'svelte';
@@ -15,6 +15,12 @@
 		onResume?: (urlId: string) => Promise<void>;
 		/** Set only when the server offers challenge solving (GET /challenge/available). */
 		onSolveChallenge?: (urlId: string) => void;
+		/** The user turned on "Show prices with shipping": the shipping cost shows under the price. */
+		showLandedPrices?: boolean;
+		/** The URL's site already has a shipping rate: the action reads "Edit shipping". */
+		hasShippingRate?: boolean;
+		/** Opens the shipping editor for this URL's site. Omit to hide the action. */
+		onEditShipping?: (productUrl: ProductUrl) => void;
 	}
 
 	let {
@@ -25,7 +31,10 @@
 		onDelete,
 		onRetry,
 		onResume,
-		onSolveChallenge
+		onSolveChallenge,
+		showLandedPrices = false,
+		hasShippingRate = false,
+		onEditShipping
 	}: Props = $props();
 
 	let deleting = $state(false);
@@ -185,6 +194,17 @@
 					</span>
 				{/if}
 			</div>
+			{#if showLandedPrices && productUrl.currentPrice != null}
+				{#if (productUrl.shippingCost ?? 0) > 0 && productUrl.landedPrice != null}
+					<p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400" data-testid="url-shipping">
+						+ {formatPrice(productUrl.shippingCost ?? 0, productUrl.currency)} shipping
+					</p>
+				{:else if productUrl.landedPrice === null}
+					<p class="mt-0.5 text-xs text-warning" data-testid="url-shipping">
+						shipping in another currency
+					</p>
+				{/if}
+			{/if}
 			{#if failureExplanation}
 				<p
 					class="mt-1 text-xs text-danger break-words"
@@ -265,6 +285,17 @@
 		>
 			<ExternalLink size={16} />
 		</a>
+		{#if onEditShipping}
+			<button
+				onclick={() => onEditShipping?.(productUrl)}
+				class="flex min-h-11 min-w-11 items-center justify-center text-gray-400 hover:text-brand dark:hover:text-brand-muted hover:bg-brand-light dark:hover:bg-brand-dark/30 rounded"
+				title={hasShippingRate ? 'Edit shipping' : 'Set shipping'}
+				aria-label={hasShippingRate ? 'Edit shipping' : 'Set shipping'}
+				data-testid="edit-shipping-button"
+			>
+				<Truck size={16} />
+			</button>
+		{/if}
 		{#if !isBuiltInStore}
 			<a
 				href={`/stores?edit=${encodeURIComponent(getDomain(productUrl.url))}`}

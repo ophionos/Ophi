@@ -29,9 +29,11 @@ const mockGroups = [
 	{ id: 'g2', name: 'Phones', productCount: 2 }
 ];
 
-function renderPage(groups: typeof mockGroups = []) {
+function renderPage(groups: unknown[] = [], showLandedPrices?: boolean) {
 	return render(ComparisonsPage, {
-		props: { data: { user: null, authChecked: true, isPublic: false, groups } }
+		props: {
+			data: { user: null, authChecked: true, isPublic: false, groups, showLandedPrices }
+		} as never
 	});
 }
 
@@ -40,6 +42,33 @@ describe('Comparisons Page', () => {
 		vi.clearAllMocks();
 		auth.logout();
 		auth.login(mockUser);
+	});
+
+	describe('landed prices', () => {
+		const priced = [
+			{
+				id: 'g1',
+				name: 'Laptops',
+				productCount: 2,
+				currency: 'EUR',
+				bestPrice: 10,
+				bestPriceProductName: 'Scraped Best',
+				bestLandedPrice: 12,
+				bestLandedProductName: 'Landed Best'
+			}
+		];
+
+		it('should rank cards by landed price when the setting is on', () => {
+			renderPage(priced, true);
+			expect(screen.getByTestId('comparison-card-best')).toHaveTextContent('incl. shipping');
+			expect(screen.getByTestId('comparison-card-best')).toHaveTextContent('Landed Best');
+		});
+
+		it('should keep the store price on cards when the setting is off', () => {
+			renderPage(priced, false);
+			expect(screen.getByTestId('comparison-card-best')).toHaveTextContent('Scraped Best');
+			expect(screen.getByTestId('comparison-card-best')).not.toHaveTextContent('incl. shipping');
+		});
 	});
 
 	describe('rendering', () => {

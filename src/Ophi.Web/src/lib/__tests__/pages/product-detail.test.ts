@@ -35,7 +35,9 @@ vi.mock('$lib/api/client', async () => {
 			startChallenge: vi.fn(),
 			getChallenge: vi.fn(),
 			sendChallengeInput: vi.fn(),
-			closeChallenge: vi.fn()
+			closeChallenge: vi.fn(),
+			putShippingRate: vi.fn(),
+			listShippingRates: vi.fn()
 		}
 	};
 });
@@ -207,7 +209,8 @@ function setupPageParams(id: string) {
 function renderPage(
 	product: ProductDetail | null,
 	stores: Store[] = [],
-	challengeAvailable = false
+	challengeAvailable = false,
+	extraData: Record<string, unknown> = {}
 ) {
 	// Action-handler mocks for code paths that hit the API directly
 	vi.mocked(api.getProduct).mockResolvedValue(product as ProductDetail);
@@ -227,7 +230,8 @@ function renderPage(
 				comparisonGroups: [],
 				tags: [],
 				stores,
-				challengeAvailable
+				challengeAvailable,
+				...extraData
 			} as unknown as PageData
 		}
 	});
@@ -816,6 +820,79 @@ describe('Product Detail Page', () => {
 			await waitFor(() => {
 				expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 			});
+		});
+	});
+
+	describe('shipping', () => {
+		const shippedProduct = {
+			...mockProductWithCustomFields,
+			urls: [
+				{
+					...mockProductWithCustomFields.urls[0],
+					url: 'https://WWW.Apple.com/macbook',
+					currency: 'EUR',
+					shippingCost: 3,
+					landedPrice: 2002.99
+				}
+			]
+		} as ProductDetail;
+
+		it('should open the editor prefilled with the URL host and currency when Set shipping is clicked', async () => {
+			auth.login(mockUser);
+			renderPage(shippedProduct, [], false, { showLandedPrices: false, shippingRates: [] });
+
+			await fireEvent.click(await screen.findByRole('button', { name: 'Set shipping' }));
+
+			const dialog = screen.getByRole('dialog');
+			expect(within(dialog).getByLabelText('Site host')).toHaveValue('apple.com');
+			expect(within(dialog).getByLabelText('Currency')).toHaveValue('EUR');
+		});
+
+		it('should open the editor on the existing rate when the site already has one', async () => {
+			auth.login(mockUser);
+			renderPage(shippedProduct, [], false, {
+				showLandedPrices: false,
+				shippingRates: [{ host: 'apple.com', amount: 3, currency: 'EUR', freeAbove: null }]
+			});
+
+			await fireEvent.click(await screen.findByRole('button', { name: 'Edit shipping' }));
+
+			const dialog = screen.getByRole('dialog');
+			expect(within(dialog).getByLabelText('Site host')).toHaveAttribute('readonly');
+			expect(within(dialog).getByLabelText('Shipping cost')).toHaveValue(3);
+		});
+
+		it('should reload the product after the rate is saved', async () => {
+			auth.login(mockUser);
+			vi.mocked(api.putShippingRate).mockResolvedValue({
+				host: 'apple.com',
+				amount: 5,
+				currency: 'EUR',
+				freeAbove: null
+			});
+			renderPage(shippedProduct, [], false, { showLandedPrices: true, shippingRates: [] });
+			vi.mocked(api.getProduct).mockClear();
+
+			await fireEvent.click(await screen.findByRole('button', { name: 'Set shipping' }));
+			const dialog = screen.getByRole('dialog');
+			await fireEvent.input(within(dialog).getByLabelText('Shipping cost'), {
+				target: { value: '5' }
+			});
+			await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+			await waitFor(() => expect(api.getProduct).toHaveBeenCalled());
+			await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+		});
+
+		it('should show the shipping line on the URL only when the setting is on', async () => {
+			auth.login(mockUser);
+			const { unmount } = renderPage(shippedProduct, [], false, { showLandedPrices: true });
+			expect(await screen.findByTestId('url-shipping')).toHaveTextContent('+ €3.00 shipping');
+			unmount();
+
+			renderPage(shippedProduct, [], false, { showLandedPrices: false });
+			await screen.findByRole('button', { name: 'Set shipping' });
+			expect(screen.queryByTestId('url-shipping')).not.toBeInTheDocument();
 		});
 	});
 });

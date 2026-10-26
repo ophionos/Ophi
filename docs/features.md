@@ -33,7 +33,10 @@ The README lists what Ophi does. This file holds only the behavior a user or ope
   free-above threshold, in its own currency. `User.ShowLandedPrices` is the display setting. Both travel
   in the account backup. The comparison (detail and cards) and product endpoints always return the
   landed price (price + shipping) next to the scraped one, with its own best product; the setting only
-  chooses what the UI shows first.
+  chooses what the UI shows first. Rates are edited on the Stores page or from a product's URL row
+  ("Set shipping"); the switch is in Settings → Account. With it on, comparisons rank, mark and order
+  by the landed price, always labelled "incl. shipping"; charts, alerts and the dashboard stay on the
+  scraped price.
 
 ## Alerts and notifications
 

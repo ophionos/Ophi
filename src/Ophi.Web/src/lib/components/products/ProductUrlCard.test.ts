@@ -387,4 +387,66 @@ describe('ProductUrlCard', () => {
 			expect(screen.queryByTestId('solve-challenge-button')).not.toBeInTheDocument();
 		});
 	});
+
+	describe('shipping', () => {
+		const withShipping = { ...mockProductUrl, currency: 'EUR', shippingCost: 3, landedPrice: 32.99 };
+
+		it('should offer Set shipping when the site has no rate', () => {
+			render(ProductUrlCard, { props: { ...defaultProps, onEditShipping: vi.fn() } });
+			expect(screen.getByRole('button', { name: 'Set shipping' })).toBeInTheDocument();
+		});
+
+		it('should offer Edit shipping when the site has a rate', () => {
+			render(ProductUrlCard, {
+				props: { ...defaultProps, onEditShipping: vi.fn(), hasShippingRate: true }
+			});
+			expect(screen.getByRole('button', { name: 'Edit shipping' })).toBeInTheDocument();
+		});
+
+		it('should not offer the action when no handler is given', () => {
+			render(ProductUrlCard, { props: defaultProps });
+			expect(screen.queryByRole('button', { name: /shipping/i })).not.toBeInTheDocument();
+		});
+
+		it('should call onEditShipping with the URL when the action is clicked', async () => {
+			const onEditShipping = vi.fn();
+			render(ProductUrlCard, { props: { ...defaultProps, onEditShipping } });
+			await fireEvent.click(screen.getByRole('button', { name: 'Set shipping' }));
+			expect(onEditShipping).toHaveBeenCalledWith(mockProductUrl);
+		});
+
+		it('should show the shipping line when the setting is on and shipping is above zero', () => {
+			render(ProductUrlCard, {
+				props: { ...defaultProps, productUrl: withShipping, showLandedPrices: true }
+			});
+			expect(screen.getByTestId('url-shipping')).toHaveTextContent('+ €3.00 shipping');
+		});
+
+		it('should show nothing new when the setting is off', () => {
+			render(ProductUrlCard, { props: { ...defaultProps, productUrl: withShipping } });
+			expect(screen.queryByTestId('url-shipping')).not.toBeInTheDocument();
+		});
+
+		it('should show no shipping line when shipping is zero', () => {
+			render(ProductUrlCard, {
+				props: {
+					...defaultProps,
+					productUrl: { ...withShipping, shippingCost: 0, landedPrice: 29.99 },
+					showLandedPrices: true
+				}
+			});
+			expect(screen.queryByTestId('url-shipping')).not.toBeInTheDocument();
+		});
+
+		it('should say shipping is in another currency when landed is unknown', () => {
+			render(ProductUrlCard, {
+				props: {
+					...defaultProps,
+					productUrl: { ...withShipping, shippingCost: 0, landedPrice: null },
+					showLandedPrices: true
+				}
+			});
+			expect(screen.getByTestId('url-shipping')).toHaveTextContent('shipping in another currency');
+		});
+	});
 });
