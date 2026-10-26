@@ -99,6 +99,7 @@ internal static class EndpointRouting
         // Baskets
         app.MapGetBasketsEndpoint();
         app.MapGetBasketEndpoint();
+        app.MapGetBasketHistoryEndpoint();
         app.MapCreateBasketEndpoint();
         app.MapUpdateBasketEndpoint();
         app.MapDeleteBasketEndpoint();

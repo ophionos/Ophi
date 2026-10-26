@@ -116,6 +116,9 @@ other kind of fact. Link to owners; don't restate them here.
   aggregator, which keeps out-of-stock URLs. Shipping is charged once per site on the site subtotal.
   An incomplete site is never best, and a site with mixed currencies has no total. The split takes
   each item's cheapest URL in the dominant currency; it does not search store combinations.
+  The basket history (`BasketHistory`) does not copy these rules: at each price change it rebuilds
+  the URLs with their held prices and calls `BasketTotals`. It uses the current shipping rate,
+  because rates are not versioned.
 - **A price must be > 0, enforced at the parser boundary.** `PriceParser` keeps the ASCII hyphen, so
   `-$15.00` (a discount element) parses to `-15.00` and `$0.00` placeholders to zero; downstream, a
   non-positive value won the MIN, became history, and fired every "below" alert. Every
