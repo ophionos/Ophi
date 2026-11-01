@@ -27,14 +27,14 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.13" />
 
     <!-- Wolverine -->
-    <PackageVersion Include="WolverineFx" Version="6.51.0" />
-    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.51.0" />
-    <PackageVersion Include="WolverineFx.FluentValidation" Version="6.51.0" />
-    <PackageVersion Include="WolverineFx.Postgresql" Version="6.51.0" />
+    <PackageVersion Include="WolverineFx" Version="6.60.0" />
+    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.60.0" />
+    <PackageVersion Include="WolverineFx.FluentValidation" Version="6.60.0" />
+    <PackageVersion Include="WolverineFx.Postgresql" Version="6.60.0" />
     <!-- Wolverine 6 moved the Roslyn runtime compiler into this package. Only the API
          references it, for Embedded mode (ENABLE_WORKER), which compiles handlers at
          runtime. The split hosts load checked-in generated code (TypeLoadMode.Static). -->
-    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.51.0" />
+    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.60.0" />
 
     <!-- Scraping & infrastructure -->
     <PackageVersion Include="AngleSharp" Version="1.8.5" />
