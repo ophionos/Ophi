@@ -1,6 +1,6 @@
 # Build stage
 # Keep this tag in step with `packageManager` in src/Ophi.Web/package.json (CI reads that).
-FROM --platform=$BUILDPLATFORM oven/bun:1.4.2 AS build
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.4 AS build
 WORKDIR /app
 
 # Copy package files
