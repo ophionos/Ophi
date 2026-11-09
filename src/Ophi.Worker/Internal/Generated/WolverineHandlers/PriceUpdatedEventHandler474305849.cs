@@ -38,6 +38,8 @@ namespace Ophi.Worker.Generated.WolverineHandlers
             // The actual message body
             var priceUpdatedEvent = (Ophi.Domain.Messages.Events.PriceUpdatedEvent)context.Envelope.Message;
 
+            System.Diagnostics.Activity.Current?.SetTag("message.handler", "Ophi.Worker.Handlers.CheckAlertsHandler, Ophi.Worker.Handlers.CheckBasketAlertsHandler, Ophi.Worker.Handlers.DispatchPriceChangedWebhookHandler, Ophi.Worker.Handlers.RecordPriceHistoryHandler");
+            System.Diagnostics.Activity.Current?.SetTag("handler.type", "Ophi.Worker.Handlers.CheckAlertsHandler, Ophi.Worker.Handlers.CheckBasketAlertsHandler, Ophi.Worker.Handlers.DispatchPriceChangedWebhookHandler, Ophi.Worker.Handlers.RecordPriceHistoryHandler");
             
             // The actual message execution
             var outgoing1 = await Ophi.Worker.Handlers.CheckAlertsHandler.HandleAsync(priceUpdatedEvent, ophiDbContext, _optionsOfAlertSettings, _timeProvider, ((Microsoft.Extensions.Logging.ILogger)_loggerForMessage), cancellation).ConfigureAwait(false);
