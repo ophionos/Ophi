@@ -1,0 +1,46 @@
+{
+  "default": ["backend", "frontend", "check", "lint"],
+  "groups": {
+    "web": ["frontend", "check", "lint"],
+    "full": ["backend", "frontend", "check", "lint", "build"]
+  },
+  "steps": {
+    "backend": {
+      "run": "dotnet test --filter-not-trait \"Category=Integration\"",
+      "timeoutMinutes": 30,
+      "summary": "^\\s*(total|failed|succeeded|skipped): \\d+",
+      "errors": "^\\s*failed |\\[FAIL\\]|error [A-Z]+\\d+|Zero tests ran|Connection refused|Failed to connect"
+    },
+    "postgres": {
+      "run": "dotnet test tests/Ophi.Postgres.Tests",
+      "timeoutMinutes": 20,
+      "summary": "^\\s*(total|failed|succeeded|skipped): \\d+",
+      "errors": "^\\s*failed |\\[FAIL\\]|error [A-Z]+\\d+|Zero tests ran|Connection refused|Failed to connect"
+    },
+    "frontend": {
+      "run": "bun run test:run",
+      "cwd": "src/Ophi.Web",
+      "summary": "^\\s*(Test Files|Tests)\\s",
+      "errors": "^\\s*(FAIL|×|AssertionError|Error:|TypeError:|ReferenceError:)|^\\s*❯ .*:\\d+:\\d+",
+      "zeroTests": "No test files found"
+    },
+    "check": {
+      "run": "bun run check",
+      "cwd": "src/Ophi.Web",
+      "summary": "svelte-check found|COMPLETED \\d+ FILES",
+      "errors": "\\bERROR\\b|^\\S.*:\\d+:\\d+|\\bError\\b"
+    },
+    "lint": {
+      "run": "bun run lint -- --max-warnings 0",
+      "cwd": "src/Ophi.Web",
+      "summary": "problems?\\b|max-warnings",
+      "errors": "^\\s+\\d+:\\d+\\s+(error|warning)|^[A-Za-z]:\\\\|^/"
+    },
+    "build": {
+      "run": "bun run build",
+      "cwd": "src/Ophi.Web",
+      "summary": "built in|error during build",
+      "errors": "error|Error"
+    }
+  }
+}

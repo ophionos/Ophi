@@ -22,6 +22,8 @@ The gate is defined in `CLAUDE.md` § Testing Conventions, and the exact command
 | `lint` | `bun run lint -- --max-warnings 0` in `src/Ophi.Web/` (the CI "Lint" step) |
 | `build` | `bun run build` in `src/Ophi.Web/` with `VITE_API_URL=/api/v1` |
 
+Run the steps through the gate script when you can: `pwsh ~/.claude/tools/gate.ps1 <steps>` (`-List` shows the names; `.claude/gate.json` holds the same commands as the table above). Copy its table into your report, and read the log file it names for a failed step.
+
 Before `backend` or `postgres`: the Postgres container from `/dev-stack` Mode A must be running, and `POSTGRES_TEST_CONNECTION` must be set (check with `echo`; `/dev-stack` Mode A step 6 has the value). Hold WSL warm with a background keepalive started before the run (`/dev-stack` Step 0). `Category=Integration` failures for want of an installed browser, and a local Bun older than `packageManager` in `src/Ophi.Web/package.json`, are ENVIRONMENT, not regressions.
 
 Use timeouts of at least 10 minutes. Independent suites can run in parallel as background commands.

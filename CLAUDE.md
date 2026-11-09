@@ -102,9 +102,13 @@ Conventional Commits: `<type>(<scope>): <description>`. Types: `feat`, `fix`, `d
 
 The user wants this delegation used; treat this section as a standing request to spawn these agents. Delegate work whose output is noisy or that is long and mechanical. Each spawn cold-loads `CLAUDE.md` + `CLAUDE.local.md` (not auto-memory), so a short task with little output is cheaper inline.
 
+The user-level `~/.claude/CLAUDE.md` § Delegation holds the general rules (when to delegate, what a spec contains, how to check a report). The agents in `.claude/agents/` replace the user-level agents of the same name; `scout` exists only at the user level.
+
 | Need | Delegate to |
 |---|---|
-| The green-before-commit gate (Testing Conventions) | `gate-runner` — Haiku, read-only; run it in the background and keep working |
+| Where something is or how a flow works, when it needs more than three reads or searches | `scout` — Haiku, read-only. `docs/architecture.md` and `docs/agent-notes.md` answer many of these first |
+| The green-before-commit gate (Testing Conventions) | The gate script, as a background command: `pwsh ~/.claude/tools/gate.ps1 [web \| backend \| postgres \| build \| full]`. `.claude/gate.json` is the executable form of the Testing Conventions bullet; change both together. No model runs, and the totals come from the tools |
+| A gate failure that looks like the machine (Postgres container, WSL, a missing browser), or a gate run that needs the stack prepared first | `gate-runner` — Haiku, read-only; in the background |
 | Release notes for Dependabot bumps (`/pr-triage` § 3) | `dep-reviewer` — Haiku, one per PR, in parallel |
 | UI behavior in a real browser (`/verify` § 2–3) | `ui-verifier` — Sonnet |
 | A deploy | `/redeploy` — forks itself to a background Sonnet agent |
