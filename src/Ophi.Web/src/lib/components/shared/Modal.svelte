@@ -57,13 +57,13 @@
 				: 'items-start pt-16'}"
 		>
 			<div
-				class="fixed inset-0 bg-black/50 transition-opacity"
+				class="fixed inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity"
 				onclick={() => closeOnBackdrop && onClose()}
 				role="presentation"
 			></div>
 
 			<div
-				class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl {sizeClass[size]} w-full max-h-[85vh] overflow-hidden flex flex-col"
+				class="relative bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl {sizeClass[size]} w-full max-h-[85vh] overflow-hidden flex flex-col"
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby={titleId}

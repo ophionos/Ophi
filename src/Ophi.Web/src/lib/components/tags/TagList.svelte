@@ -17,7 +17,7 @@
 <div class="space-y-2" data-testid="tag-list">
 	{#each sortedTags as tag (tag.id)}
 		<div
-			class="flex items-center justify-between p-3 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-sm transition-shadow"
+			class="flex items-center justify-between p-3 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-lg"
 			data-testid="tag-list-item"
 		>
 			<div class="flex items-center gap-3">

@@ -72,7 +72,7 @@
 			{#each baskets as basket (basket.id)}
 				<div
 					data-testid="basket-card"
-					class="relative min-w-0 bg-surface-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-brand"
+					class="relative min-w-0 bg-surface-1 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-brand"
 				>
 					<div class="flex items-center gap-2">
 						<ShoppingBasket size={18} class="shrink-0 text-brand dark:text-brand-muted" />

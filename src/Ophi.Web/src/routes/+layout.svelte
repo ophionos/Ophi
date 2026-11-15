@@ -185,7 +185,7 @@
 <NavigationProgress active={navigating.to !== null} />
 <div class="min-h-screen bg-surface-0 transition-colors">
 	{#if data.user && authChecked}
-		<nav class="sticky top-0 z-50 bg-surface-1/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700/50 shadow-sm" aria-label="Main navigation">
+		<nav class="sticky top-0 z-50 bg-surface-1/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700" aria-label="Main navigation">
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div class="flex justify-between h-14">
 					<div class="flex items-center">
@@ -205,35 +205,36 @@
 						<a
 							href={resolve('/dashboard')}
 							aria-label="Ophi dashboard"
-							class="flex min-h-11 min-w-11 items-center justify-center gap-2 text-xl font-bold text-brand dark:text-brand-muted"
+							class="flex min-h-11 min-w-11 items-center justify-center gap-2 text-lg font-bold tracking-tight text-gray-900 dark:text-white"
 						>
 							<OphiLogo size={28} class="rounded" />
+							<span class="hidden xl:inline" aria-hidden="true">Ophi</span>
 						</a>
-						<div class="hidden md:flex ml-8 space-x-1">
+						<div class="hidden md:flex ml-3 lg:ml-8 space-x-1">
 							<a
 								href={resolve('/dashboard')}
-								class="px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/dashboard'))} rounded-md transition-colors"
+								class="px-2.5 lg:px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/dashboard'))} rounded-md transition-colors"
 								aria-current={isActive(resolve('/dashboard')) ? 'page' : undefined}
 							>
 								Dashboard
 							</a>
 							<a
 								href={resolve('/comparisons')}
-								class="px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/comparisons'))} rounded-md transition-colors"
+								class="px-2.5 lg:px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/comparisons'))} rounded-md transition-colors"
 								aria-current={isActive(resolve('/comparisons')) ? 'page' : undefined}
 							>
 								Comparisons
 							</a>
 							<a
 								href={resolve('/baskets')}
-								class="px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/baskets'))} rounded-md transition-colors"
+								class="px-2.5 lg:px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/baskets'))} rounded-md transition-colors"
 								aria-current={isActive(resolve('/baskets')) ? 'page' : undefined}
 							>
 								Baskets
 							</a>
 							<a
 								href={resolve('/alerts')}
-								class="px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/alerts'))} rounded-md transition-colors"
+								class="px-2.5 lg:px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/alerts'))} rounded-md transition-colors"
 								aria-current={isActive(resolve('/alerts')) ? 'page' : undefined}
 							>
 								Alerts
@@ -242,7 +243,7 @@
 							<div class="relative" data-manage-menu use:menuKeyNav>
 								<button
 									onclick={() => (manageOpen = !manageOpen)}
-									class="px-3 py-1.5 text-sm font-medium {manageActive ? 'text-brand dark:text-brand-muted bg-brand-light dark:bg-brand-dark/30' : 'text-gray-700 dark:text-gray-300 hover:text-brand dark:hover:text-brand-muted hover:bg-surface-2'} rounded-md transition-colors flex items-center gap-1"
+									class="px-2.5 lg:px-3 py-1.5 text-sm font-medium {manageActive ? 'text-brand dark:text-brand-muted bg-brand-light dark:bg-brand-dark/30' : 'text-gray-700 dark:text-gray-300 hover:text-brand dark:hover:text-brand-muted hover:bg-surface-2'} rounded-md transition-colors flex items-center gap-1"
 									aria-expanded={manageOpen}
 									aria-haspopup="true"
 								>
@@ -280,23 +281,23 @@
 							</div>
 							<a
 								href={resolve('/settings')}
-								class="px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/settings'))} rounded-md transition-colors"
+								class="px-2.5 lg:px-3 py-1.5 text-sm font-medium {navLinkClass(resolve('/settings'))} rounded-md transition-colors"
 								aria-current={isActive(resolve('/settings')) ? 'page' : undefined}
 							>
 								Settings
 							</a>
 						</div>
 					</div>
-					<div class="flex items-center gap-3">
+					<div class="flex items-center gap-1 lg:gap-3">
 						<button
 							onclick={() => (commandPaletteOpen = true)}
-							class="hidden md:flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-600 rounded-md hover:border-gray-300 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
+							class="tap-area hidden md:flex h-9 w-9 lg:w-auto xl:w-56 items-center justify-center lg:justify-start gap-2 lg:px-3 text-sm text-gray-500 dark:text-gray-400 bg-surface-2 rounded-md hover:bg-surface-3 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
 							aria-label="Open command palette"
 							data-command-palette-trigger
 						>
-							<Search size={13} />
-							<span>Search</span>
-							<kbd class="ml-1 text-[10px] font-medium opacity-60">{paletteHint}</kbd>
+							<Search size={15} />
+							<span class="hidden lg:inline">Search</span>
+							<kbd class="hidden lg:inline ml-auto pl-2 font-sans text-xs font-medium text-gray-400 dark:text-gray-500">{paletteHint}</kbd>
 						</button>
 						<ThemeToggle />
 						<NotificationBell />

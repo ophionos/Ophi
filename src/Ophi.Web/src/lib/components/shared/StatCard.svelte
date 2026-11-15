@@ -34,7 +34,7 @@
 </script>
 
 <div
-	class="bg-surface-1 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50 ring-1 ring-black/5 dark:ring-white/5"
+	class="bg-surface-1 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
 	data-testid={testid}
 >
 	<div class="flex items-center gap-1.5">

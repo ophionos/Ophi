@@ -472,6 +472,18 @@ Behavior and trust model: [security.md](security.md). The invariants a change ca
   `warning` means "needs attention" (a dormant alert); a normal active state (a toggle that is on, an
   active status) takes `brand`, not green or yellow. A category label that is not a state (a "Custom"
   store, a landing feature icon) takes a neutral gray or a brand colour, never a status colour.
+- **The neutral scale, radii and shadows are overridden once in the `@theme` block of `app.css`**, so
+  every `gray-*`, `rounded-*` and `shadow-*` utility takes them. The dark end of the gray scale is the
+  dark theme's surfaces (900 page, 800 card, 700 field or divider), so `dark:bg-gray-800` equals
+  `bg-surface-1`; change a gray and its `surface-*` twin together, and the canvas copies in
+  `getChartThemeColors()` with them. A card at rest is `bg-surface-1` with a
+  `border-gray-200 dark:border-gray-700` border and no shadow, ring or hover lift (a card that is itself a link may take `hover:shadow-md`);
+  `shadow-md` and up are for things that float (menus, modals, toasts, the command palette). The
+  landing page follows the same recipe; its hero preview is static markup that reuses
+  `PriceChangeChip` and the price tokens, so it changes with the app.
+- **A full-page Playwright screenshot can show a chart with axes and no line.** A viewport or element
+  screenshot of the same page shows the line, also after a real viewport resize. Check a chart with
+  one of those.
 - **Native form controls are themed once in `app.css`.** `accent-color` and `color-scheme` are set on
   `:root`/`.dark`, so a checkbox or radio adds no `accent-*` class. Number fields have no spinners. A
   `<select>` takes the `form-select` utility (chevron and right padding) and sets `pl-*`, never `px-*`,

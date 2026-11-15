@@ -38,8 +38,8 @@
 	class="text-center {lg ? 'py-20' : 'py-10 px-4'} {!framed
 		? ''
 		: lg
-			? 'bg-white/50 dark:bg-gray-800/40 backdrop-blur-md rounded-2xl shadow-inner border border-gray-200 dark:border-white/5'
-			: 'bg-surface-1 rounded-xl border border-gray-200 dark:border-white/5'}"
+			? 'rounded-xl border border-dashed border-gray-300 dark:border-gray-700'
+			: 'bg-surface-1 rounded-xl border border-gray-200 dark:border-gray-700'}"
 	data-testid={testid}
 >
 	<div class="flex justify-center {lg ? 'mb-6' : 'mb-4'}">

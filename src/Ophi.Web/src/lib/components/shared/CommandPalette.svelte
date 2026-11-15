@@ -251,8 +251,8 @@
 	<div class="fixed inset-0 z-50 overflow-y-auto">
 		<!-- Backdrop -->
 		<div
-			class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-			transition:fade={{ duration: 200 }}
+			class="fixed inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity"
+			transition:fade={{ duration: 150 }}
 			onclick={onClose}
 			role="presentation"
 		></div>
@@ -260,8 +260,8 @@
 		<!-- Palette -->
 		<div class="relative flex justify-center pt-[15vh] px-4">
 			<div
-				class="w-full max-w-xl bg-surface-1/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden ring-1 ring-black/5"
-				in:fly={{ y: 10, duration: 300, delay: 50 }}
+				class="w-full max-w-xl bg-surface-1 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+				in:fly={{ y: 8, duration: 150 }}
 				out:fade={{ duration: 150 }}
 				role="dialog"
 				aria-modal="true"
@@ -312,18 +312,18 @@
 								{@const IconComponent = getIcon(item.section)}
 								<div class="px-2 mb-0.5">
 									<button
-										class="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-all duration-200 rounded-lg {globalIndex === selectedIndex ? 'bg-brand text-white shadow-md' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}"
+										class="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm rounded-md {globalIndex === selectedIndex ? 'bg-surface-2 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}"
 										onclick={() => navigateTo(item)}
 										onmouseenter={() => (selectedIndex = globalIndex)}
 										role="option"
 										aria-selected={globalIndex === selectedIndex}
 										data-selected={globalIndex === selectedIndex}
 									>
-										<IconComponent size={16} class="shrink-0 {globalIndex === selectedIndex ? 'opacity-100 text-brand-subtle' : 'opacity-60'}" />
+										<IconComponent size={16} class="shrink-0 {globalIndex === selectedIndex ? 'text-brand dark:text-brand-muted' : 'opacity-60'}" />
 										<div class="flex-1 min-w-0">
 											<span class="font-medium">{item.label}</span>
 											{#if item.description}
-												<span class="ml-2 text-xs truncate {globalIndex === selectedIndex ? 'text-brand-muted' : 'text-gray-400 dark:text-gray-500'}">{item.description}</span>
+												<span class="ml-2 text-xs truncate text-gray-500 dark:text-gray-400">{item.description}</span>
 											{/if}
 										</div>
 									</button>

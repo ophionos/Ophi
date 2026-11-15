@@ -4,6 +4,36 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+	/* The neutral scale. It replaces Tailwind's blue-tinted gray, so every `gray-*` utility takes it.
+	   The dark end is the dark theme's surfaces: 900 is the page, 800 a card, 700 a field or divider,
+	   600 a field border. `surface-*` below repeat those values, so `dark:bg-gray-800` and
+	   `bg-surface-1` are the same colour. */
+	--color-gray-50: #fafafa;
+	--color-gray-100: #f4f4f5;
+	--color-gray-200: #e4e4e7;
+	--color-gray-300: #d4d4d8;
+	--color-gray-400: #a1a1aa;
+	--color-gray-500: #71717a;
+	--color-gray-600: #46464e;
+	--color-gray-700: #2a2a2f;
+	--color-gray-800: #18181b;
+	--color-gray-900: #0e0e10;
+	--color-gray-950: #09090b;
+
+	/* One step rounder than Tailwind's defaults: controls (md) 8px, cards (lg, xl) 12-14px. */
+	--radius-md: 0.5rem;
+	--radius-lg: 0.75rem;
+	--radius-xl: 0.875rem;
+	--radius-2xl: 1rem;
+
+	/* Soft, wide shadows. A card at rest takes a border and at most shadow-sm; md and up are for
+	   things that float (menus, popovers, modals, toasts). */
+	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	--shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+	--shadow-lg: 0 12px 28px -6px rgb(0 0 0 / 0.12), 0 4px 8px -4px rgb(0 0 0 / 0.05);
+	--shadow-xl: 0 20px 44px -8px rgb(0 0 0 / 0.16), 0 8px 16px -8px rgb(0 0 0 / 0.06);
+	--shadow-2xl: 0 32px 64px -12px rgb(0 0 0 / 0.28);
+
 	--color-surface-0: var(--surface-0);
 	--color-surface-1: var(--surface-1);
 	--color-surface-2: var(--surface-2);
@@ -69,20 +99,20 @@
 }
 
 :root {
-	--surface-0: #f9fafb;
+	--surface-0: #fafafa; /* gray-50 */
 	--surface-1: #ffffff;
-	--surface-2: #f3f4f6;
-	--surface-3: #e5e7eb;
+	--surface-2: #f4f4f5; /* gray-100 */
+	--surface-3: #e4e4e7; /* gray-200 */
 	/* Inputs, selects and secondary buttons */
 	--surface-field: #ffffff;
-	--surface-field-hover: #f9fafb; /* gray-50 */
+	--surface-field-hover: #fafafa; /* gray-50 */
 
 	--price-drop: #15803d; /* green-700 */
 	--price-drop-subtle: #dcfce7; /* green-100 */
 	--price-increase: #b91c1c; /* red-700 */
 	--price-increase-subtle: #fee2e2; /* red-100 */
-	--price-unchanged: #4b5563; /* gray-600 */
-	--price-unchanged-subtle: #f3f4f6; /* gray-100 */
+	--price-unchanged: #46464e; /* gray-600 */
+	--price-unchanged-subtle: #f4f4f5; /* gray-100 */
 	--success: #15803d; /* green-700 */
 	--warning: #b45309; /* amber-700 */
 	--danger: #b91c1c; /* red-700 */
@@ -93,19 +123,19 @@
 }
 
 .dark {
-	--surface-0: #111827;
-	--surface-1: #1f2937;
-	--surface-2: #283141;
-	--surface-3: #374151;
-	--surface-field: #374151; /* gray-700 */
-	--surface-field-hover: #4b5563; /* gray-600 */
+	--surface-0: #0e0e10; /* gray-900 */
+	--surface-1: #18181b; /* gray-800 */
+	--surface-2: #202024;
+	--surface-3: #2a2a2f; /* gray-700 */
+	--surface-field: #2a2a2f; /* gray-700 */
+	--surface-field-hover: #46464e; /* gray-600 */
 
 	--price-drop: #4ade80; /* green-400 */
 	--price-drop-subtle: rgb(20 83 45 / 0.4); /* green-900/40 */
 	--price-increase: #f87171; /* red-400 */
 	--price-increase-subtle: rgb(127 29 29 / 0.4); /* red-900/40 */
-	--price-unchanged: #9ca3af; /* gray-400 */
-	--price-unchanged-subtle: #374151; /* gray-700 */
+	--price-unchanged: #a1a1aa; /* gray-400 */
+	--price-unchanged-subtle: #2a2a2f; /* gray-700 */
 	--success: #4ade80; /* green-400 */
 	--warning: #fbbf24; /* amber-400 */
 	--danger: #f87171; /* red-400 */
@@ -113,11 +143,16 @@
 
 body {
 	background-color: var(--surface-0);
-	background-image: radial-gradient(circle at 50% 0%, var(--surface-2) 0%, transparent 60%);
-	background-attachment: fixed;
 	font-family: 'Signika Negative Variable', sans-serif;
 	font-weight: 450;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizeLegibility;
 	@apply text-gray-900 dark:text-gray-100;
+}
+
+::selection {
+	background-color: color-mix(in srgb, var(--color-brand) 25%, transparent);
 }
 
 button:not(:disabled),
@@ -158,51 +193,6 @@ input[type='number']::-webkit-outer-spin-button {
 	background-repeat: no-repeat;
 	background-position: right 0.75rem center;
 	background-size: 1rem;
-}
-
-@utility bg-brand-gradient {
-	background-image: linear-gradient(135deg, #0d9488, #6366f1);
-}
-
-@keyframes ticker {
-	from {
-		transform: translateX(0);
-	}
-	to {
-		transform: translateX(-50%);
-	}
-}
-
-@utility animate-ticker {
-	animation: ticker 25s linear infinite;
-}
-
-@keyframes fade-in-up {
-	from {
-		opacity: 0;
-		transform: translateY(20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-@utility animate-fade-in-up {
-	animation: fade-in-up 0.6s ease-out both;
-}
-
-@keyframes scan-sweep {
-	0% {
-		top: 0%;
-	}
-	100% {
-		top: 100%;
-	}
-}
-
-@utility animate-scan-sweep {
-	animation: scan-sweep 2s ease-in-out infinite;
 }
 
 @keyframes nav-progress {

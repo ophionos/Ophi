@@ -105,15 +105,15 @@ describe('chart helpers', () => {
 	describe('getChartThemeColors', () => {
 		it('should return dark palette when isDark', () => {
 			const c = getChartThemeColors(true);
-			expect(c.tooltipBg).toBe('rgba(31, 41, 55, 0.95)');
-			expect(c.tooltipTitle).toBe('#f9fafb');
-			expect(c.pointBorder).toBe('#1f2937');
+			expect(c.tooltipBg).toBe('rgba(24, 24, 27, 0.95)');
+			expect(c.tooltipTitle).toBe('#fafafa');
+			expect(c.pointBorder).toBe('#18181b');
 		});
 
 		it('should return light palette when not isDark', () => {
 			const c = getChartThemeColors(false);
 			expect(c.tooltipBg).toBe('rgba(255, 255, 255, 0.95)');
-			expect(c.tooltipTitle).toBe('#1f2937');
+			expect(c.tooltipTitle).toBe('#18181b');
 			expect(c.pointBorder).toBe('#fff');
 		});
 	});

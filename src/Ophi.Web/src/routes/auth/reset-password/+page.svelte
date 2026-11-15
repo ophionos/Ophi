@@ -73,7 +73,7 @@
 			</h2>
 		</div>
 
-		<div class="bg-white dark:bg-gray-800 py-8 px-6 shadow-sm rounded-lg">
+		<div class="bg-surface-1 border border-gray-200 dark:border-gray-700 py-8 px-6 rounded-xl">
 			{#if submitted}
 				<div
 					class="p-4 bg-success/10 border border-success/30 rounded-lg text-sm text-success"

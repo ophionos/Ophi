@@ -84,7 +84,7 @@
 		<ul class="space-y-2">
 			{#each alerts as alert (alert.id)}
 				<li
-					class="flex items-center justify-between gap-3 p-3 bg-surface-1 border border-gray-200 dark:border-gray-700/50 rounded-lg"
+					class="flex items-center justify-between gap-3 p-3 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-lg"
 					data-testid="basket-alert-row"
 				>
 					<div class="min-w-0">
