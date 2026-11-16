@@ -23,8 +23,21 @@ COPY src/Ophi.Infrastructure/ Ophi.Infrastructure/
 COPY src/Ophi.Worker/ Ophi.Worker/
 COPY src/Ophi.Api/ Ophi.Api/
 
-# Build and publish
-RUN dotnet publish Ophi.Api/Ophi.Api.csproj -c Release -o /app/publish -a $TARGETARCH --no-restore
+# Build and publish. See docker/Dockerfile.worker for PlaywrightPlatform and the driver move.
+# Without Chromium nothing can start the driver, so it is left out of the image (~135 MB).
+ARG INSTALL_CHROMIUM=false
+RUN case "$TARGETARCH" in \
+      amd64) PW_PLATFORM=linux-x64 ;; \
+      arm64) PW_PLATFORM=linux-arm64 ;; \
+      *) echo "Unsupported TARGETARCH '$TARGETARCH' for the Playwright driver" >&2; exit 1 ;; \
+    esac && \
+    dotnet publish Ophi.Api/Ophi.Api.csproj -c Release -o /app/publish -a $TARGETARCH --no-restore \
+      -p:PlaywrightPlatform=$PW_PLATFORM && \
+    if [ "$INSTALL_CHROMIUM" = "true" ]; then \
+      mv /app/publish/.playwright /app/playwright-driver; \
+    else \
+      rm -rf /app/publish/.playwright && mkdir /app/playwright-driver; \
+    fi
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
@@ -38,9 +51,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 # Same install as docker/Dockerfile.worker (see the notes there). Only the Playwright driver is copied
-# first, so a code change does not repeat the browser download.
+# first, so a code change does not repeat the browser download. The driver directory is empty when
+# INSTALL_CHROMIUM is false.
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright-browsers
-COPY --from=build /app/publish/.playwright ./.playwright
+COPY --from=build --chown=app:app /app/playwright-driver ./.playwright
 RUN if [ "$INSTALL_CHROMIUM" = "true" ]; then \
       case "$TARGETARCH" in \
         amd64) PW_NODE_DIR=linux-x64 ;; \
@@ -50,8 +64,9 @@ RUN if [ "$INSTALL_CHROMIUM" = "true" ]; then \
       PW_NODE="/app/.playwright/node/$PW_NODE_DIR/node" && \
       chmod +x "$PW_NODE" && \
       NODE_OPTIONS=--dns-result-order=ipv4first \
-      "$PW_NODE" /app/.playwright/package/cli.js install --with-deps chromium && \
-      chown -R app:app /app/.playwright /app/.playwright-browsers; \
+      "$PW_NODE" /app/.playwright/package/cli.js install --with-deps --only-shell chromium && \
+      rm -rf /var/lib/apt/lists/* && \
+      chown -R app:app /app/.playwright-browsers; \
     fi
 
 # Create data directory and set permissions for built-in non-root user

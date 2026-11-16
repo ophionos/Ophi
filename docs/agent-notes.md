@@ -565,7 +565,16 @@ Coverage targets are advisory, not CI-enforced.
   without it every `api` recreate logs everyone out. The data dir must be writable by the non-root user.
 - **Runtime stages must not hardcode an arch.** The worker's Playwright node path follows `TARGETARCH`
   (`linux-x64` does not exist in an arm64 publish). CI builds amd64 only, so nothing guards this.
+- **Image size rules for the Playwright layers** (the worker was ~4 GB without them):
+  - Never `chown -R` in a later layer than the files it touches — the layer stores a second full copy.
+    Use `COPY --chown` and chown inside the installing `RUN`.
+  - The publish passes `-p:PlaywrightPlatform=linux-<arch>`. `-a` does not reach the
+    `Ophi.Infrastructure` project reference, which otherwise adds the build host's node (~120 MB) to a
+    cross-built image.
+  - `install --only-shell`: `Headless = true` without a channel runs `chromium-headless-shell`. Setting
+    a `Channel` or `Headless = false` in `PlaywrightBrowserManager` needs the full Chromium back.
+  - The driver is moved out of the publish output and copied before the app files, so a code change
+    reuses the browser layer. The api image has no driver unless `INSTALL_CHROMIUM=true`.
 - Rebuild one service without cycling its dependencies: `docker compose up -d --build --no-deps <svc>`.
-- Worker image rebuilds re-download Playwright Chromium (the install layer follows the publish COPY).
-  `NODE_OPTIONS=--dns-result-order=ipv4first` is scoped to that RUN line because IPv6 to the Playwright
-  CDN hangs on some networks.
+- `NODE_OPTIONS=--dns-result-order=ipv4first` is scoped to the browser-install RUN line because IPv6 to
+  the Playwright CDN hangs on some networks.

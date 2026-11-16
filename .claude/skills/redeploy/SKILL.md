@@ -35,7 +35,7 @@ wsl -d <distro> -- sudo bash -c 'cd <stack-dir> && docker compose -f docker/dock
 wsl -d <distro> -- sudo bash -c 'cd <stack-dir> && docker compose -f docker/docker-compose.yml --env-file .env up -d'   # api waits Healthy, then worker, then web
 ```
 
-**Build timing — slow is not stuck.** ~10 min when the worker's Playwright layer is cached. **~30-45 min** when any `Ophi.Domain`/`Ophi.Infrastructure` change invalidates the publish layer, because the Chromium install layer sits after it and re-downloads both `chromium-headless-shell` and `chromium` at ~450 KB/s over the WSL2 NAT. Two progressing builds were once killed as "stalled" for not knowing this. The authoritative completion signal is the background build task's own exit; a killed `... | tail` pipeline also reports exit 0, so confirm with `docker images | grep docker-worker` freshness.
+**Build timing — slow is not stuck.** ~10 min when the worker's Playwright layer is cached, which a code change no longer invalidates (the browser install sits before the publish COPY). It is much slower when a `Microsoft.Playwright` bump or a Dockerfile change invalidates that layer, because it re-downloads `chromium-headless-shell` and the apt dependencies at ~450 KB/s over the WSL2 NAT. Two progressing builds were once killed as "stalled" for not knowing this. The authoritative completion signal is the background build task's own exit; a killed `... | tail` pipeline also reports exit 0, so confirm with `docker images | grep docker-worker` freshness.
 
 `up -d` keeps the `ophi-data` volume (DB + Data Protection keys), so sessions and data survive recreates.
 
