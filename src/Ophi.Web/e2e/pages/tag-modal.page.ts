@@ -10,7 +10,7 @@ export class TagModalPage extends BaseModalPage {
 	readonly colorButtons: Locator;
 
 	constructor(page: Page) {
-		super(page, '.fixed.inset-0.z-50 .bg-white.rounded-lg.shadow-xl', '[data-testid="tag-save-button"]');
+		super(page, '.fixed.inset-0.z-50 [role="dialog"]', '[data-testid="tag-save-button"]');
 		this.modalTitle = this.modal.locator('h2');
 		this.nameInput = page.locator('[data-testid="tag-name-input"]');
 		this.weightInput = page.locator('[data-testid="tag-weight-input"]');

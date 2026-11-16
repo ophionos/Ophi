@@ -23,7 +23,7 @@
 
 <div
 	data-testid="store-card"
-	class="bg-surface-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+	class="bg-surface-1 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
 >
 	<div class="flex items-start justify-between">
 		<div class="flex-1">

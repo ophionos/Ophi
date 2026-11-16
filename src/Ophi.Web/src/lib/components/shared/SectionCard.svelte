@@ -57,7 +57,7 @@
 	const cardBorder = $derived(
 		accent === 'danger'
 			? 'border-danger/30'
-			: 'border-gray-200 dark:border-gray-700/50 ring-1 ring-black/5 dark:ring-white/5'
+			: 'border-gray-200 dark:border-gray-700'
 	);
 
 	const iconClass = $derived(
@@ -65,7 +65,7 @@
 	);
 </script>
 
-<div class="bg-surface-1 rounded-2xl shadow-sm border {cardBorder} mb-6" data-testid={testid}>
+<div class="bg-surface-1 rounded-xl border {cardBorder} mb-6" data-testid={testid}>
 	{#if collapsible}
 		<button
 			type="button"

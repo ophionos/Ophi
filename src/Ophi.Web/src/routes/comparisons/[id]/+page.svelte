@@ -223,7 +223,7 @@
 			{@const bestProduct = group.products.find((p) => p.id === bestPriceProductId)}
 			{#if bestProduct && bestPrice != null}
 				<div
-					class="mb-6 p-5 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm"
+					class="mb-6 p-5 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-xl"
 					data-testid="cheapest-spotlight"
 				>
 					<div class="flex items-center gap-4">

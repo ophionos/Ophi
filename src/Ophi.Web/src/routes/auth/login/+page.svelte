@@ -69,7 +69,7 @@
 			</h2>
 		</div>
 
-		<div class="bg-white dark:bg-gray-800 py-8 px-6 shadow-sm rounded-lg">
+		<div class="bg-surface-1 border border-gray-200 dark:border-gray-700 py-8 px-6 rounded-xl">
 			<form onsubmit={handleSubmit} class="space-y-6">
 				{#if error}
 					<FormError variant="box" message={error} />

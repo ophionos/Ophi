@@ -34,19 +34,14 @@
 </script>
 
 <div
-	class="relative bg-surface-1 rounded-2xl shadow-xl border border-gray-200 dark:border-white/5 overflow-hidden ring-1 ring-black/5 mb-8"
-	in:fly={{ y: 20, duration: 500, delay: 100 }}
+	class="bg-surface-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6"
+	in:fly={{ y: 8, duration: 200 }}
 	data-testid="product-hero"
 >
-	<!-- Ambient background glow behind image -->
-	<div
-		class="absolute -top-32 -left-32 w-64 h-64 bg-brand/20 dark:bg-brand/10 rounded-full blur-3xl pointer-events-none"
-	></div>
-
-	<div class="relative flex flex-col md:flex-row p-5 md:p-6 z-10">
+	<div class="flex flex-col md:flex-row p-5 md:p-6">
 		{#if product.imageUrl}
 			<div
-				class="w-full md:w-40 h-32 shrink-0 rounded-xl overflow-hidden shadow-lg border border-white/10 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm mb-6 md:mb-0"
+				class="w-full md:w-40 h-32 shrink-0 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white mb-6 md:mb-0"
 			>
 				<img
 					src={product.imageUrl}

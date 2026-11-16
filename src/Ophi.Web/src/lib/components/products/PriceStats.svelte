@@ -64,12 +64,12 @@
 </script>
 
 {#if product.hasCurrencyMismatch}
-	<div class="mb-6" in:fly={{ y: 20, duration: 500, delay: 200 }}>
+	<div class="mb-6" in:fly={{ y: 8, duration: 200, delay: 30 }}>
 		<CurrencyMismatchBanner currencies={uniqueCurrencies} />
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
 			{#each pricedUrls as url (url.id)}
 				<div
-					class="bg-surface-1 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50 ring-1 ring-black/5 dark:ring-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+					class="bg-surface-1 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
 				>
 					<p
 						class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-semibold truncate"
@@ -91,7 +91,7 @@
 	</div>
 {:else if hasEnoughHistory}
 	<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-		<div in:fly={{ y: 20, duration: 500, delay: 200 }}>
+		<div in:fly={{ y: 8, duration: 200, delay: 30 }}>
 			<StatCard
 				label="Lowest"
 				valueClass="text-price-drop"
@@ -125,9 +125,9 @@
 	</div>
 {:else if product.currentPrice}
 	<div
-		class="bg-surface-1 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50 ring-1 ring-black/5 dark:ring-white/5 mb-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+		class="bg-surface-1 p-6 rounded-xl border border-gray-200 dark:border-gray-700 mb-6 text-center"
 		data-testid="single-price-display"
-		in:fly={{ y: 20, duration: 500, delay: 200 }}
+		in:fly={{ y: 8, duration: 200, delay: 30 }}
 	>
 		<p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
 			Current Price

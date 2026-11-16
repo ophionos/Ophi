@@ -102,7 +102,7 @@
 </script>
 
 <div
-	class="flex items-center justify-between p-3 bg-surface-1 border border-gray-200 dark:border-gray-700/50 rounded-lg"
+	class="flex items-center justify-between p-3 bg-surface-1 border border-gray-200 dark:border-gray-700 rounded-lg"
 	data-testid="alert-row"
 >
 	<div class="flex items-center gap-3 min-w-0">

@@ -5,12 +5,14 @@
 		ScanSearch,
 		TrendingDown,
 		Bell,
+		BellRing,
 		PiggyBank,
 		Shield,
 		Gauge
 	} from 'lucide-svelte';
 	import ThemeToggle from '$lib/components/shared/ThemeToggle.svelte';
 	import OphiLogo from '$lib/components/shared/OphiLogo.svelte';
+	import PriceChangeChip from '$lib/components/products/PriceChangeChip.svelte';
 	import type { PageData } from './$types';
 
 	// Optional so the page also renders standalone (component tests); SvelteKit always passes it.
@@ -19,17 +21,11 @@
 
 	// Signed-in users are redirected to /dashboard by this route's loader (+page.ts).
 
-	const tickerItems = [
-		{ name: 'AirPods Pro', price: '$189' },
-		{ name: 'PS5 Console', price: '$449' },
-		{ name: 'Kindle Paperwhite', price: '$139' },
-		{ name: 'Samsung 4K TV', price: '$397' },
-		{ name: 'Nike Air Max', price: '$119' },
-		{ name: 'MacBook Air', price: '$999' },
-		{ name: 'Instant Pot', price: '$59' },
-		{ name: 'Sony WH-1000XM5', price: '$278' },
-		{ name: 'iPad Mini', price: '$379' },
-		{ name: 'Dyson V15', price: '$549' }
+	// The hero shows the product itself: a static watchlist with the app's own chip and colours.
+	const previewRows = [
+		{ name: 'Kindle Paperwhite (16 GB)', store: 'amazon.com', price: '$139.00', change: -6.7 },
+		{ name: 'Dyson V15 Detect', store: 'target.com', price: '$549.00', change: -1.2 },
+		{ name: 'Nike Air Max 90', store: 'ebay.com', price: '$119.00', change: 2.1 }
 	];
 
 	const steps = [
@@ -59,224 +55,257 @@
 			description: 'Buy at the right time, every time'
 		}
 	];
+
+	const features = [
+		{
+			icon: TrendingDown,
+			title: 'Track Any Product',
+			description:
+				'Paste a URL and we auto-extract the price. Works with any product page, with tuned extraction for Amazon and eBay.'
+		},
+		{
+			icon: Bell,
+			title: 'Smart Alerts',
+			description:
+				'Set target prices, percentage drops, or price-above alerts. Get notified by email instantly.'
+		},
+		{
+			icon: Gauge,
+			title: 'Price in Context',
+			description:
+				"Each product shows a 30-day sparkline and where today's price sits in its 90-day range, so a real low is easy to spot."
+		},
+		{
+			icon: Shield,
+			title: 'Self-Hosted',
+			description: 'Your data stays on your hardware. Runs on any Docker host.'
+		}
+	];
+
+	const facts = [
+		{ value: 'Any', label: 'Online store' },
+		{ value: '24/7', label: 'Price monitoring' },
+		{ value: '0', label: 'Data shared' }
+	];
+
+	const primaryButton =
+		'inline-flex min-h-12 items-center justify-center rounded-lg bg-brand px-6 font-semibold text-white transition-colors hover:bg-brand-hover focus-visible-ring';
+	const secondaryButton =
+		'inline-flex min-h-12 items-center justify-center rounded-lg border border-gray-300 bg-surface-field px-6 font-semibold text-gray-900 transition-colors hover:bg-surface-field-hover focus-visible-ring dark:border-gray-600 dark:text-white';
 </script>
 
-<!-- Theme toggle -->
-<div class="fixed top-4 right-4 z-50">
-	<ThemeToggle />
-</div>
+<div class="relative min-h-screen overflow-hidden bg-surface-0">
+	<!-- One soft brand wash behind the header and hero; everything below is flat. -->
+	<div
+		class="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-linear-to-b from-brand/10 to-transparent dark:from-brand/15"
+	></div>
 
-<div class="min-h-screen bg-surface-0 overflow-hidden">
-	<!-- Hero Section -->
-	<section class="relative pt-20 pb-24 px-4">
-		<!-- Subtle gradient overlay -->
-		<div
-			class="absolute inset-0 bg-linear-to-br from-brand-light via-transparent to-indigo-50/50 dark:from-brand-dark/20 dark:via-transparent dark:to-indigo-950/20 pointer-events-none"
-		></div>
-
-		<div class="relative max-w-5xl mx-auto text-center">
-			<!-- Logo + Brand -->
-			<div class="flex justify-center items-center gap-3 mb-8 animate-fade-in-up">
-				<OphiLogo size={56} />
-				<span class="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">Ophi</span>
+	<header class="relative px-4 sm:px-6">
+		<div class="mx-auto flex h-16 max-w-6xl items-center justify-between">
+			<div class="flex items-center gap-2.5">
+				<OphiLogo size={32} class="rounded" />
+				<span class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Ophi</span>
 			</div>
-
-			<!-- Tagline -->
-			<h1
-				class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 leading-tight animate-fade-in-up"
-				style="animation-delay: 100ms"
-			>
-				Never pay <span class="bg-brand-gradient bg-clip-text text-transparent">full price</span> again
-			</h1>
-
-			<p
-				class="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-10 animate-fade-in-up"
-				style="animation-delay: 200ms"
-			>
-				Track prices from any online store. Get notified the moment they drop. Self-hosted, private, and completely yours.
-			</p>
-
-			<!-- CTAs -->
-			<div
-				class="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up"
-				style="animation-delay: 300ms"
-			>
-				{#if registrationOpen}
-					<a
-						href={resolve('/auth/register')}
-						class="px-8 py-4 bg-brand-gradient text-white rounded-xl hover:opacity-90 font-semibold text-lg shadow-lg shadow-brand/20 transition-all duration-200 hover:shadow-xl hover:shadow-brand/30 hover:-translate-y-0.5"
-					>
-						Get Started Free
-					</a>
-				{/if}
+			<div class="flex items-center gap-1">
+				<ThemeToggle />
 				<a
 					href={resolve('/auth/login')}
-					class="px-8 py-4 bg-surface-1 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold text-lg border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:-translate-y-0.5"
+					class="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-surface-2 hover:text-gray-900 focus-visible-ring dark:text-gray-300 dark:hover:text-white"
 				>
 					Sign In
 				</a>
 			</div>
 		</div>
-	</section>
+	</header>
 
-	<!-- Price Ticker Tape -->
-	<section class="relative py-4 bg-surface-0/80 dark:bg-surface-1/50 border-y border-gray-200/50 dark:border-gray-700/30 overflow-hidden" aria-hidden="true">
-		<div class="animate-ticker flex whitespace-nowrap">
-			{#each [...tickerItems, ...tickerItems] as item, i (i)}
-				<span class="inline-flex items-center gap-2 mx-6 text-sm font-medium text-gray-400 dark:text-gray-500" aria-hidden="true">
-					<span class="text-gray-300 dark:text-gray-600">{item.name}</span>
-					<span class="text-brand dark:text-brand-muted font-semibold">{item.price}</span>
-					{#if i < tickerItems.length * 2 - 1}
-						<span class="text-gray-200 dark:text-gray-700 ml-4">·</span>
+	<!-- Hero -->
+	<section class="relative px-4 pt-12 pb-20 sm:px-6 lg:pt-20 lg:pb-28">
+		<div
+			class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-16"
+		>
+			<div class="min-w-0 text-center lg:text-left">
+				<p
+					class="mb-5 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-surface-1 px-3 py-1 text-xs font-medium text-gray-600 dark:border-gray-700 dark:text-gray-300"
+				>
+					<Shield size={14} class="text-brand dark:text-brand-muted" aria-hidden="true" />
+					Self-hosted price tracker
+				</p>
+				<h1
+					class="text-4xl leading-[1.05] font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl dark:text-white"
+				>
+					Never pay <span class="text-brand dark:text-brand-muted">full price</span> again
+				</h1>
+				<p class="mx-auto mt-6 max-w-xl text-lg text-gray-600 lg:mx-0 dark:text-gray-300">
+					Track prices from any online store. Get notified the moment they drop. Self-hosted,
+					private, and completely yours.
+				</p>
+				<div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+					{#if registrationOpen}
+						<a href={resolve('/auth/register')} class={primaryButton}>Get Started Free</a>
 					{/if}
-				</span>
-			{/each}
+					<a
+						href={resolve('/auth/login')}
+						class={registrationOpen ? secondaryButton : primaryButton}
+					>
+						Sign In
+					</a>
+				</div>
+			</div>
+
+			<!-- Product preview: decorative, so it is hidden from assistive technology. -->
+			<div class="relative mx-auto w-full max-w-md min-w-0 lg:max-w-none" aria-hidden="true">
+				<div
+					class="overflow-hidden rounded-xl border border-gray-200 bg-surface-1 shadow-xl dark:border-gray-700"
+				>
+					<div
+						class="flex items-center justify-between border-b border-gray-200 px-5 py-3 dark:border-gray-700"
+					>
+						<span class="text-sm font-semibold text-gray-900 dark:text-white">Watchlist</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400">4 products</span>
+					</div>
+
+					<div class="border-b border-gray-200 p-5 dark:border-gray-700">
+						<div class="flex items-start justify-between gap-4">
+							<div class="min-w-0">
+								<p class="truncate font-semibold text-gray-900 dark:text-white">
+									Sony WH-1000XM5 Headphones
+								</p>
+								<p class="text-xs text-gray-500 dark:text-gray-400">amazon.com</p>
+							</div>
+							<PriceChangeChip change={-12.4} />
+						</div>
+						<div class="mt-4 flex items-end justify-between gap-4">
+							<div>
+								<p class="text-3xl font-bold tabular-nums text-gray-900 dark:text-white">$278.00</p>
+								<p class="mt-1 text-xs text-gray-500 tabular-nums line-through dark:text-gray-400">
+									$317.50
+								</p>
+							</div>
+							<svg
+								viewBox="0 0 200 56"
+								class="h-14 w-44 text-price-drop"
+								fill="none"
+								preserveAspectRatio="none"
+							>
+								<path
+									d="M0 10 H34 V16 H70 V12 H98 V24 H132 V30 H160 V46 H200 V56 H0 Z"
+									fill="currentColor"
+									opacity="0.12"
+								/>
+								<path
+									d="M0 10 H34 V16 H70 V12 H98 V24 H132 V30 H160 V46 H200"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linejoin="round"
+									vector-effect="non-scaling-stroke"
+								/>
+							</svg>
+						</div>
+						<div
+							class="mt-4 flex items-center gap-2 rounded-lg bg-price-drop-subtle px-3 py-2 text-sm font-medium text-price-drop"
+						>
+							<BellRing size={16} />
+							Alert reached: below $280.00
+						</div>
+					</div>
+
+					<ul class="divide-y divide-gray-200 dark:divide-gray-700">
+						{#each previewRows as row (row.name)}
+							<li class="flex items-center gap-3 px-5 py-3">
+								<span
+									class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-2 text-sm font-semibold text-gray-500 dark:text-gray-400"
+								>
+									{row.name.charAt(0)}
+								</span>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-sm font-medium text-gray-900 dark:text-white">
+										{row.name}
+									</span>
+									<span class="block text-xs text-gray-500 dark:text-gray-400">{row.store}</span>
+								</span>
+								<span class="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
+									{row.price}
+								</span>
+								<PriceChangeChip change={row.change} />
+							</li>
+						{/each}
+					</ul>
+				</div>
+			</div>
 		</div>
 	</section>
 
 	<!-- How It Works -->
-	<section class="py-20 px-4">
-		<div class="max-w-5xl mx-auto">
-			<h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-4">
-				How it works
-			</h2>
-			<p class="text-center text-gray-500 dark:text-gray-400 mb-14 max-w-lg mx-auto">
-				From URL to savings in under a minute
-			</p>
+	<section class="relative border-t border-gray-200 px-4 py-20 sm:px-6 dark:border-gray-700">
+		<div class="mx-auto max-w-6xl">
+			<h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">How it works</h2>
+			<p class="mt-2 text-gray-600 dark:text-gray-400">From URL to savings in under a minute</p>
 
-			<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 md:gap-4">
+			<ol class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 md:grid-cols-5">
 				{#each steps as step, i (step.title)}
-					<div
-						class="relative flex flex-col items-center text-center animate-fade-in-up"
-						style="animation-delay: {i * 100}ms"
-					>
-						<!-- Step number + icon -->
-						<div
-							class="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 {i === steps.length - 1
-								? 'bg-brand-gradient text-white'
-								: 'bg-surface-2 text-brand dark:text-brand-muted'}"
-						>
-							<step.icon size={24} />
+					<li>
+						<div class="flex items-center gap-3">
+							<span
+								class="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-surface-1 text-brand dark:border-gray-700 dark:text-brand-muted"
+							>
+								<step.icon size={20} aria-hidden="true" />
+							</span>
+							<span class="text-sm font-semibold text-gray-500 tabular-nums dark:text-gray-400">
+								{String(i + 1).padStart(2, '0')}
+							</span>
 						</div>
-
-						<!-- Connector arrow (hidden on last item and mobile) -->
-						{#if i < steps.length - 1}
-							<div
-								class="hidden md:block absolute top-7 left-[calc(50%+28px)] w-[calc(100%-56px)] h-px bg-gray-200 dark:bg-gray-700"
-							></div>
-						{/if}
-
-						<h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-1">{step.title}</h3>
-						<p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{step.description}</p>
-					</div>
+						<h3 class="mt-4 font-semibold text-gray-900 dark:text-white">{step.title}</h3>
+						<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{step.description}</p>
+					</li>
 				{/each}
-			</div>
+			</ol>
 		</div>
 	</section>
 
 	<!-- Feature Cards -->
-	<section class="py-16 px-4 bg-surface-0/50 dark:bg-surface-1/20">
-		<div class="max-w-5xl mx-auto">
-			<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-				<div
-					class="bg-surface-1 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
-				>
+	<section class="px-4 pb-20 sm:px-6">
+		<div class="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+			{#each features as feature (feature.title)}
+				<div class="rounded-xl border border-gray-200 bg-surface-1 p-6 dark:border-gray-700">
 					<div
-						class="w-10 h-10 bg-brand-subtle dark:bg-brand-dark rounded-xl flex items-center justify-center mb-4"
+						class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-brand-subtle text-brand dark:bg-brand-dark/40 dark:text-brand-muted"
 					>
-						<TrendingDown class="text-brand dark:text-brand-muted" size={20} />
+						<feature.icon size={20} aria-hidden="true" />
 					</div>
-					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Track Any Product</h3>
-					<p class="text-sm text-gray-500 dark:text-gray-400">
-						Paste a URL and we auto-extract the price. Works with any product page, with tuned
-						extraction for Amazon and eBay.
-					</p>
+					<h3 class="mb-2 font-semibold text-gray-900 dark:text-white">{feature.title}</h3>
+					<p class="text-sm text-gray-600 dark:text-gray-400">{feature.description}</p>
 				</div>
-
-				<div
-					class="bg-surface-1 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
-					style="animation-delay: 100ms"
-				>
-					<div
-						class="w-10 h-10 bg-brand-secondary/10 rounded-xl flex items-center justify-center mb-4"
-					>
-						<Bell class="text-brand-secondary dark:text-brand-secondary-dark" size={20} />
-					</div>
-					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Smart Alerts</h3>
-					<p class="text-sm text-gray-500 dark:text-gray-400">
-						Set target prices, percentage drops, or price-above alerts. Get notified by email instantly.
-					</p>
-				</div>
-
-				<div
-					class="bg-surface-1 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
-					style="animation-delay: 200ms"
-				>
-					<div
-						class="w-10 h-10 bg-brand-subtle dark:bg-brand-dark rounded-xl flex items-center justify-center mb-4"
-					>
-						<Gauge class="text-brand dark:text-brand-muted" size={20} />
-					</div>
-					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Price in Context</h3>
-					<p class="text-sm text-gray-500 dark:text-gray-400">
-						Each product shows a 30-day sparkline and where today's price sits in its 90-day range, so a real low is easy to spot.
-					</p>
-				</div>
-
-				<div
-					class="bg-surface-1 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow duration-300 animate-fade-in-up"
-					style="animation-delay: 300ms"
-				>
-					<div
-						class="w-10 h-10 bg-brand-secondary/10 rounded-xl flex items-center justify-center mb-4"
-					>
-						<Shield class="text-brand-secondary dark:text-brand-secondary-dark" size={20} />
-					</div>
-					<h3 class="font-semibold text-gray-900 dark:text-white mb-2">Self-Hosted</h3>
-					<p class="text-sm text-gray-500 dark:text-gray-400">
-						Your data stays on your hardware. Runs on any Docker host.
-					</p>
-				</div>
-			</div>
+			{/each}
 		</div>
 	</section>
 
-	<!-- Stats bar -->
-	<section class="py-14 px-4">
-		<div class="max-w-3xl mx-auto text-center">
-			<div class="grid grid-cols-3 gap-8">
-				<div>
-					<p class="text-3xl font-bold text-brand dark:text-brand-muted">Any</p>
-					<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Online store</p>
+	<!-- Facts -->
+	<section class="px-4 pb-20 sm:px-6">
+		<dl
+			class="mx-auto grid max-w-6xl grid-cols-3 divide-x divide-gray-200 rounded-xl border border-gray-200 bg-surface-1 dark:divide-gray-700 dark:border-gray-700"
+		>
+			{#each facts as fact (fact.label)}
+				<div class="flex flex-col-reverse px-4 py-8 text-center">
+					<dt class="mt-1 text-sm text-gray-600 dark:text-gray-400">{fact.label}</dt>
+					<dd class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+						{fact.value}
+					</dd>
 				</div>
-				<div>
-					<p class="text-3xl font-bold text-brand dark:text-brand-muted">24/7</p>
-					<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Price monitoring</p>
-				</div>
-				<div>
-					<p class="text-3xl font-bold text-brand dark:text-brand-muted">0</p>
-					<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Data shared</p>
-				</div>
-			</div>
-		</div>
+			{/each}
+		</dl>
 	</section>
 
 	<!-- Footer CTA: sign-up only, so it goes when the operator has closed registration -->
 	{#if registrationOpen}
-		<section class="py-16 px-4 border-t border-gray-100 dark:border-gray-800">
-			<div class="max-w-2xl mx-auto text-center">
-				<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+		<section class="border-t border-gray-200 px-4 py-20 sm:px-6 dark:border-gray-700">
+			<div class="mx-auto max-w-2xl text-center">
+				<h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
 					Ready to start saving?
 				</h2>
-				<p class="text-gray-500 dark:text-gray-400 mb-8">
+				<p class="mt-3 mb-8 text-gray-600 dark:text-gray-400">
 					Set up in minutes. No credit card required. No data leaves your server.
 				</p>
-				<a
-					href={resolve('/auth/register')}
-					class="inline-block px-8 py-4 bg-brand-gradient text-white rounded-xl hover:opacity-90 font-semibold text-lg shadow-lg shadow-brand/20 transition-all duration-200 hover:shadow-xl hover:shadow-brand/30"
-				>
-					Get Started Free
-				</a>
+				<a href={resolve('/auth/register')} class={primaryButton}>Get Started Free</a>
 			</div>
 		</section>
 	{/if}

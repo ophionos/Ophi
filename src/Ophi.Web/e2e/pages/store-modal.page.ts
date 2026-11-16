@@ -16,7 +16,7 @@ export class StoreModalPage extends BasePage {
 
 	constructor(page: Page) {
 		super(page);
-		this.modal = page.locator('.fixed.inset-0 .bg-white.rounded-lg.shadow-xl');
+		this.modal = page.locator('.fixed.inset-0 [role="dialog"]');
 		this.modalTitle = this.modal.locator('h2');
 		this.storeIdInput = page.locator('#storeId');
 		this.nameInput = page.locator('#name');

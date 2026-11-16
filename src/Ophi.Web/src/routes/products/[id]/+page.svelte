@@ -380,7 +380,7 @@
 			<div
 				class="flex items-center gap-3 p-4 mb-6 bg-danger/10 border border-danger/30 rounded-xl"
 				data-testid="out-of-stock-banner"
-				in:fly={{ y: 20, duration: 500, delay: 50 }}
+				in:fly={{ y: 8, duration: 200 }}
 			>
 				<PackageX size={20} class="text-danger shrink-0" />
 				<div>
@@ -399,7 +399,7 @@
 			<div
 				class="flex items-center gap-3 p-4 mb-6 bg-warning/10 border border-warning/30 rounded-xl"
 				data-testid="anomaly-banner"
-				in:fly={{ y: 20, duration: 500, delay: 50 }}
+				in:fly={{ y: 8, duration: 200 }}
 			>
 				<TriangleAlert size={20} class="text-warning shrink-0" />
 				<div>
@@ -420,7 +420,7 @@
 				{#if product}
 					{#if product.urls && product.urls.length > 1}
 						<span
-							class="text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1 rounded-full shadow-sm"
+							class="text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1 rounded-full"
 						>
 							Tracking {product.urls.length} stores
 						</span>
@@ -465,7 +465,7 @@
 			<!-- Main column -->
 			<div class="lg:col-span-2">
 				<!-- Price History Chart -->
-				<div in:fly={{ y: 20, duration: 500, delay: 400 }}>
+				<div in:fly={{ y: 8, duration: 200, delay: 60 }}>
 					<SectionCard title="Price History" icon={TrendIcon}>
 						{#snippet action()}
 							<div class="-my-2 flex gap-1">
@@ -503,7 +503,7 @@
 
 				<!-- Store URLs Section -->
 				{#if product.urls}
-					<div in:fly={{ y: 20, duration: 500, delay: 500 }}>
+					<div in:fly={{ y: 8, duration: 200, delay: 90 }}>
 						<SectionCard title="Store URLs" icon={Link} bodyClass="p-4 space-y-2">
 							{#snippet action()}
 								<button
@@ -542,7 +542,7 @@
 			     viewport, and a sticky rail then hides its lower cards until the page ends. -->
 			<div class="lg:col-span-1" data-testid="product-rail">
 				<!-- Alerts — in the rail, so the main column holds the price and the rail what acts on it -->
-				<div in:fly={{ y: 20, duration: 500, delay: 600 }}>
+				<div in:fly={{ y: 8, duration: 200, delay: 120 }}>
 					<SectionCard title="Price Alerts" icon={Bell}>
 						{#snippet action()}
 							<button
@@ -567,7 +567,7 @@
 
 				<!-- Custom Fields -->
 				{#if product.customFields && product.customFields.length > 0}
-					<div in:fly={{ y: 20, duration: 500, delay: 350 }}>
+					<div in:fly={{ y: 8, duration: 200, delay: 60 }}>
 						<SectionCard title="Custom Fields" icon={ListTree} testid="custom-fields-section">
 							<table class="w-full text-sm">
 								<tbody>
@@ -586,7 +586,7 @@
 				{/if}
 
 				<!-- Comparison Group Section -->
-				<div in:fly={{ y: 20, duration: 500, delay: 700 }}>
+				<div in:fly={{ y: 8, duration: 200, delay: 120 }}>
 					<SectionCard title="Comparison Group" icon={Scale}>
 						<ComparisonGroupPanel
 							groups={comparisonGroups}
@@ -598,7 +598,7 @@
 				</div>
 
 				<!-- Basket Section -->
-				<div in:fly={{ y: 20, duration: 500, delay: 750 }}>
+				<div in:fly={{ y: 8, duration: 200, delay: 150 }}>
 					<SectionCard title="Basket" icon={ShoppingBasket}>
 						<div class="flex items-center justify-between gap-3">
 							<p class="text-sm text-gray-500 dark:text-gray-400">
@@ -617,7 +617,7 @@
 		</div>
 
 		<!-- Danger Zone — collapsed, and last so the one destructive action is not prominent -->
-		<div class="mt-6" in:fly={{ y: 20, duration: 500, delay: 800 }}>
+		<div class="mt-6" in:fly={{ y: 8, duration: 200, delay: 150 }}>
 			<SectionCard
 				title="Danger Zone"
 				icon={TriangleAlert}

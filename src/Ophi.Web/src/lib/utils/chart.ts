@@ -84,15 +84,17 @@ export interface ChartThemeColors {
 }
 
 export function getChartThemeColors(isDark: boolean): ChartThemeColors {
+	// A canvas cannot read CSS variables, so these repeat the neutral scale in app.css
+	// (gray-50 … gray-800). Change both together.
 	return {
-		tooltipBg: isDark ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-		tooltipTitle: isDark ? '#f9fafb' : '#1f2937',
-		tooltipBody: isDark ? '#d1d5db' : '#4b5563',
-		tooltipBorder: isDark ? '#374151' : '#e5e7eb',
-		gridColor: isDark ? '#374151' : '#f3f4f6',
-		tickColor: isDark ? '#9ca3af' : '#9ca3af',
-		legendColor: isDark ? '#d1d5db' : '#4b5563',
-		pointBorder: isDark ? '#1f2937' : '#fff'
+		tooltipBg: isDark ? 'rgba(24, 24, 27, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+		tooltipTitle: isDark ? '#fafafa' : '#18181b',
+		tooltipBody: isDark ? '#d4d4d8' : '#46464e',
+		tooltipBorder: isDark ? '#2a2a2f' : '#e4e4e7',
+		gridColor: isDark ? '#2a2a2f' : '#f4f4f5',
+		tickColor: '#a1a1aa',
+		legendColor: isDark ? '#d4d4d8' : '#46464e',
+		pointBorder: isDark ? '#18181b' : '#fff'
 	};
 }
 

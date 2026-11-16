@@ -177,7 +177,7 @@
 {/snippet}
 
 <!-- Desktop table -->
-<div class="@container hidden md:block bg-surface-1 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" data-testid="product-table">
+<div class="@container hidden md:block bg-surface-1 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden" data-testid="product-table">
 	<div class="overflow-x-auto">
 		<table class="w-full text-sm text-left">
 			<thead class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-surface-2 border-b border-gray-200 dark:border-gray-700">
